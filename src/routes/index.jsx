@@ -10,10 +10,7 @@ export const routes = [
   {
     path: "/",
     element: <CustomerLayout />,
-    children: [
-      { index: true, element: <Navigate to="products" replace /> },
-       ...customerRoutes
-      ],
+    children: customerRoutes,
   },
   {
     path: "*",
