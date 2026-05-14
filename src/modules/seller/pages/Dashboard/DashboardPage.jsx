@@ -292,7 +292,7 @@ const DashboardPage = () => {
           </p>
           <div className="mt-5 grid grid-cols-2 gap-4">
             {/* Card 1 */}
-            <button className="group flex flex-col justify-between rounded-2xl bg-gradient-to-br from-[#c75c2e] to-[#8b3a1a] p-5 text-left text-white shadow-lg transition-all hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
+            <button className="group flex flex-col justify-between rounded-2xl bg-linear-to-br from-brand-primary to-[#8b3a1a] p-5 text-left text-white shadow-lg transition-all hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
               style={{ minHeight: 150 }}
             >
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
@@ -306,7 +306,7 @@ const DashboardPage = () => {
               </div>
             </button>
             {/* Card 2 */}
-            <button className="group flex flex-col justify-between rounded-2xl bg-gradient-to-br from-[#d4724a] to-[#c75c2e] p-5 text-left text-white shadow-lg transition-all hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
+            <button className="group flex flex-col justify-between rounded-2xl bg-linear-to-br from-brand-secondary to-brand-primary p-5 text-left text-white shadow-lg transition-all hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
               style={{ minHeight: 150 }}
             >
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
