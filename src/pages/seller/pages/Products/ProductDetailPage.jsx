@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ImagePlus, Camera, Lightbulb } from 'lucide-react';
-import { useSellerProducts } from '../../hooks';
+import { useSellerProductDetail, useCreateProduct, useUpdateProduct } from '../../hooks';
 import ErrorState from '../../components/common/ErrorState';
 
 const conditionOptions = ['NEW', 'LIKE_NEW', 'GOOD', 'FAIR'];
@@ -17,7 +17,9 @@ const ProductDetailPage = () => {
   const navigate = useNavigate();
   const isEdit = Boolean(id);
 
-  const { loading, error, fetchProductById, createProduct, updateProduct } = useSellerProducts();
+  const { data: productData, isLoading: loading, error } = useSellerProductDetail(isEdit ? id : null);
+  const { mutateAsync: createProduct } = useCreateProduct();
+  const { mutateAsync: updateProduct } = useUpdateProduct();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -31,33 +33,28 @@ const ProductDetailPage = () => {
     isActive: true,
   });
 
-  const [originalData, setOriginalData] = useState(null);
+  const originalDataRef = useRef(null);
   const [images, setImages] = useState([]);
   const [previewUrls, setPreviewUrls] = useState([]);
 
   useEffect(() => {
-    if (isEdit) {
-      fetchProductById(id).then(data => {
-        if (data) {
-          const formValues = {
-            name: data.name || '',
-            basePrice: data.basePrice || '',
-            salePrice: data.salePrice || '',
-            brand: data.brand || '',
-            condition: data.condition || 'GOOD',
-            description: data.description || '',
-            stockQuantity: data.stockQuantity || 1,
-            originCountry: data.originCountry || '',
-            isActive: data.isActive ?? true,
-          };
-          setFormData(formValues);
-          setOriginalData(formValues);
-          const urls = (data.images || []).map(img => img.url);
-          setPreviewUrls(urls);
-        }
-      });
+    if (isEdit && productData && !originalDataRef.current) {
+      const formValues = {
+        name: productData.name || '',
+        basePrice: productData.basePrice || '',
+        salePrice: productData.salePrice || '',
+        brand: productData.brand || '',
+        condition: productData.condition || 'GOOD',
+        description: productData.description || '',
+        stockQuantity: productData.stockQuantity || 1,
+        originCountry: productData.originCountry || '',
+        isActive: productData.isActive ?? true,
+      };
+      originalDataRef.current = formValues;
+      setFormData(formValues);
+      setPreviewUrls((productData.images || []).map(img => img.url));
     }
-  }, [id, isEdit, fetchProductById]);
+  }, [isEdit, productData]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -76,11 +73,11 @@ const ProductDetailPage = () => {
   };
 
   const getChangedFields = () => {
-    if (!originalData) return formData;
+    if (!originalDataRef.current) return formData;
     
     const changes = {};
     for (const key of Object.keys(formData)) {
-      if (String(formData[key]) !== String(originalData[key])) {
+      if (String(formData[key]) !== String(originalDataRef.current[key])) {
         changes[key] = formData[key];
       }
     }
@@ -100,7 +97,7 @@ const ProductDetailPage = () => {
           alert("Không có thay đổi nào.");
           return;
         }
-        await updateProduct(id, changedFields);
+        await updateProduct({ id, updateData: changedFields });
         alert("Cập nhật thành công!");
         navigate("/seller/products");
       } else {
@@ -118,7 +115,7 @@ const ProductDetailPage = () => {
   }
 
   if (error && isEdit) {
-    return <ErrorState message={error} onRetry={() => fetchProductById(id)} variant="fullpage" />;
+    return <ErrorState message={error.message || error} variant="fullpage" />;
   }
 
   return (

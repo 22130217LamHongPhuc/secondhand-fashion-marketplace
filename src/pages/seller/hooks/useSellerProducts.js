@@ -1,145 +1,105 @@
-import { useState, useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { sellerProductApi } from "../api";
 import { Product, Pagination } from "../models";
+import { sellerProductKeys } from "./sellerQueryKeys";
 
-/**
- * Custom hook for seller product operations.
- *
- * Provides:
- *  - products / product    — data state
- *  - pagination            — pagination metadata from backend
- *  - loading / error       — request status
- *  - fetchProducts         — get paginated list
- *  - fetchProductById      — get single product detail
- *  - fetchProductsByStatus — get filtered by isActive
- *  - createProduct         — create with multipart form-data
- *  - updateProduct         — update via JSON
- *  - deleteProduct         — delete by id
- */
-const useSellerProducts = () => {
-  const [products, setProducts] = useState([]);
-  const [product, setProduct] = useState(null);
-  const [pagination, setPagination] = useState(Pagination.empty());
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  /* ── 1. Lay danh sach san pham ── */
-  const fetchProducts = useCallback(async (params = {}) => {
-    setLoading(true);
-    setError(null);
-    try {
+/* ── 1. Danh sach san pham (Tat ca) ── */
+export const useSellerProductList = (params = {}, options = {}) => {
+  return useQuery({
+    queryKey: sellerProductKeys.list(params),
+    queryFn: async () => {
       const res = await sellerProductApi.getAll(params);
-      const { data } = res.data; // unwrap { data, message }
-      setProducts(Product.fromApiList(data.content));
-      setPagination(Pagination.fromApi(data));
-      return data;
-    } catch (err) {
-      setError(err.message || "Failed to fetch products");
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  /* ── 2. Lay chi tiet san pham ── */
-  const fetchProductById = useCallback(async (id) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await sellerProductApi.getById(id);
       const { data } = res.data;
-      const productModel = Product.fromApi(data);
-      setProduct(productModel);
-      return productModel;
-    } catch (err) {
-      setError(err.message || "Failed to fetch product");
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  /* ── 3. Lay san pham theo trang thai ── */
-  const fetchProductsByStatus = useCallback(async (params = {}) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await sellerProductApi.getByStatus(params);
-      const { data } = res.data;
-      setProducts(Product.fromApiList(data.content));
-      setPagination(Pagination.fromApi(data));
-      return data;
-    } catch (err) {
-      setError(err.message || "Failed to fetch products by status");
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  /* ── 4. Tao san pham ── */
-  const createProduct = useCallback(async (payload) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await sellerProductApi.create(payload);
-      const { data } = res.data;
-      return data;
-    } catch (err) {
-      setError(err.message || "Failed to create product");
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  /* ── 5. Cap nhat san pham ── */
-  const updateProduct = useCallback(async (id, updateData) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await sellerProductApi.update(id, updateData);
-      const { data } = res.data;
-      return data;
-    } catch (err) {
-      setError(err.message || "Failed to update product");
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  /* ── 6. Xoa san pham ── */
-  const deleteProduct = useCallback(async (id) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await sellerProductApi.delete(id);
-      return res.data;
-    } catch (err) {
-      setError(err.message || "Failed to delete product");
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  return {
-    // State
-    products,
-    product,
-    pagination,
-    loading,
-    error,
-
-    // Actions
-    fetchProducts,
-    fetchProductById,
-    fetchProductsByStatus,
-    createProduct,
-    updateProduct,
-    deleteProduct,
-  };
+      return {
+        products: Product.fromApiList(data.content),
+        pagination: Pagination.fromApi(data),
+      };
+    },
+    staleTime: 3 * 60 * 1000, // 3 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    ...options,
+  });
 };
 
-export default useSellerProducts;
+/* ── 2. Danh sach san pham theo trang thai ── */
+export const useSellerProductsByStatus = (params = {}, options = {}) => {
+  return useQuery({
+    queryKey: sellerProductKeys.status(params),
+    queryFn: async () => {
+      const res = await sellerProductApi.getByStatus(params);
+      const { data } = res.data;
+      return {
+        products: Product.fromApiList(data.content),
+        pagination: Pagination.fromApi(data),
+      };
+    },
+    staleTime: 3 * 60 * 1000, // 3 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    ...options,
+  });
+};
+
+/* ── 3. Chi tiet san pham ── */
+export const useSellerProductDetail = (id, options = {}) => {
+  return useQuery({
+    queryKey: sellerProductKeys.detail(id),
+    queryFn: async () => {
+      const res = await sellerProductApi.getById(id);
+      const { data } = res.data;
+      return Product.fromApi(data);
+    },
+    enabled: !!id, // Only fetch if ID is provided
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 15 * 60 * 1000, // 15 minutes
+    ...options,
+  });
+};
+
+/* ── 4. Tao san pham ── */
+export const useCreateProduct = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload) => {
+      const res = await sellerProductApi.create(payload);
+      return res.data.data;
+    },
+    onSuccess: () => {
+      // Invalidate all product queries to refresh list
+      queryClient.invalidateQueries({ queryKey: sellerProductKeys.all });
+    },
+  });
+};
+
+/* ── 5. Cap nhat san pham ── */
+export const useUpdateProduct = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, updateData }) => {
+      const res = await sellerProductApi.update(id, updateData);
+      return res.data.data;
+    },
+    onSuccess: (_, variables) => {
+      // Invalidate specific detail and all lists
+      queryClient.invalidateQueries({ queryKey: sellerProductKeys.detail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: sellerProductKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: sellerProductKeys.statuses() });
+    },
+  });
+};
+
+/* ── 6. Xoa san pham ── */
+export const useDeleteProduct = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id) => {
+      const res = await sellerProductApi.delete(id);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: sellerProductKeys.all });
+    },
+  });
+};

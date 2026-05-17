@@ -1,8 +1,13 @@
 import { Outlet } from 'react-router-dom';
 import Sidebar from '../components/layout/Sidebar';
 import Header from '../components/layout/Header';
+import { useSellerOrderEvents } from '../hooks';
 
 const SellerLayout = () => {
+  // TODO: Replace with actual sellerId from auth context
+  const sellerId = 1;
+  useSellerOrderEvents(sellerId);
+
   return (
     <div className="seller-root flex h-screen overflow-hidden bg-brand-bg">
       {/* Sidebar */}

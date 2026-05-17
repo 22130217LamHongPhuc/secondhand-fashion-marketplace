@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Eye, Pencil, Trash2, FileSpreadsheet, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useSellerProducts } from '../../hooks';
+import { useSellerProductList, useSellerProductsByStatus, useDeleteProduct } from '../../hooks';
+import { Pagination } from '../../models';
 import TableSkeleton from '../../components/common/TableSkeleton';
 import ErrorState from '../../components/common/ErrorState';
 import EmptyState from '../../components/common/EmptyState';
@@ -43,22 +44,20 @@ const ProductsPage = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const navigate = useNavigate();
 
-  const { products, pagination, loading, error, fetchProducts, fetchProductsByStatus, deleteProduct } = useSellerProducts();
+  const isFilteredByStatus = activeTab !== 0;
+  const queryParams = isFilteredByStatus
+    ? { isActive: activeTab === 1, page: currentPage }
+    : { page: currentPage };
 
-  const loadData = (page) => {
-    const tabId = statusTabs[activeTab].id;
-    if (tabId === 'all') {
-      fetchProducts({ page });
-    } else if (tabId === 'active') {
-      fetchProductsByStatus({ isActive: true, page });
-    } else if (tabId === 'hidden') {
-      fetchProductsByStatus({ isActive: false, page });
-    }
-  };
+  const { data: allData, isLoading: allLoading, error: allError } = useSellerProductList(queryParams, { enabled: !isFilteredByStatus });
+  const { data: statusData, isLoading: statusLoading, error: statusError } = useSellerProductsByStatus(queryParams, { enabled: isFilteredByStatus });
 
-  useEffect(() => {
-    loadData(currentPage);
-  }, [activeTab, currentPage]);
+  const loading = isFilteredByStatus ? statusLoading : allLoading;
+  const error = isFilteredByStatus ? statusError : allError;
+  const products = (isFilteredByStatus ? statusData?.products : allData?.products) || [];
+  const pagination = (isFilteredByStatus ? statusData?.pagination : allData?.pagination) || Pagination.empty();
+
+  const { mutateAsync: deleteProduct } = useDeleteProduct();
 
   const handleTabChange = (index) => {
     setActiveTab(index);
@@ -69,7 +68,6 @@ const ProductsPage = () => {
     if (window.confirm("Bạn có chắc chắn muốn xóa sản phẩm này?")) {
       try {
         await deleteProduct(id);
-        loadData(currentPage);
       } catch (e) {
         console.log(e);
         alert("Xóa thất bại!");
@@ -118,7 +116,7 @@ const ProductsPage = () => {
       {loading ? (
         <TableSkeleton columns={6} rows={5} />
       ) : error ? (
-        <ErrorState message={error} onRetry={() => loadData(currentPage)} />
+        <ErrorState message={error.message || error} />
       ) : products.length === 0 ? (
         <EmptyState 
           title="Không có sản phẩm" 

@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Eye, Truck, CircleCheck, CircleX, ChevronLeft, ChevronRight, Check } from 'lucide-react';
-import { useSellerOrders } from '../../hooks';
+import { useSellerOrdersByStatus, useConfirmOrder, useStartDelivery, useCompleteOrder, useCancelOrder } from '../../hooks';
+import { Pagination } from '../../models';
 import TableSkeleton from '../../components/common/TableSkeleton';
 import ErrorState from '../../components/common/ErrorState';
 import EmptyState from '../../components/common/EmptyState';
@@ -44,19 +45,14 @@ const OrdersPage = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [currentPage, setCurrentPage] = useState(0);
 
-  const { 
-    orders, pagination, loading, error, 
-    fetchOrdersByStatus, confirmOrder, startDelivery, completeOrder, cancelOrder 
-  } = useSellerOrders();
+  const { data, isLoading: loading, error } = useSellerOrdersByStatus({ status: statusTabs[activeTab].id, page: currentPage });
+  const orders = data?.orders ?? [];
+  const pagination = data?.pagination ?? Pagination.empty();
 
-  const loadData = (page) => {
-    const status = statusTabs[activeTab].id;
-    fetchOrdersByStatus({ status, page });
-  };
-
-  useEffect(() => {
-    loadData(currentPage);
-  }, [activeTab, currentPage]);
+  const { mutateAsync: confirmOrder } = useConfirmOrder();
+  const { mutateAsync: startDelivery } = useStartDelivery();
+  const { mutateAsync: completeOrder } = useCompleteOrder();
+  const { mutateAsync: cancelOrder } = useCancelOrder();
 
   const handleTabChange = (index) => {
     setActiveTab(index);
@@ -71,11 +67,10 @@ const OrdersPage = () => {
       if (actionStr === 'cancel') {
         const reason = window.prompt("Nhập lý do hủy đơn hàng:");
         if (reason === null) return; // User cancelled prompt
-        await cancelOrder(orderId, reason || "Người bán hủy đơn");
+        await cancelOrder({ id: orderId, reason: reason || "Người bán hủy đơn" });
       }
       
       alert('Thao tác thành công');
-      loadData(currentPage); // reload
     } catch (e) {
       alert('Thao tác thất bại: ' + e);
     }
@@ -115,7 +110,7 @@ const OrdersPage = () => {
       {loading ? (
         <TableSkeleton columns={6} rows={5} />
       ) : error ? (
-        <ErrorState message={error} onRetry={() => loadData(currentPage)} />
+        <ErrorState message={error.message || error} />
       ) : orders.length === 0 ? (
         <EmptyState 
           title="Không có đơn hàng" 
