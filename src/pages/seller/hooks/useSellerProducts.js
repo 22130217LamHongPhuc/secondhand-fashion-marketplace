@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { sellerProductApi } from "../api";
+import { Product, Pagination } from "../models";
 
 /**
  * Custom hook for seller product operations.
@@ -18,28 +19,9 @@ import { sellerProductApi } from "../api";
 const useSellerProducts = () => {
   const [products, setProducts] = useState([]);
   const [product, setProduct] = useState(null);
-  const [pagination, setPagination] = useState({
-    totalPages: 0,
-    totalElements: 0,
-    currentPage: 0,
-    size: 5,
-    isFirst: true,
-    isLast: true,
-    isEmpty: true,
-  });
+  const [pagination, setPagination] = useState(Pagination.empty());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-
-  /* ── helpers ── */
-  const extractPagination = (data) => ({
-    totalPages: data.totalPages ?? 0,
-    totalElements: data.totalElements ?? 0,
-    currentPage: data.number ?? 0,
-    size: data.size ?? 5,
-    isFirst: data.first ?? true,
-    isLast: data.last ?? true,
-    isEmpty: data.empty ?? true,
-  });
 
   /* ── 1. Lay danh sach san pham ── */
   const fetchProducts = useCallback(async (params = {}) => {
@@ -48,8 +30,8 @@ const useSellerProducts = () => {
     try {
       const res = await sellerProductApi.getAll(params);
       const { data } = res.data; // unwrap { data, message }
-      setProducts(data.content ?? []);
-      setPagination(extractPagination(data));
+      setProducts(Product.fromApiList(data.content));
+      setPagination(Pagination.fromApi(data));
       return data;
     } catch (err) {
       setError(err.message || "Failed to fetch products");
@@ -66,8 +48,9 @@ const useSellerProducts = () => {
     try {
       const res = await sellerProductApi.getById(id);
       const { data } = res.data;
-      setProduct(data);
-      return data;
+      const productModel = Product.fromApi(data);
+      setProduct(productModel);
+      return productModel;
     } catch (err) {
       setError(err.message || "Failed to fetch product");
       throw err;
@@ -83,8 +66,8 @@ const useSellerProducts = () => {
     try {
       const res = await sellerProductApi.getByStatus(params);
       const { data } = res.data;
-      setProducts(data.content ?? []);
-      setPagination(extractPagination(data));
+      setProducts(Product.fromApiList(data.content));
+      setPagination(Pagination.fromApi(data));
       return data;
     } catch (err) {
       setError(err.message || "Failed to fetch products by status");

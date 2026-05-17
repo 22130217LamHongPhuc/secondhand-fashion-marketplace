@@ -1,8 +1,6 @@
 @import "tailwindcss";
 font-family: 'Inter', sans-serif;
-/* ===========================================================
-   SELLER — Design Tokens
-   =========================================================== */
+
 @theme {
   /* Brand Colors */
   --color-brand-primary: #c75c2e;

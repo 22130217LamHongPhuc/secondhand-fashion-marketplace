@@ -1,51 +1,85 @@
-import { useState } from 'react';
-import { Eye, SquarePen, Truck, CircleCheck, CircleX, ChevronLeft, ChevronRight } from 'lucide-react';
-
-/* ============================================================
-   MOCK DATA
-   ============================================================ */
-const orders = [
-  {
-    id: '#TC12345',
-    customer: 'Trần Minh Thư',
-    initials: 'NH',
-    initialsColor: 'bg-[#f5c9a8] text-[#8b3a1a]',
-    date: '12/10/2023',
-    total: '1,250,000đ',
-    status: 'Chờ xác nhận',
-  },
-  {
-    id: '#TC12346',
-    customer: 'Trần Minh Thư',
-    initials: 'TM',
-    initialsColor: 'bg-[#c8e6c9] text-[#2e7d32]',
-    date: '11/10/2023',
-    total: '890,000đ',
-    status: 'Chờ xác nhận',
-  },
-  {
-    id: '#TC12347',
-    customer: 'Lê Quang Đại',
-    initials: 'LQ',
-    initialsColor: 'bg-[#ffe0b2] text-[#e65100]',
-    date: '10/10/2023',
-    total: '2,100,000đ',
-    status: 'Chờ xác nhận',
-  },
-];
+import { useState, useEffect } from 'react';
+import { Eye, Truck, CircleCheck, CircleX, ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import { useSellerOrders } from '../../hooks';
+import TableSkeleton from '../../components/common/TableSkeleton';
+import ErrorState from '../../components/common/ErrorState';
+import EmptyState from '../../components/common/EmptyState';
 
 const statusTabs = [
-  { label: 'Chờ xác nhận', count: 12, icon: null },
-  { label: 'Đang giao', count: null, icon: Truck },
-  { label: 'Hoàn thành', count: null, icon: CircleCheck },
-  { label: 'Đã hủy', count: null, icon: CircleX },
+  { label: 'Chờ xác nhận', id: 'PENDING', icon: null },
+  { label: 'Đang giao', id: 'SHIPPING', icon: Truck },
+  { label: 'Hoàn thành', id: 'DONE', icon: CircleCheck },
+  { label: 'Đã hủy', id: 'CANCELLED', icon: CircleX },
 ];
 
-/* ============================================================
-   COMPONENT
-   ============================================================ */
+const getStatusColor = (status) => {
+  switch(status) {
+    case 'PENDING':
+      return 'border-[#f5c9a8] bg-[#fef0e4] text-[#8b3a1a]';
+    case 'CONFIRMED':
+      return 'border-brand-primary/30 bg-brand-primary/10 text-brand-primary';
+    case 'SHIPPING':
+      return 'border-blue-200 bg-blue-50 text-blue-700';
+    case 'DONE':
+      return 'border-accent-green/30 bg-accent-green-light text-accent-green';
+    case 'CANCELLED':
+      return 'border-accent-red/30 bg-accent-red-light text-accent-red';
+    default:
+      return 'border-neutral-200 bg-neutral-50 text-neutral-600';
+  }
+}
+
+const getInitialsColor = (id) => {
+  const colors = [
+    'bg-[#f5c9a8] text-[#8b3a1a]',
+    'bg-[#c8e6c9] text-[#2e7d32]',
+    'bg-[#ffe0b2] text-[#e65100]',
+    'bg-blue-100 text-blue-700',
+    'bg-purple-100 text-purple-700',
+  ];
+  return colors[(id || 0) % colors.length];
+}
+
 const OrdersPage = () => {
   const [activeTab, setActiveTab] = useState(0);
+  const [currentPage, setCurrentPage] = useState(0);
+
+  const { 
+    orders, pagination, loading, error, 
+    fetchOrdersByStatus, confirmOrder, startDelivery, completeOrder, cancelOrder 
+  } = useSellerOrders();
+
+  const loadData = (page) => {
+    const status = statusTabs[activeTab].id;
+    fetchOrdersByStatus({ status, page });
+  };
+
+  useEffect(() => {
+    loadData(currentPage);
+  }, [activeTab, currentPage]);
+
+  const handleTabChange = (index) => {
+    setActiveTab(index);
+    setCurrentPage(0);
+  };
+
+  const handleAction = async (orderId, actionStr) => {
+    try {
+      if (actionStr === 'confirm') await confirmOrder(orderId);
+      if (actionStr === 'delivery') await startDelivery(orderId);
+      if (actionStr === 'complete') await completeOrder(orderId);
+      if (actionStr === 'cancel') {
+        const reason = window.prompt("Nhập lý do hủy đơn hàng:");
+        if (reason === null) return; // User cancelled prompt
+        await cancelOrder(orderId, reason || "Người bán hủy đơn");
+      }
+      
+      alert('Thao tác thành công');
+      loadData(currentPage); // reload
+    } catch (e) {
+      alert('Thao tác thất bại: ' + e);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -63,132 +97,164 @@ const OrdersPage = () => {
           return (
             <button
               key={tab.label}
-              onClick={() => setActiveTab(i)}
+              onClick={() => handleTabChange(i)}
               className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all ${
                 isActive
-                  ? 'bg-brand-primary text-white shadow-md'
+                  ? 'bg-brand-primary text-gray-600 shadow-md'
                   : 'text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700'
               }`}
             >
               {Icon && <Icon size={15} strokeWidth={1.8} />}
               <span>{tab.label}</span>
-              {tab.count && isActive && (
-                <span className="flex h-5 min-w-[22px] items-center justify-center rounded-full bg-white/25 px-1.5 text-[11px] font-bold">
-                  {tab.count}
-                </span>
-              )}
             </button>
           );
         })}
       </div>
 
-      {/* Table */}
-      <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-neutral-100">
-              <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-widest text-neutral-400">
-                Mã đơn<br />hàng
-              </th>
-              <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-widest text-neutral-400">
-                Khách hàng
-              </th>
-              <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-widest text-neutral-400">
-                Ngày đặt
-              </th>
-              <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-widest text-neutral-400">
-                Tổng tiền
-              </th>
-              <th className="px-6 py-4 text-center text-[11px] font-bold uppercase tracking-widest text-neutral-400">
-                Trạng<br />thái
-              </th>
-              <th className="px-6 py-4 text-center text-[11px] font-bold uppercase tracking-widest text-neutral-400">
-                Thao tác
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {orders.map((o) => (
-              <tr
-                key={o.id}
-                className="border-b border-neutral-50 transition-colors hover:bg-brand-bg/40"
-              >
-                {/* Order ID */}
-                <td className="px-6 py-6">
-                  <span className="text-sm font-bold text-brand-primary">{o.id}</span>
-                </td>
-
-                {/* Customer */}
-                <td className="px-6 py-6">
-                  <div className="flex items-center gap-3">
-                    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${o.initialsColor}`}>
-                      {o.initials}
-                    </div>
-                    <span className="text-sm font-medium text-neutral-700">{o.customer}</span>
-                  </div>
-                </td>
-
-                {/* Date */}
-                <td className="px-6 py-6 text-sm text-neutral-500">{o.date}</td>
-
-                {/* Total */}
-                <td className="px-6 py-6">
-                  <span className="text-sm font-bold text-brand-primary">{o.total}</span>
-                </td>
-
-                {/* Status Badge */}
-                <td className="px-6 py-6 text-center">
-                  <span className="inline-block rounded-full border border-[#f5c9a8] bg-[#fef0e4] px-3.5 py-1 text-xs font-medium text-[#8b3a1a]">
-                    {o.status}
-                  </span>
-                </td>
-
-                {/* Actions */}
-                <td className="px-6 py-6">
-                  <div className="flex items-center justify-center gap-2">
-                    <button className="flex h-9 w-9 items-center justify-center rounded-lg text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600">
-                      <Eye size={18} />
-                    </button>
-                    <button className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-primary/10 text-brand-primary transition-colors hover:bg-brand-primary/20">
-                      <SquarePen size={16} />
-                    </button>
-                  </div>
-                </td>
+      {/* Data Area */}
+      {loading ? (
+        <TableSkeleton columns={6} rows={5} />
+      ) : error ? (
+        <ErrorState message={error} onRetry={() => loadData(currentPage)} />
+      ) : orders.length === 0 ? (
+        <EmptyState 
+          title="Không có đơn hàng" 
+          description="Chưa có đơn hàng nào trong trạng thái này." 
+        />
+      ) : (
+        <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-neutral-100">
+                <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-widest text-neutral-400">
+                  Mã đơn hàng
+                </th>
+                <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-widest text-neutral-400">
+                  Khách hàng
+                </th>
+                <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-widest text-neutral-400">
+                  Ngày đặt
+                </th>
+                <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-widest text-neutral-400">
+                  Tổng tiền
+                </th>
+                <th className="px-6 py-4 text-center text-[11px] font-bold uppercase tracking-widest text-neutral-400">
+                  Trạng thái
+                </th>
+                <th className="px-6 py-4 text-center text-[11px] font-bold uppercase tracking-widest text-neutral-400">
+                  Thao tác
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {orders.map((o) => {
+                const customerName = o.shippingAddress?.fullName || 'Khách hàng';
+                const initials = customerName.substring(0, 2).toUpperCase();
+                
+                return (
+                  <tr
+                    key={o.id}
+                    className="border-b border-neutral-50 transition-colors hover:bg-brand-bg/40"
+                  >
+                    <td className="px-6 py-6">
+                      <span className="text-sm font-bold text-brand-primary">{o.orderCode}</span>
+                    </td>
+                    <td className="px-6 py-6">
+                      <div className="flex items-center gap-3">
+                        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${getInitialsColor(o.id)}`}>
+                          {initials}
+                        </div>
+                        <span className="text-sm font-medium text-neutral-700">{customerName}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-6 text-sm text-neutral-500">{o.formattedDate}</td>
+                    <td className="px-6 py-6">
+                      <span className="text-sm font-bold text-brand-primary">{o.formattedTotal}</span>
+                    </td>
+                    <td className="px-6 py-6 text-center">
+                      <span className={`inline-block rounded-full border px-3.5 py-1 text-xs font-medium ${getStatusColor(o.status)}`}>
+                        {o.statusLabel}
+                      </span>
+                    </td>
+                    <td className="px-6 py-6">
+                      <div className="flex items-center justify-center gap-2">
+                        <button className="flex h-9 w-9 items-center justify-center rounded-lg text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600">
+                          <Eye size={18} />
+                        </button>
+                        
+                        {/* Dynamic Actions based on status */}
+                        {o.status === 'PENDING' && (
+                          <>
+                            <button onClick={() => handleAction(o.id, 'confirm')} title="Xác nhận đơn" className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-primary/10 text-brand-primary transition-colors hover:bg-brand-primary/20">
+                              <Check size={16} />
+                            </button>
+                            <button onClick={() => handleAction(o.id, 'cancel')} title="Hủy đơn" className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent-red-light text-accent-red transition-colors hover:bg-accent-red/20">
+                              <CircleX size={16} />
+                            </button>
+                          </>
+                        )}
+                        {o.status === 'CONFIRMED' && (
+                          <button onClick={() => handleAction(o.id, 'delivery')} title="Bắt đầu giao" className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-100 text-blue-700 transition-colors hover:bg-blue-200">
+                            <Truck size={16} />
+                          </button>
+                        )}
+                        {o.status === 'SHIPPING' && (
+                          <>
+                            <button onClick={() => handleAction(o.id, 'complete')} title="Hoàn tất đơn" className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent-green-light text-accent-green transition-colors hover:bg-accent-green/20">
+                              <CircleCheck size={16} />
+                            </button>
+                            <button onClick={() => handleAction(o.id, 'cancel')} title="Hủy đơn" className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent-red-light text-accent-red transition-colors hover:bg-accent-red/20">
+                              <CircleX size={16} />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
 
-        {/* Pagination */}
-        <div className="flex items-center justify-between border-t border-neutral-100 px-6 py-4">
-          <p className="text-sm text-neutral-400">
-            Hiển thị 1-3 trong số 12 đơn hàng
-          </p>
-          <div className="flex items-center gap-2">
-            {/* Prev */}
-            <button className="flex h-9 w-9 items-center justify-center rounded-full text-neutral-300">
-              <ChevronLeft size={18} />
-            </button>
-            {/* Page numbers */}
-            {[1, 2, 3].map((n) => (
-              <button
-                key={n}
-                className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold transition-colors ${
-                  n === 1
-                    ? 'bg-accent-green text-white shadow-sm'
-                    : 'text-neutral-500 hover:bg-neutral-100'
-                }`}
-              >
-                {n}
-              </button>
-            ))}
-            {/* Next */}
-            <button className="flex h-9 w-9 items-center justify-center rounded-full text-neutral-500 transition-colors hover:bg-neutral-100">
-              <ChevronRight size={18} />
-            </button>
-          </div>
+          {/* Pagination */}
+          {!pagination.isEmpty && (
+            <div className="flex items-center justify-between border-t border-neutral-100 px-6 py-4">
+              <p className="text-sm text-neutral-400">
+                Hiển thị {pagination.startItem}-{pagination.endItem} trong số {pagination.totalElements} đơn hàng
+              </p>
+              <div className="flex items-center gap-2">
+                <button 
+                  disabled={!pagination.hasPrevious}
+                  onClick={() => setCurrentPage(prev => prev - 1)}
+                  className="flex h-9 w-9 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100 disabled:opacity-50 disabled:hover:bg-transparent"
+                >
+                  <ChevronLeft size={18} />
+                </button>
+                {pagination.pageNumbers.map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => setCurrentPage(n)}
+                    className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold transition-colors ${
+                      currentPage === n
+                        ? 'bg-accent-green text-white shadow-sm'
+                        : 'text-neutral-500 hover:bg-neutral-100'
+                    }`}
+                  >
+                    {n + 1}
+                  </button>
+                ))}
+                <button 
+                  disabled={!pagination.hasNext}
+                  onClick={() => setCurrentPage(prev => prev + 1)}
+                  className="flex h-9 w-9 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100 disabled:opacity-50 disabled:hover:bg-transparent"
+                >
+                  <ChevronRight size={18} />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
-      </div>
+      )}
     </div>
   );
 };
