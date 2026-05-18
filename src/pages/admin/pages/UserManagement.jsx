@@ -2,42 +2,6 @@ import { useEffect, useState } from "react";
 import { userService } from "@/services/admin";
 import "./UserManagement.css";
 
-const demoUsers = [
-  {
-    id: 101,
-    name: "Nguyen Linh",
-    email: "linh.nguyen@email.com",
-    phone: "0912345678",
-    role: "buyer",
-    status: "active",
-    createdAt: "2023-05-12T00:00:00.000Z",
-    totalOrders: 12,
-    totalSpent: 4200000,
-  },
-  {
-    id: 102,
-    name: "Tran Nam",
-    email: "nam.tran99@email.com",
-    phone: "0987654321",
-    role: "seller",
-    status: "active",
-    createdAt: "2023-08-05T00:00:00.000Z",
-    totalOrders: 8,
-    totalSpent: 1850000,
-  },
-  {
-    id: 103,
-    name: "Hoang Mai",
-    email: "mai.hoang.shop@email.com",
-    phone: "0901122334",
-    role: "seller",
-    status: "banned",
-    createdAt: "2024-01-22T00:00:00.000Z",
-    totalOrders: 3,
-    totalSpent: 680000,
-  },
-];
-
 export function UserManagement() {
   const [users, setUsers] = useState([]);
   const [stats, setStats] = useState({});
@@ -63,24 +27,21 @@ export function UserManagement() {
         userService.getAll(page, 10, filters),
         userService.getStatistics().catch(() => null),
       ]);
-      const apiUsers = response.data || [];
-      const fallbackUsers = searchTerm ? [] : demoUsers;
-      setUsers(apiUsers.length > 0 ? apiUsers : fallbackUsers);
-      setTotalPages(response.totalPages || 1);
-      setStats(statistics || response.statistics || {});
+      // Xử lý đa dạng cấu trúc JSON trả về (Axios wraps in response.data)
+      const rawData = response?.data || response;
+      
+      let apiUsers = [];
+      if (Array.isArray(rawData)) apiUsers = rawData;
+      else if (Array.isArray(rawData?.data)) apiUsers = rawData.data; // Theo định dạng chuẩn API_REQUIREMENTS.md
+      else if (Array.isArray(rawData?.content)) apiUsers = rawData.content; // Theo Spring Boot Page mặc định
+      else if (Array.isArray(rawData?.items)) apiUsers = rawData.items;
+
+      setUsers(apiUsers);
+      setTotalPages(rawData?.totalPages || rawData?.total_pages || 1);
+      setStats(statistics || response?.statistics || {});
     } catch (err) {
-      if (!searchTerm) {
-        setUsers(demoUsers);
-        setTotalPages(1);
-        setStats({
-          totalUsers: demoUsers.length,
-          newSellers: 2,
-          lockedUsers: 1,
-        });
-      } else {
-        setError(err.message);
-        console.error(err);
-      }
+      setError(err.message);
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -141,18 +102,30 @@ export function UserManagement() {
     setShowDetailModal(true);
   };
 
-  const filteredUsers = users.filter((user) => {
+  const normalizeUser = (user) => ({
+    ...user,
+    name: user.name || user.fullName || user.full_name || "Unknown",
+    email: user.email || "Chưa cập nhật",
+    phone: user.phone || "Chưa cập nhật",
+    status: user.status || (user.isActive === false || user.isActive === 0 || user.is_active === false || user.is_active === 0 || user.active === false ? "banned" : "active"),
+    role: (user.role || "CUSTOMER").toLowerCase().replace("customer", "buyer"),
+    avatar: user.avatar || user.avatarUrl || user.avatar_url || null,
+    createdAt: user.createdAt || user.created_at || new Date().toISOString(),
+  });
+
+  const normalizedUsers = users.map(normalizeUser);
+
+  const filteredUsersNormalized = normalizedUsers.filter((user) => {
     if (roleFilter === "all") return true;
-    const userRole = (user.role || "buyer").toLowerCase();
-    return userRole === roleFilter;
+    return user.role === roleFilter;
   });
 
   const totalUsersCount = stats.totalUsers ?? stats.total ?? users.length;
   const newSellerCount =
     stats.newSellers ??
     stats.newUsers ??
-    users.filter((user) => (user.role || "buyer").toLowerCase() === "seller").length;
-  const lockedCount = stats.lockedUsers ?? users.filter((user) => user.status !== "active").length;
+    normalizedUsers.filter((user) => user.role === "seller").length;
+  const lockedCount = stats.lockedUsers ?? normalizedUsers.filter((user) => user.status === "banned").length;
 
   const formatRole = (role) => {
     if (!role) return "Người mua";
@@ -342,7 +315,7 @@ export function UserManagement() {
           <div className="loading">Đang tải dữ liệu...</div>
         ) : error ? (
           <div className="error">Lỗi: {error}</div>
-        ) : filteredUsers.length > 0 ? (
+        ) : filteredUsersNormalized.length > 0 ? (
           <>
             <table className="users-table">
               <thead>
@@ -355,7 +328,7 @@ export function UserManagement() {
                 </tr>
               </thead>
               <tbody>
-                {filteredUsers.map((user) => (
+                {filteredUsersNormalized.map((user) => (
                   <tr key={user.id} className={selectedUsers.has(user.id) ? "selected" : ""}>
                     <td className="user-name-cell">
                       <div className="user-avatar-fallback">
@@ -382,40 +355,42 @@ export function UserManagement() {
                       </span>
                     </td>
                     <td className="actions-cell">
-                      <button
-                        className="btn-icon btn-view"
-                        onClick={() => handleViewDetails(user)}
-                        title="Xem chi tiết"
-                      >
-                        👁️
-                      </button>
-                      {user.status === "active" ? (
+                      <div className="actions-wrapper">
                         <button
-                          className="btn-icon btn-ban"
-                          onClick={() => {
-                            const reason = window.prompt("Nhập lý do cấm:");
-                            if (reason) handleBanUser(user.id, reason);
-                          }}
-                          title="Cấm"
+                          className="btn-icon btn-view"
+                          onClick={() => handleViewDetails(user)}
+                          title="Xem chi tiết"
                         >
-                          🚫
+                          👁️
                         </button>
-                      ) : (
+                        {user.status === "active" ? (
+                          <button
+                            className="btn-icon btn-ban"
+                            onClick={() => {
+                              const reason = window.prompt("Nhập lý do cấm:");
+                              if (reason) handleBanUser(user.id, reason);
+                            }}
+                            title="Cấm"
+                          >
+                            🚫
+                          </button>
+                        ) : (
+                          <button
+                            className="btn-icon btn-unban"
+                            onClick={() => handleUnbanUser(user.id)}
+                            title="Gỡ cấm"
+                          >
+                            ✅
+                          </button>
+                        )}
                         <button
-                          className="btn-icon btn-unban"
-                          onClick={() => handleUnbanUser(user.id)}
-                          title="Gỡ cấm"
+                          className="btn-icon btn-delete"
+                          onClick={() => handleDeleteUser(user.id)}
+                          title="Xóa"
                         >
-                          ✅
+                          🗑️
                         </button>
-                      )}
-                      <button
-                        className="btn-icon btn-delete"
-                        onClick={() => handleDeleteUser(user.id)}
-                        title="Xóa"
-                      >
-                        🗑️
-                      </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

@@ -103,10 +103,12 @@ export function OrderManagement() {
       setLoading(true);
       const filters = statusFilter !== "all" ? { status: statusFilter } : {};
       const response = await orderService.getAll(page, 10, filters).catch(() => null);
-      const apiOrders = response?.data || [];
-      const fallbackOrders = page === 1 && statusFilter === "all" ? demoOrders : [];
+      
+      const rawData = response?.data || response || {};
+      const apiOrders = rawData.data || rawData.content || rawData.items || (Array.isArray(rawData) ? rawData : []);
+      const fallbackOrders = page === 1 && statusFilter === "all" && apiOrders.length === 0 ? demoOrders : [];
       setOrders(apiOrders.length > 0 ? apiOrders : fallbackOrders);
-      setTotalPages(response?.totalPages || 1);
+      setTotalPages(rawData.totalPages || rawData.total_pages || 1);
       setError(null);
     } catch (err) {
       if (page === 1 && statusFilter === "all") {
@@ -437,22 +439,24 @@ export function OrderManagement() {
                       </span>
                     </td>
                     <td className="actions-cell">
-                      <button
-                        className="btn-icon btn-view"
-                        onClick={() => handleViewDetails(order)}
-                        title="Xem chi tiết"
-                      >
-                        👁️
-                      </button>
-                      {order.status !== "cancelled" && order.status !== "delivered" && (
+                      <div className="actions-wrapper">
                         <button
-                          className="btn-icon btn-cancel"
-                          onClick={() => handleCancelOrder(order.id)}
-                          title="Hủy"
+                          className="btn-icon btn-view"
+                          onClick={() => handleViewDetails(order)}
+                          title="Xem chi tiết"
                         >
-                          🚫
+                          👁️
                         </button>
-                      )}
+                        {order.status !== "cancelled" && order.status !== "delivered" && (
+                          <button
+                            className="btn-icon btn-cancel"
+                            onClick={() => handleCancelOrder(order.id)}
+                            title="Hủy"
+                          >
+                            🚫
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

@@ -351,9 +351,15 @@
 }
 
 .actions-cell {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.actions-wrapper {
   display: flex;
   gap: 8px;
   justify-content: center;
+  align-items: center;
 }
 
 .btn-icon {
