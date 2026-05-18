@@ -17,7 +17,10 @@ export default function CustomerLayout() {
       style={{ height: "100vh", overflowY: "auto" }}
     >
       <header className="sticky top-0 z-40 border-b border-[#e7dfbd] bg-[#f6f4dd]/90 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+        <div
+          onClick={() => navigate("/")}
+          className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4"
+        >
           <div className="text-xl font-bold italic text-[#b84a25]">
             Tủ cũ chill
           </div>

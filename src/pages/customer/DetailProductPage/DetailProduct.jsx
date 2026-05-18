@@ -5,121 +5,231 @@ import {
   SimilarProducts,
 } from "./components";
 
-const galleryImages = [
-  {
-    src: "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?q=80&w=1200",
-    alt: "Váy hoa vintage dáng dài",
-  },
-  {
-    src: "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?q=80&w=1200",
-    alt: "Ảnh sản phẩm 2",
-  },
-  {
-    src: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=1200",
-    alt: "Ảnh sản phẩm 3",
-  },
-];
+import { useEffect, useMemo, useState } from "react";
+import { useParams } from "react-router-dom";
+import { customerProductService } from "@/services/customerProduct";
 
-const comments = [
-  {
-    name: "Trần Hoàng",
-    time: "2 giờ trước",
-    avatar: "TH",
-    content: "Ghế này có hỗ trợ vận chuyển nội thành Hà Nội không shop ơi?",
-    reply: "Dạ có bạn nhé, nội thành mình hỗ trợ 50% phí ship qua Lalamove ạ!",
-  },
-  {
-    name: "Mai Lan",
-    time: "Hôm qua",
-    avatar: "ML",
-    content: "Ghế đẹp quá, dùng còn mới luôn. Tiếc là mình ở SG.",
-  },
-];
+function formatVnd(value) {
+  if (value === null || value === undefined || value === "") return "";
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return "";
 
-const similarProducts = [
-  {
-    id: "101",
-    name: "Áo sơ mi linen form rộng",
-    price: "180.000đ",
-    originalPrice: "240.000đ",
-    tag: "ĐÃ MỚI: 95%",
-    image:
-      "https://images.unsplash.com/photo-1520975661595-6453be3f7070?q=80&w=1200",
-  },
-  {
-    id: "102",
-    name: "Chân váy xếp ly vintage",
-    price: "220.000đ",
-    tag: "ĐÃ MỚI: 97%",
-    image:
-      "https://images.unsplash.com/photo-1520975661595-6453be3f7070?q=80&w=1200",
-  },
-  {
-    id: "103",
-    name: "Váy maxi hoa nhí",
-    price: "390.000đ",
-    originalPrice: "520.000đ",
-    tag: "ĐÃ MỚI: 98%",
-    image:
-      "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?q=80&w=1200",
-  },
-  {
-    id: "104",
-    name: "Đầm suông basic",
-    price: "260.000đ",
-    tag: "ĐÃ MỚI: 93%",
-    image:
-      "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?q=80&w=1200",
-  },
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+    maximumFractionDigits: 0,
+  }).format(numeric);
+}
 
-  {
-    id: "105",
-    name: "Đầm suông basic",
-    price: "260.000đ",
-    tag: "ĐÃ MỚI: 93%",
-    image:
-      "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?q=80&w=1200",
-  },
-];
+function toDiscountPercent(basePrice, salePrice, discountAmount) {
+  const base = Number(basePrice);
+  const sale = Number(salePrice);
+  const discount = Number(discountAmount);
+  if (
+    Number.isFinite(base) &&
+    base > 0 &&
+    Number.isFinite(discount) &&
+    discount > 0
+  ) {
+    return Math.round((discount / base) * 100);
+  }
+  if (
+    Number.isFinite(base) &&
+    base > 0 &&
+    Number.isFinite(sale) &&
+    sale > 0 &&
+    sale < base
+  ) {
+    return Math.round(((base - sale) / base) * 100);
+  }
+  return null;
+}
 
-const product = {
-  category: "VÁY & ĐẦM",
-  condition: "ĐÃ MỚI: 98%",
-  title: "Váy Hoa Vintage Dáng Dài",
-  price: "450.000đ",
-  originalPrice: "600.000đ",
-  shop: {
-    id: "1",
-    name: "Tiệm của Minh Anh",
-    meta: "Thành viên từ 2021 · 120 đánh giá",
-    verified: "Đã xác thực chủ & Bảo hành 1 tháng",
-    avatar:
-      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=300",
-  },
-};
-
-const description =
-  "Chiếc váy voan phong cách vintage, chất liệu voan mềm mại, có lớp lót trong. Phù hợp cho các bạn nữ đi dạo phố hoặc đi biển.";
-
-const attributes = [
-  { label: "Size", value: "M, độ mới 98%" },
-  { label: "Chất liệu", value: "Voan" },
-  { label: "Màu", value: "Hồng kem" },
-  { label: "Thương hiệu", value: "Local Brand" },
-];
+function mapConditionLabel(condition) {
+  switch (condition) {
+    case "NEW":
+      return "MỚI";
+    case "LIKE_NEW":
+      return "NHƯ MỚI";
+    case "GOOD":
+      return "TỐT";
+    case "FAIR":
+      return "ỔN";
+    default:
+      return condition ?? "";
+  }
+}
 
 export default function ProductDetailPage() {
+  const { id } = useParams();
+
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const [comments, setComments] = useState(null);
+  const [loadingComments, setLoadingComments] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    setLoading(true);
+    setError("");
+
+    customerProductService
+      .getById(id)
+      .then((data) => {
+        if (!isMounted) return;
+        setProduct(data);
+      })
+      .catch((e) => {
+        if (!isMounted) return;
+        setError(e?.message ?? "Không tải được chi tiết sản phẩm");
+      })
+      .finally(() => {
+        if (!isMounted) return;
+        setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [id]);
+
+  const galleryImages = useMemo(() => {
+    const imgs = product?.images?.length
+      ? product.images
+          .slice()
+          .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+          .map((img) => ({ src: img.url, alt: product?.name ?? "" }))
+      : product?.thumbnailUrl
+        ? [{ src: product.thumbnailUrl, alt: product?.name ?? "" }]
+        : [];
+    return imgs;
+  }, [product]);
+
+  const infoProduct = useMemo(() => {
+    if (!product) return null;
+
+    const basePrice = product.basePrice;
+    const salePrice = product.salePrice;
+
+    const displayPrice = salePrice ?? basePrice;
+    const showOriginal =
+      basePrice && salePrice && Number(salePrice) < Number(basePrice)
+        ? basePrice
+        : null;
+
+    const conditionLabel = mapConditionLabel(product.condition);
+
+    return {
+      category: product?.category?.name ?? "",
+      condition: conditionLabel ? `Tình trạng: ${conditionLabel}` : "",
+      title: product?.name ?? "",
+      price: formatVnd(displayPrice),
+      originalPrice: showOriginal ? formatVnd(showOriginal) : null,
+      shop: {
+        id: product?.shop?.id,
+        name: product?.shop?.name ?? "",
+        meta: `${product?.shop?.ratingAvg ?? ""}${product?.shop?.totalReviews ? ` · ${product.shop.totalReviews} đánh giá` : ""}`.trim(),
+        verified: product?.shop?.isVerified ? "Đã xác thực" : "",
+        avatar: product?.shop?.avatarUrl ?? "",
+      },
+    };
+  }, [product]);
+
+  const description = product?.description ?? "";
+
+  const attributes = useMemo(() => {
+    const attrs = Array.isArray(product?.attributes) ? product.attributes : [];
+    return attrs
+      .filter((a) => a && a.key)
+      .map((a) => ({ label: a.key, value: a.value ?? "" }));
+  }, [product]);
+
+  const reviews = useMemo(() => {
+    const list = Array.isArray(product?.latestReviews)
+      ? product.latestReviews
+      : [];
+    return list.map((r) => ({
+      id: r.id,
+      rating: r.rating,
+      comment: r.comment,
+      name: r.reviewerName,
+      avatarUrl: r.reviewerAvatarUrl,
+      createdAt: r.createdAt,
+    }));
+  }, [product]);
+
+  const similarProducts = useMemo(() => {
+    const items = Array.isArray(product?.relatedProducts)
+      ? product.relatedProducts
+      : [];
+
+    return items.map((p) => {
+      const percent = toDiscountPercent(
+        p.basePrice,
+        p.salePrice,
+        p.discountAmount,
+      );
+      const displayPrice = p.salePrice ?? p.basePrice;
+      const showOriginal =
+        p.basePrice && p.salePrice && Number(p.salePrice) < Number(p.basePrice)
+          ? p.basePrice
+          : null;
+
+      return {
+        id: p.id,
+        name: p.name,
+        price: formatVnd(displayPrice),
+        originalPrice: showOriginal ? formatVnd(showOriginal) : null,
+        tag: percent ? `-${percent}%` : "Gợi ý",
+        image: p.thumbnailUrl,
+      };
+    });
+  }, [product]);
+
+  const loadComments = async () => {
+    if (comments !== null || loadingComments) return;
+    setLoadingComments(true);
+    try {
+      // TODO: Replace with real API when available.
+      console.info("TODO: load comments for product", id);
+      setComments([]);
+    } finally {
+      setLoadingComments(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="py-10 text-sm font-semibold text-[#7c7565]">
+        Đang tải chi tiết sản phẩm...
+      </div>
+    );
+  }
+
+  if (error || !product || !infoProduct) {
+    return (
+      <div className="py-10 text-sm font-semibold text-[#b84a25]">
+        {error || "Không tìm thấy sản phẩm"}
+      </div>
+    );
+  }
+
   return (
     <>
       <section className="grid gap-8 lg:grid-cols-[1.4fr_1fr]">
         <ProductGallery images={galleryImages} />
-        <ProductInfoPanel product={product} />
+        <ProductInfoPanel product={infoProduct} />
       </section>
 
       <ProductBottomContent
         description={description}
         attributes={attributes}
+        reviews={reviews}
         comments={comments}
+        loadingComments={loadingComments}
+        onLoadComments={loadComments}
       />
 
       <SimilarProducts items={similarProducts} />
