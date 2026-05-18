@@ -19,9 +19,11 @@ export default function ProductCard({ product }) {
           className="h-full w-full object-cover"
         />
 
-        <span className={getBadgeClass(product.badgeType)}>
-          {product.badge}
-        </span>
+        {product.badge ? (
+          <span className={getBadgeClass(product.badgeType)}>
+            {product.badge}
+          </span>
+        ) : null}
       </div>
 
       <div className="p-5">
