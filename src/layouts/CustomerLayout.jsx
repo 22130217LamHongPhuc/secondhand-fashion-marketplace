@@ -1,4 +1,4 @@
-import { Bell, Search, ShoppingCart } from "lucide-react";
+import { Bell, ImageUp, Search, ShoppingCart } from "lucide-react";
 import { Outlet, useNavigate } from "react-router-dom";
 
 export default function CustomerLayout() {
@@ -18,9 +18,13 @@ export default function CustomerLayout() {
     >
       <header className="sticky top-0 z-40 border-b border-[#e7dfbd] bg-[#f6f4dd]/90 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          <div className="text-xl font-bold italic text-[#b84a25]">
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            className="text-xl font-bold italic text-[#b84a25]"
+          >
             Tủ cũ chill
-          </div>
+          </button>
 
           <nav className="hidden items-center gap-8 text-sm font-medium text-[#706b5c] md:flex">
             <button
@@ -43,6 +47,15 @@ export default function CustomerLayout() {
           <div className="flex items-center gap-4 text-[#b84a25]">
             <button type="button" onClick={handleSearch}>
               <Search size={18} />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigate("/image-search")}
+              aria-label="Tìm kiếm bằng hình ảnh"
+              title="Tìm kiếm bằng hình ảnh"
+            >
+              <ImageUp size={18} />
             </button>
 
             <button type="button">

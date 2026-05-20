@@ -7,21 +7,31 @@ export default function ProductCard({ product }) {
   const handleClick = () => {
     navigate(`/product/${product.id}`);
   };
+
+  const showSellerRow =
+    Boolean(product?.seller) ||
+    Boolean(product?.rating) ||
+    Boolean(product?.avatar);
+
   return (
     <article
       onClick={handleClick}
       className="overflow-hidden rounded-2xl bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md"
     >
       <div className="relative h-[260px] overflow-hidden bg-[#eee8d2]">
-        <img
-          src={product.image}
-          alt={product.name}
-          className="h-full w-full object-cover"
-        />
+        {product.image ? (
+          <img
+            src={product.image}
+            alt={product.name}
+            className="h-full w-full object-cover"
+          />
+        ) : null}
 
-        <span className={getBadgeClass(product.badgeType)}>
-          {product.badge}
-        </span>
+        {product.badge ? (
+          <span className={getBadgeClass(product.badgeType)}>
+            {product.badge}
+          </span>
+        ) : null}
       </div>
 
       <div className="p-5">
@@ -33,21 +43,33 @@ export default function ProductCard({ product }) {
           <BadgeCheck size={15} className="shrink-0 text-[#5d8b38]" />
         </div>
 
-        <p className="text-lg font-extrabold text-[#b84a25]">{product.price}</p>
+        {product.price ? (
+          <p className="text-lg font-extrabold text-[#b84a25]">
+            {product.price}
+          </p>
+        ) : null}
 
-        <div className="mt-5 flex items-center justify-between text-[10px] text-[#8a8370]">
-          <div className="flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#e5f3ca] text-[10px] font-bold text-[#6a8e3e]">
-              {product.avatar}
-            </span>
+        {showSellerRow ? (
+          <div className="mt-5 flex items-center justify-between gap-3 text-[10px] text-[#8a8370]">
+            <div className="flex min-w-0 items-center gap-2">
+              {product.avatar ? (
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#e5f3ca] text-[10px] font-bold text-[#6a8e3e]">
+                  {product.avatar}
+                </span>
+              ) : null}
 
-            <span>
-              {product.seller} · {product.rating}
-            </span>
+              <span className="line-clamp-1">
+                {[product.seller, product.rating].filter(Boolean).join(" · ")}
+              </span>
+            </div>
+
+            {product.location ? (
+              <span className="shrink-0 font-semibold uppercase">
+                {product.location}
+              </span>
+            ) : null}
           </div>
-
-          <span className="font-semibold uppercase">{product.location}</span>
-        </div>
+        ) : null}
       </div>
     </article>
   );

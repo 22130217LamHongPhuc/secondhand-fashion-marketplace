@@ -3,12 +3,20 @@ import { env } from "@/config/env";
 export async function http(path, options = {}) {
   const url = new URL(path, env.apiBaseUrl || window.location.origin);
 
+  const isFormData =
+    typeof FormData !== "undefined" && options.body instanceof FormData;
+
+  const headers = {
+    ...(options.headers ?? {}),
+  };
+
+  if (!isFormData && !hasHeader(headers, "Content-Type")) {
+    headers["Content-Type"] = "application/json";
+  }
+
   const response = await fetch(url, {
     ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers ?? {}),
-    },
+    headers,
   });
 
   if (!response.ok) {
@@ -22,4 +30,9 @@ export async function http(path, options = {}) {
   }
 
   return response.text();
+}
+
+function hasHeader(headers, name) {
+  const target = name.toLowerCase();
+  return Object.keys(headers).some((key) => key.toLowerCase() === target);
 }

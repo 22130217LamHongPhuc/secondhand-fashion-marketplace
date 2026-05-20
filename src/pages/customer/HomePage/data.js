@@ -5,10 +5,6 @@ import {
   ShoppingBag,
   Glasses,
   Sparkles,
-  ShieldCheck,
-  Truck,
-  RefreshCcw,
-  BadgeCheck,
 } from "lucide-react";
 
 export const categories = [

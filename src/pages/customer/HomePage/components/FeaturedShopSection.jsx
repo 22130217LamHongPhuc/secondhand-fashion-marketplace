@@ -1,7 +1,16 @@
 import { Star } from "lucide-react";
-import { featuredShops } from "../data";
+import { featuredShops as fallbackFeaturedShops } from "../data";
+import { useNavigate } from "react-router-dom";
 
-export default function FeaturedShopSection() {
+export default function FeaturedShopSection({ shops }) {
+  const navigate = useNavigate();
+
+  const resolvedShops = Array.isArray(shops) ? shops : fallbackFeaturedShops;
+
+  const handleViewShop = (id) => {
+    navigate(`/shop/${id}`);
+  };
+
   return (
     <section className="mt-12">
       <div className="mb-6">
@@ -15,14 +24,15 @@ export default function FeaturedShopSection() {
       </div>
 
       <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
-        {featuredShops.map((shop) => (
+        {resolvedShops.map((shop) => (
           <article
+            onClick={() => handleViewShop(shop.id)}
             key={shop.id}
             className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-black/5 transition hover:-translate-y-1 hover:shadow-md"
           >
             <div className="h-40 overflow-hidden bg-[#f4ecd2]">
               <img
-                src={shop.image}
+                src={shop.image ?? shop.imageUrl ?? shop.thumbnailUrl}
                 alt={shop.name}
                 className="h-full w-full object-cover transition duration-500 hover:scale-105"
               />

@@ -1,7 +1,11 @@
 import ProductCard from "./ProductCard";
-import { newArrivalProducts } from "../data";
+import { newArrivalProducts as fallbackNewArrivalProducts } from "../data";
 
-export default function NewArrivalSection() {
+export default function NewArrivalSection({ products }) {
+  const resolvedProducts = Array.isArray(products)
+    ? products
+    : fallbackNewArrivalProducts;
+
   return (
     <section className="mt-12">
       <div className="mb-6 flex items-end justify-between">
@@ -21,7 +25,7 @@ export default function NewArrivalSection() {
       </div>
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        {newArrivalProducts.map((product) => (
+        {resolvedProducts.map((product) => (
           <ProductCard key={product.id} product={product} />
         ))}
       </div>

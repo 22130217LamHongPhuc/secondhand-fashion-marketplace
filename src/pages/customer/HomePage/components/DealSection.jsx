@@ -1,7 +1,11 @@
 import ProductCard from "./ProductCard";
-import { dealProducts } from "../data";
+import { dealProducts as fallbackDealProducts } from "../data";
 
-export default function DealSection() {
+export default function DealSection({ products }) {
+  const resolvedProducts = Array.isArray(products)
+    ? products
+    : fallbackDealProducts;
+
   return (
     <section className="mt-10">
       <div className="mb-6 flex items-end justify-between">
@@ -25,7 +29,7 @@ export default function DealSection() {
       </div>
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        {dealProducts.map((product) => (
+        {resolvedProducts.map((product) => (
           <ProductCard key={product.id} product={product} />
         ))}
       </div>
