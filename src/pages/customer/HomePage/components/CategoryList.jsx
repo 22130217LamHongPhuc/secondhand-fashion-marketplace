@@ -20,7 +20,7 @@ export default function CategoryList({ categories }) {
   });
 
   const handleViewCategory = (id) => {
-    navigate(`/products?category=${id}`);
+    navigate(`/products?categoryIds=${id}`);
   };
 
   return (
@@ -43,6 +43,10 @@ export default function CategoryList({ categories }) {
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
         {withIcons.map((category) => {
           const Icon = category.icon;
+          const iconUrl =
+            typeof category?.iconUrl === "string" && category.iconUrl.trim()
+              ? category.iconUrl
+              : null;
 
           return (
             <button
@@ -51,7 +55,16 @@ export default function CategoryList({ categories }) {
               className="group rounded-3xl bg-white p-5 text-left shadow-sm ring-1 ring-black/5 transition hover:-translate-y-1 hover:shadow-md"
             >
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#fff0df] text-[#c65a2e] transition group-hover:bg-[#c65a2e] group-hover:text-white">
-                <Icon size={22} />
+                {iconUrl ? (
+                  <img
+                    src={iconUrl}
+                    alt={category.name}
+                    className="h-7 w-7 object-contain"
+                    loading="lazy"
+                  />
+                ) : (
+                  <Icon size={22} />
+                )}
               </div>
 
               <p className="mt-4 text-sm font-black text-[#3f392f]">

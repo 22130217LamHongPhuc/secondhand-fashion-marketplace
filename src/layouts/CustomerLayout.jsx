@@ -35,7 +35,11 @@ export default function CustomerLayout() {
               Khám Phá
             </button>
 
-            <button type="button" className="hover:text-[#b84a25]">
+            <button
+              type="button"
+              onClick={() => navigate("/shops")}
+              className="hover:text-[#b84a25]"
+            >
               Cửa Hàng
             </button>
 
