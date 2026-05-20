@@ -19,5 +19,9 @@ export {
 
 export { useSellerOrderEvents } from "./useSellerOrderEvents";
 
-// Future exports:
-// export { default as useSellerStatistics } from "./useSellerStatistics";
+export {
+  useSellerDashboard,
+  useSellerAnalytics,
+} from "./useSellerStatistics";
+
+export * from "./sellerQueryKeys";

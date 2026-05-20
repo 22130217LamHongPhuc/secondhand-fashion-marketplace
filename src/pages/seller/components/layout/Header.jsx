@@ -1,4 +1,4 @@
-import { Search, Bell } from 'lucide-react';
+import { Search, Bell } from "lucide-react";
 
 const Header = () => {
   return (
@@ -7,7 +7,7 @@ const Header = () => {
       <div className="relative w-full max-w-md">
         <Search
           size={18}
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400"
+          className="absolute left-3 top-7 -translate-y-1/2 text-neutral-400"
         />
         <input
           type="text"

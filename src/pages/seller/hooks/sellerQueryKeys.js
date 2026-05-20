@@ -18,3 +18,9 @@ export const sellerOrderKeys = {
   detail:       (id) => [...sellerOrderKeys.details(), id],
   currentMonth: (params) => [...sellerOrderKeys.all, 'current-month', params],
 };
+
+export const sellerStatisticKeys = {
+  all:       ['seller', 'statistics'],
+  dashboard: (params) => [...sellerStatisticKeys.all, 'dashboard', params],
+  analytics: (params) => [...sellerStatisticKeys.all, 'analytics', params],
+};
