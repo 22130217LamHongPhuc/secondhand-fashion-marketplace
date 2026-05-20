@@ -5,6 +5,7 @@ function formatDateTime(value) {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
+
   return date.toLocaleString("vi-VN", {
     year: "numeric",
     month: "2-digit",
@@ -15,11 +16,184 @@ function formatDateTime(value) {
 }
 
 function initials(name) {
-  if (!name) return "";
+  if (!name) return "?";
+
   const parts = String(name).trim().split(/\s+/).filter(Boolean);
   const first = parts[0]?.[0] ?? "";
   const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? "") : "";
+
   return `${first}${last}`.toUpperCase();
+}
+
+function normalizeImages(value) {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item, index) => {
+      if (typeof item === "string") {
+        return {
+          id: `${item}-${index}`,
+          url: item,
+        };
+      }
+
+      return {
+        id: item.id ?? item.url ?? index,
+        url: item.url ?? item.imageUrl ?? item.src ?? "",
+      };
+    })
+    .filter((item) => item.url);
+}
+
+function UserAvatar({ avatarUrl, name }) {
+  return (
+    <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full bg-[#d8d0ba]">
+      {avatarUrl ? (
+        <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center text-xs font-extrabold text-[#3d3a2c]">
+          {initials(name)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ImageList({ images }) {
+  const normalizedImages = normalizeImages(images);
+
+  if (!normalizedImages.length) return null;
+
+  return (
+    <div className="mt-3 grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
+      {normalizedImages.map((image) => (
+        <div
+          key={image.id}
+          className="h-20 w-20 overflow-hidden rounded-xl bg-[#eadfca]"
+        >
+          <img src={image.url} alt="" className="h-full w-full object-cover" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ReviewItem({ review, index }) {
+  const name = review.name ?? review.reviewerName ?? "Người dùng";
+  const avatarUrl = review.avatarUrl ?? review.reviewerAvatarUrl;
+  const images = review.images ?? review.imageUrls ?? review.reviewImages ?? [];
+
+  return (
+    <article
+      key={review.id ?? `${name}-${index}`}
+      className="rounded-2xl bg-white/80 p-5 shadow-sm"
+    >
+      <div className="flex gap-3">
+        <UserAvatar avatarUrl={avatarUrl} name={name} />
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h4 className="font-bold text-[#3f3b2f]">{name}</h4>
+
+              <div className="mt-1 flex items-center gap-1 text-xs font-bold text-[#d9a321]">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star
+                    key={star}
+                    size={13}
+                    className={
+                      star <= Number(review.rating) ? "fill-current" : ""
+                    }
+                  />
+                ))}
+
+                <span className="ml-1 text-[#587d36]">
+                  {review.rating ?? 0}
+                </span>
+              </div>
+            </div>
+
+            <span className="shrink-0 text-xs text-[#8b8372]">
+              {formatDateTime(review.createdAt)}
+            </span>
+          </div>
+
+          {review.comment ? (
+            <p className="mt-2 whitespace-pre-line text-sm leading-6 text-[#605a4e]">
+              {review.comment}
+            </p>
+          ) : null}
+
+          <ImageList images={images} />
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function CommentItem({ comment, isReply = false }) {
+  const name =
+    comment.userName ??
+    comment.reviewerName ??
+    comment.name ??
+    comment.fullName ??
+    "Người dùng";
+
+  const avatarUrl =
+    comment.userAvatarUrl ??
+    comment.reviewerAvatarUrl ??
+    comment.avatarUrl ??
+    comment.avatar;
+
+  const images =
+    comment.images ?? comment.imageUrls ?? comment.commentImages ?? [];
+
+  return (
+    <article
+      className={`rounded-2xl p-5 shadow-sm ${
+        isReply
+          ? "ml-8 border-l-4 border-[#f2d2b8] bg-[#fffaf4] sm:ml-12"
+          : "bg-white/80"
+      }`}
+    >
+      <div className="flex gap-3">
+        <UserAvatar avatarUrl={avatarUrl} name={name} />
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h4 className="font-bold text-[#3f3b2f]">{name}</h4>
+
+              {isReply ? (
+                <span className="mt-1 inline-block rounded-full bg-[#fff0e4] px-2 py-0.5 text-[11px] font-bold text-[#b84a25]">
+                  Phản hồi
+                </span>
+              ) : null}
+            </div>
+
+            <span className="shrink-0 text-xs text-[#8b8372]">
+              {formatDateTime(comment.createdAt)}
+            </span>
+          </div>
+
+          <p className="mt-2 whitespace-pre-line text-sm leading-6 text-[#605a4e]">
+            {comment.content}
+          </p>
+
+          <ImageList images={images} />
+
+          {!isReply ? (
+            <button
+              type="button"
+              className="mt-3 text-xs font-extrabold text-[#b84a25] hover:underline"
+            >
+              Trả lời
+            </button>
+          ) : null}
+        </div>
+      </div>
+    </article>
+  );
 }
 
 export function ProductBottomContent({
@@ -29,6 +203,7 @@ export function ProductBottomContent({
   comments,
   loadingComments,
   onLoadComments,
+  onWriteReview,
 }) {
   const [activeTab, setActiveTab] = useState("reviews");
 
@@ -46,6 +221,7 @@ export function ProductBottomContent({
 
   const handleSwitchTab = async (next) => {
     setActiveTab(next);
+
     if (next === "comments") {
       await onLoadComments?.();
     }
@@ -76,11 +252,15 @@ export function ProductBottomContent({
         </section>
 
         <section>
-          <div className="mb-5 flex items-center justify-between">
-            <h3 className="text-xl font-extrabold">Hỏi đáp &amp; Bình luận</h3>
+          <div className="mb-5 flex items-center justify-between gap-4">
+            <h3 className="text-xl font-extrabold">Đánh giá &amp; Bình luận</h3>
 
-            <button className="flex items-center gap-1 text-sm font-bold text-[#b84a25]">
-              Viết bình luận
+            <button
+              type="button"
+              onClick={onWriteReview}
+              className="flex shrink-0 items-center gap-1 rounded-full bg-[#fff3e8] px-4 py-2 text-sm font-extrabold text-[#b84a25] transition hover:bg-[#ffe2cd]"
+            >
+              Viết đánh giá
               <Pencil size={14} />
             </button>
           </div>
@@ -115,46 +295,11 @@ export function ProductBottomContent({
             {activeTab === "reviews" ? (
               resolvedReviews.length ? (
                 resolvedReviews.map((review, index) => (
-                  <article
+                  <ReviewItem
                     key={review.id ?? `${review.name}-${index}`}
-                    className="rounded-2xl bg-white/80 p-5 shadow-sm"
-                  >
-                    <div className="flex gap-3">
-                      <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full bg-[#d8d0ba]">
-                        {review.avatarUrl ? (
-                          <img
-                            src={review.avatarUrl}
-                            alt=""
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center text-xs font-extrabold text-[#3d3a2c]">
-                            {initials(review.name)}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex-1">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <h4 className="font-bold">{review.name}</h4>
-                            <div className="mt-1 flex items-center gap-1 text-xs font-bold text-[#587d36]">
-                              <Star size={13} className="fill-current" />
-                              <span>{review.rating}</span>
-                            </div>
-                          </div>
-
-                          <span className="text-xs text-[#8b8372]">
-                            {formatDateTime(review.createdAt)}
-                          </span>
-                        </div>
-
-                        <p className="mt-2 text-sm text-[#605a4e]">
-                          {review.comment}
-                        </p>
-                      </div>
-                    </div>
-                  </article>
+                    review={review}
+                    index={index}
+                  />
                 ))
               ) : (
                 <div className="rounded-2xl bg-white/60 p-5 text-sm font-semibold text-[#7c7565]">
@@ -170,45 +315,19 @@ export function ProductBottomContent({
                 Nhấn tab Comment để tải dữ liệu.
               </div>
             ) : resolvedComments.length ? (
-              resolvedComments.map((comment, index) => (
-                <article
-                  key={comment.id ?? `${comment.name}-${index}`}
-                  className="rounded-2xl bg-white/80 p-5 shadow-sm"
-                >
-                  <div className="flex gap-3">
-                    <div
-                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                        index % 2 === 0
-                          ? "bg-[#d9efc4] text-[#5b8439]"
-                          : "bg-[#f6c18b] text-[#9c4a20]"
-                      }`}
-                    >
-                      {comment.avatar ?? initials(comment.name)}
+              resolvedComments.map((comment) => (
+                <div key={comment.id} className="space-y-3">
+                  <CommentItem comment={comment} />
+
+                  {Array.isArray(comment.replies) &&
+                  comment.replies.length > 0 ? (
+                    <div className="space-y-3">
+                      {comment.replies.map((reply) => (
+                        <CommentItem key={reply.id} comment={reply} isReply />
+                      ))}
                     </div>
-
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between gap-3">
-                        <h4 className="font-bold">{comment.name}</h4>
-                        <span className="text-xs text-[#8b8372]">
-                          {comment.time}
-                        </span>
-                      </div>
-
-                      <p className="mt-1 text-sm text-[#605a4e]">
-                        {comment.content}
-                      </p>
-
-                      {comment.reply ? (
-                        <div className="mt-4 rounded-xl bg-[#f7f1cf] p-4 text-sm text-[#5d5545]">
-                          <span className="font-bold text-[#b84a25]">
-                            Chủ tiệm phản hồi:
-                          </span>{" "}
-                          {comment.reply}
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-                </article>
+                  ) : null}
+                </div>
               ))
             ) : (
               <div className="rounded-2xl bg-white/60 p-5 text-sm font-semibold text-[#7c7565]">

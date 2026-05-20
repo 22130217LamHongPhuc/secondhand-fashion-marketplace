@@ -4,7 +4,8 @@ import {
   ProductInfoPanel,
   SimilarProducts,
 } from "./components";
-
+import WriteReviewModal from "./components/WriteReviewModal";
+import { reviewService } from "@/services/reviewService";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { customerProductService } from "@/services/customerProduct";
@@ -67,8 +68,8 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const [comments, setComments] = useState(null);
-  const [loadingComments, setLoadingComments] = useState(false);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -105,6 +106,21 @@ export default function ProductDetailPage() {
         ? [{ src: product.thumbnailUrl, alt: product?.name ?? "" }]
         : [];
     return imgs;
+  }, [product]);
+
+  const comments = useMemo(() => {
+    const list = Array.isArray(product?.latestComments)
+      ? product.latestComments
+      : [];
+
+    return list.map((c) => ({
+      id: c.id,
+      name: c.commenterName,
+      avatarUrl: c.commenterAvatarUrl,
+      content: c.content,
+      createdAt: c.createdAt,
+      commenterId: c.commenterId,
+    }));
   }, [product]);
 
   const infoProduct = useMemo(() => {
@@ -150,6 +166,7 @@ export default function ProductDetailPage() {
     const list = Array.isArray(product?.latestReviews)
       ? product.latestReviews
       : [];
+
     return list.map((r) => ({
       id: r.id,
       rating: r.rating,
@@ -157,8 +174,53 @@ export default function ProductDetailPage() {
       name: r.reviewerName,
       avatarUrl: r.reviewerAvatarUrl,
       createdAt: r.createdAt,
+
+      images: Array.isArray(r.imageUrls)
+        ? r.imageUrls.map((url, index) => ({
+            id: `${r.id}-${index}`,
+            url,
+          }))
+        : Array.isArray(r.images)
+          ? r.images
+          : [],
     }));
   }, [product]);
+
+  const handleSubmitReview = async (payload) => {
+    setSubmittingReview(true);
+
+    try {
+      const response = await reviewService.createReview(payload);
+      const createdReview = response?.data ?? response;
+
+      setProduct((current) => {
+        if (!current) return current;
+
+        const nextReview = {
+          id: createdReview.id,
+          rating: createdReview.rating,
+          comment: createdReview.comment,
+          reviewerId: createdReview.reviewerId,
+          reviewerName: createdReview.reviewerName,
+          reviewerAvatarUrl: createdReview.reviewerAvatarUrl,
+          createdAt: createdReview.createdAt,
+
+          imageUrls: createdReview.imageUrls ?? [],
+        };
+
+        return {
+          ...current,
+          latestReviews: [nextReview, ...(current.latestReviews ?? [])],
+        };
+      });
+
+      setReviewModalOpen(false);
+    } catch (error) {
+      alert(error?.message ?? "Không gửi được đánh giá");
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
 
   const similarProducts = useMemo(() => {
     const items = Array.isArray(product?.relatedProducts)
@@ -188,18 +250,6 @@ export default function ProductDetailPage() {
     });
   }, [product]);
 
-  const loadComments = async () => {
-    if (comments !== null || loadingComments) return;
-    setLoadingComments(true);
-    try {
-      // TODO: Replace with real API when available.
-      console.info("TODO: load comments for product", id);
-      setComments([]);
-    } finally {
-      setLoadingComments(false);
-    }
-  };
-
   if (loading) {
     return (
       <div className="py-10 text-sm font-semibold text-[#7c7565]">
@@ -228,11 +278,19 @@ export default function ProductDetailPage() {
         attributes={attributes}
         reviews={reviews}
         comments={comments}
-        loadingComments={loadingComments}
-        onLoadComments={loadComments}
+        onWriteReview={() => setReviewModalOpen(true)}
       />
 
       <SimilarProducts items={similarProducts} />
+
+      <WriteReviewModal
+        open={reviewModalOpen}
+        product={product}
+        orderId={801}
+        submitting={submittingReview}
+        onClose={() => setReviewModalOpen(false)}
+        onSubmit={handleSubmitReview}
+      />
     </>
   );
 }
