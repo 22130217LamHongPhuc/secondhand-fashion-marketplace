@@ -30,50 +30,33 @@ export default class Product {
   constructor(raw = {}) {
     /* ── Raw fields ── */
     this.id = raw.id ?? null;
+    this.categoryId = raw.categoryId ?? null;
     this.name = raw.name ?? "";
     this.description = raw.description ?? "";
     this.brand = raw.brand ?? "";
     this.originCountry = raw.originCountry ?? "";
     this.condition = raw.condition ?? "GOOD";
+    this.conditionLabel = raw.conditionLabel ?? "";
     this.basePrice = raw.basePrice ?? 0;
     this.salePrice = raw.salePrice ?? null;
     this.stockQuantity = raw.stockQuantity ?? 0;
     this.ratingAvg = raw.ratingAvg ?? 0;
     this.totalReviews = raw.totalReviews ?? 0;
     this.isActive = raw.isActive ?? true;
-    this.createdAt = raw.createdAt ?? null;
-    this.updatedAt = raw.updatedAt ?? null;
+    this.createdAt = raw.createdAt ?? "";
+    this.updatedAt = raw.updatedAt ?? "";
 
-    /* ── Nested models ── */
+    /* ── Nested arrays/models ── */
     this.images = ProductImage.fromApiList(raw.images);
+    this.attributes = raw.attributes ?? [];
+    this.tags = raw.tags ?? [];
 
-    /* ── Computed (derived) ── */
-    this.conditionLabel = CONDITION_LABELS[this.condition] || this.condition;
-    this.displayStatus = resolveDisplayStatus(this.isActive, this.stockQuantity);
-    this.primaryImage = this.images.find((img) => img.isPrimary) || this.images[0] || null;
-    this.thumbnailUrl = this.primaryImage?.url || "";
-  }
-
-  /* ── Helpers cho UI ── */
-
-  /** Gia hien thi (uu tien salePrice, fallback basePrice) */
-  get displayPrice() {
-    return this.salePrice ?? this.basePrice;
-  }
-
-  /** Gia da format dang "250.000" (VND) */
-  get formattedPrice() {
-    return new Intl.NumberFormat("vi-VN").format(this.displayPrice);
-  }
-
-  /** Base price da format */
-  get formattedBasePrice() {
-    return new Intl.NumberFormat("vi-VN").format(this.basePrice);
-  }
-
-  /** Co dang giam gia khong */
-  get hasDiscount() {
-    return this.salePrice !== null && this.salePrice < this.basePrice;
+    /* ── Pre-computed fields from backend DTO ── */
+    this.formattedPrice = raw.formattedPrice ?? "";
+    this.formattedBasePrice = raw.formattedBasePrice ?? "";
+    this.hasDiscount = raw.hasDiscount ?? false;
+    this.displayStatus = raw.displayStatus ?? "";
+    this.thumbnailUrl = raw.thumbnailUrl ?? "";
   }
 
   /* ── Factory methods ── */

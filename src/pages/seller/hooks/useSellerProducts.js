@@ -3,30 +3,12 @@ import { sellerProductApi } from "../api";
 import { Product, Pagination } from "../models";
 import { sellerProductKeys } from "./sellerQueryKeys";
 
-/* ── 1. Danh sach san pham (Tat ca) ── */
+/* ── 1. Danh sach san pham (Tat ca / Loc / Tim kiem) ── */
 export const useSellerProductList = (params = {}, options = {}) => {
   return useQuery({
     queryKey: sellerProductKeys.list(params),
     queryFn: async () => {
       const res = await sellerProductApi.getAll(params);
-      const { data } = res.data;
-      return {
-        products: Product.fromApiList(data.content),
-        pagination: Pagination.fromApi(data),
-      };
-    },
-    staleTime: 3 * 60 * 1000, // 3 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
-    ...options,
-  });
-};
-
-/* ── 2. Danh sach san pham theo trang thai ── */
-export const useSellerProductsByStatus = (params = {}, options = {}) => {
-  return useQuery({
-    queryKey: sellerProductKeys.status(params),
-    queryFn: async () => {
-      const res = await sellerProductApi.getByStatus(params);
       const { data } = res.data;
       return {
         products: Product.fromApiList(data.content),

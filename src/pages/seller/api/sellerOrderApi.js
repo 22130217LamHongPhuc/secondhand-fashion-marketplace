@@ -12,8 +12,8 @@ const sellerOrderApi = {
    * GET /api/seller/orders?lastId=0&page=0
    */
   getAll: (params = {}) => {
-    const { lastId = 0, page = 0 } = params;
-    return axiosInstance.get(BASE, { params: { lastId, page } });
+    const { page = 0 } = params;
+    return axiosInstance.get(BASE, { params: { page } });
   },
 
   /**
@@ -26,11 +26,11 @@ const sellerOrderApi = {
 
   /**
    * 3. Lay danh sach don hang theo trang thai
-   * GET /api/seller/orders/status?status=PENDING&lastId=0&page=0
+   * GET /api/seller/orders/status?status=PENDING&page=0
    */
   getByStatus: (params = {}) => {
-    const { status, lastId = 0, page = 0 } = params;
-    return axiosInstance.get(`${BASE}/status`, { params: { status, lastId, page } });
+    const { status, page = 0 } = params;
+    return axiosInstance.get(`${BASE}/status`, { params: { status, page } });
   },
 
   /**

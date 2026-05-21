@@ -2,8 +2,6 @@ export const sellerProductKeys = {
   all:      ['seller', 'products'],
   lists:    () => [...sellerProductKeys.all, 'list'],
   list:     (params) => [...sellerProductKeys.lists(), params],
-  statuses: () => [...sellerProductKeys.all, 'status'],
-  status:   (params) => [...sellerProductKeys.statuses(), params],
   details:  () => [...sellerProductKeys.all, 'detail'],
   detail:   (id) => [...sellerProductKeys.details(), id],
 };
@@ -17,4 +15,10 @@ export const sellerOrderKeys = {
   details:      () => [...sellerOrderKeys.all, 'detail'],
   detail:       (id) => [...sellerOrderKeys.details(), id],
   currentMonth: (params) => [...sellerOrderKeys.all, 'current-month', params],
+};
+
+export const sellerStatisticKeys = {
+  all:       ['seller', 'statistics'],
+  dashboard: (params) => [...sellerStatisticKeys.all, 'dashboard', params],
+  analytics: (params) => [...sellerStatisticKeys.all, 'analytics', params],
 };

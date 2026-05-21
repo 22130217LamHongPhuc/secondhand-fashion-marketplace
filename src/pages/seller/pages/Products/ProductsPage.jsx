@@ -1,38 +1,52 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Search, Eye, Pencil, Trash2, FileSpreadsheet, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useSellerProductList, useSellerProductsByStatus, useDeleteProduct } from '../../hooks';
-import { Pagination } from '../../models';
-import TableSkeleton from '../../components/common/TableSkeleton';
-import ErrorState from '../../components/common/ErrorState';
-import EmptyState from '../../components/common/EmptyState';
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Search,
+  Eye,
+  Pencil,
+  Trash2,
+  FileSpreadsheet,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import {
+  useSellerProductList,
+  useDeleteProduct,
+} from "../../hooks";
+import { toastService } from "@/services/toastService";
+import { Pagination } from "../../models";
+import TableSkeleton from "../../components/common/TableSkeleton";
+import ErrorState from "../../components/common/ErrorState";
+import EmptyState from "../../components/common/EmptyState";
 
 const statusTabs = [
-  { label: 'Tất cả', id: 'all' },
-  { label: 'Đang bán', id: 'active' },
-  { label: 'Đã ẩn', id: 'hidden' },
+  { label: "Tất cả", id: "all" },
+  { label: "Đang bán", id: "active" },
+  { label: "Đã ẩn", id: "hidden" },
 ];
 
 const StatusBadge = ({ status }) => {
   const config = {
-    'Đang bán': {
-      dot: 'bg-accent-green',
-      pill: 'border-accent-green/30 text-neutral-700',
+    "Đang bán": {
+      dot: "bg-accent-green",
+      pill: "border-accent-green/30 text-neutral-700",
     },
-    'Đã ẩn': {
-      dot: 'bg-neutral-400',
-      pill: 'border-neutral-300 text-neutral-500',
+    "Đã ẩn": {
+      dot: "bg-neutral-400",
+      pill: "border-neutral-300 text-neutral-500",
     },
-    'Hết hàng': {
-      dot: 'bg-accent-orange',
-      pill: 'border-accent-yellow/40 text-neutral-700',
+    "Hết hàng": {
+      dot: "bg-accent-orange",
+      pill: "border-accent-yellow/40 text-neutral-700",
     },
   };
 
-  const c = config[status] || config['Đang bán'];
+  const c = config[status] || config["Đang bán"];
 
   return (
-    <span className={`inline-flex items-center gap-2 rounded-full border bg-white px-3.5 py-1.5 text-xs font-medium ${c.pill}`}>
+    <span
+      className={`inline-flex items-center gap-2 rounded-full border bg-white px-3.5 py-1.5 text-xs font-medium ${c.pill}`}
+    >
       <span className={`h-2 w-2 rounded-full ${c.dot}`} />
       {status}
     </span>
@@ -42,26 +56,46 @@ const StatusBadge = ({ status }) => {
 const ProductsPage = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [currentPage, setCurrentPage] = useState(0);
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedKeyword, setDebouncedKeyword] = useState("");
   const navigate = useNavigate();
 
-  const isFilteredByStatus = activeTab !== 0;
-  const queryParams = isFilteredByStatus
-    ? { isActive: activeTab === 1, page: currentPage }
-    : { page: currentPage };
+  // Debounce search input
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedKeyword(searchInput);
+      setCurrentPage(0); // Reset page when search term changes
+    }, 400);
 
-  const { data: allData, isLoading: allLoading, error: allError } = useSellerProductList(queryParams, { enabled: !isFilteredByStatus });
-  const { data: statusData, isLoading: statusLoading, error: statusError } = useSellerProductsByStatus(queryParams, { enabled: isFilteredByStatus });
+    return () => clearTimeout(handler);
+  }, [searchInput]);
 
-  const loading = isFilteredByStatus ? statusLoading : allLoading;
-  const error = isFilteredByStatus ? statusError : allError;
-  const products = (isFilteredByStatus ? statusData?.products : allData?.products) || [];
-  const pagination = (isFilteredByStatus ? statusData?.pagination : allData?.pagination) || Pagination.empty();
+  const queryParams = {
+    page: currentPage,
+  };
+  if (debouncedKeyword.trim()) {
+    queryParams.keyword = debouncedKeyword.trim();
+  }
+  if (activeTab === 1) {
+    queryParams.isActive = true;
+  } else if (activeTab === 2) {
+    queryParams.isActive = false;
+  }
+
+  const {
+    data,
+    isLoading: loading,
+    error,
+  } = useSellerProductList(queryParams);
+
+  const products = data?.products || [];
+  const pagination = data?.pagination || Pagination.empty();
 
   const { mutateAsync: deleteProduct } = useDeleteProduct();
 
   const handleTabChange = (index) => {
     setActiveTab(index);
-    setCurrentPage(0); 
+    setCurrentPage(0);
   };
 
   const handleDelete = async (id) => {
@@ -70,7 +104,7 @@ const ProductsPage = () => {
         await deleteProduct(id);
       } catch (e) {
         console.log(e);
-        alert("Xóa thất bại!");
+        toastService.error("Xóa thất bại!");
       }
     }
   };
@@ -86,9 +120,14 @@ const ProductsPage = () => {
       <div className="flex items-center gap-4">
         {/* Search */}
         <div className="relative w-full max-w-70">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400" />
+          <Search
+            size={16}
+            className="absolute left-3.5 top-7 -translate-y-1/2 text-neutral-400"
+          />
           <input
             type="text"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Tìm kiếm sản phẩm..."
             className="w-full rounded-full border border-neutral-200 bg-white py-2.5 pl-10 pr-4 text-sm outline-none transition-all focus:border-brand-primary/40 focus:ring-2 focus:ring-brand-primary/10"
           />
@@ -97,17 +136,17 @@ const ProductsPage = () => {
         {/* Tabs */}
         <div className="flex gap-1">
           {statusTabs.map((tab, i) => (
-            <button
+            <div
               key={tab.id}
               onClick={() => handleTabChange(i)}
-              className={`rounded-full px-5 py-2.5 text-sm font-medium transition-colors ${
+              className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all ${
                 activeTab === i
-                  ? 'border-2 border-brand-primary text-brand-primary'
-                  : 'border-2 border-transparent text-neutral-500 hover:text-neutral-700'
+                  ? "bg-accent-yellow text-gray-600 shadow-md"
+                  : "text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700"
               }`}
             >
               {tab.label}
-            </button>
+            </div>
           ))}
         </div>
       </div>
@@ -118,9 +157,9 @@ const ProductsPage = () => {
       ) : error ? (
         <ErrorState message={error.message || error} />
       ) : products.length === 0 ? (
-        <EmptyState 
-          title="Không có sản phẩm" 
-          description="Chưa có sản phẩm nào trong danh mục này." 
+        <EmptyState
+          title="Không có sản phẩm"
+          description="Chưa có sản phẩm nào trong danh mục này."
         />
       ) : (
         <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white">
@@ -156,27 +195,41 @@ const ProductsPage = () => {
                   <td className="px-6 py-5">
                     <div className="h-16 w-16 overflow-hidden rounded-xl bg-neutral-100">
                       {p.thumbnailUrl ? (
-                        <img src={p.thumbnailUrl} alt={p.name} className="h-full w-full object-cover" />
+                        <img
+                          src={p.thumbnailUrl}
+                          alt={p.name}
+                          className="h-full w-full object-cover"
+                        />
                       ) : (
-                        <div className="h-full w-full bg-neutral-200 flex items-center justify-center text-xs text-neutral-400">No img</div>
+                        <div className="h-full w-full bg-neutral-200 flex items-center justify-center text-xs text-neutral-400">
+                          No img
+                        </div>
                       )}
                     </div>
                   </td>
                   <td className="px-6 py-5">
-                    <p className="text-sm font-bold text-neutral-800">{p.name}</p>
+                    <p className="text-sm font-bold text-neutral-800">
+                      {p.name}
+                    </p>
                     <p className="mt-0.5 text-xs text-neutral-400">
                       {p.brand}
-                      {p.conditionLabel ? ` • ${p.conditionLabel}` : ''}
+                      {p.conditionLabel ? ` • ${p.conditionLabel}` : ""}
                     </p>
                   </td>
                   <td className="px-6 py-5">
-                    <span className="text-sm font-bold text-brand-primary">{p.formattedPrice}</span>
+                    <span className="text-sm font-bold text-brand-primary">
+                      {p.formattedPrice}
+                    </span>
                     {p.hasDiscount && (
-                      <p className="text-xs text-neutral-400 line-through">{p.formattedBasePrice}</p>
+                      <p className="text-xs text-neutral-400 line-through">
+                        {p.formattedBasePrice}
+                      </p>
                     )}
                   </td>
                   <td className="px-6 py-5 text-center">
-                    <span className="text-sm font-semibold text-neutral-700">{p.stockQuantity}</span>
+                    <span className="text-sm font-semibold text-neutral-700">
+                      {p.stockQuantity}
+                    </span>
                   </td>
                   <td className="px-6 py-5 text-center">
                     <StatusBadge status={p.displayStatus} />
@@ -186,10 +239,16 @@ const ProductsPage = () => {
                       <button className="flex h-8 w-8 items-center justify-center rounded-lg text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600">
                         <Eye size={16} />
                       </button>
-                      <button onClick={() => navigate(`/seller/products/${p.id}`)} className="flex h-8 w-8 items-center justify-center rounded-lg text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600">
+                      <button
+                        onClick={() => navigate(`/seller/products/${p.id}`)}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600"
+                      >
                         <Pencil size={16} />
                       </button>
-                      <button onClick={() => handleDelete(p.id)} className="flex h-8 w-8 items-center justify-center rounded-lg text-accent-red/60 transition-colors hover:bg-accent-red-light hover:text-accent-red">
+                      <button
+                        onClick={() => handleDelete(p.id)}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg text-accent-red/60 transition-colors hover:bg-accent-red-light hover:text-accent-red"
+                      >
                         <Trash2 size={16} />
                       </button>
                     </div>
@@ -203,32 +262,45 @@ const ProductsPage = () => {
           {!pagination.isEmpty && (
             <div className="flex items-center justify-between border-t border-neutral-100 px-6 py-4">
               <p className="text-sm text-neutral-400">
-                Hiển thị {pagination.startItem}-{pagination.endItem} của {pagination.totalElements} sản phẩm
+                Hiển thị {pagination.startItem}-{pagination.endItem} của{" "}
+                {pagination.totalElements} sản phẩm
               </p>
               <div className="flex items-center gap-2">
-                <button 
+                <button
                   disabled={!pagination.hasPrevious}
-                  onClick={() => setCurrentPage(prev => prev - 1)}
+                  onClick={() => setCurrentPage((prev) => prev - 1)}
                   className="flex h-9 w-9 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100 disabled:opacity-50 disabled:hover:bg-transparent"
                 >
                   <ChevronLeft size={18} />
                 </button>
-                {pagination.pageNumbers.map((n) => (
-                  <button
-                    key={n}
-                    onClick={() => setCurrentPage(n)}
-                    className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold transition-colors ${
-                      currentPage === n
-                        ? 'bg-accent-green text-white shadow-sm'
-                        : 'text-neutral-500 hover:bg-neutral-100'
-                    }`}
-                  >
-                    {n + 1}
-                  </button>
-                ))}
-                <button 
+                {pagination.getVisiblePages().map((n, idx) => {
+                  if (n === '...') {
+                    return (
+                      <div
+                        key={`ellipsis-${idx}`}
+                        className="flex h-9 w-9 items-center justify-center text-sm font-semibold text-neutral-400 select-none cursor-default"
+                      >
+                        ...
+                      </div>
+                    );
+                  }
+                  return (
+                    <div
+                      key={n}
+                      onClick={() => setCurrentPage(n)}
+                      className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold transition-colors hover:bg-neutral-100 text-neutral-500 cursor-pointer ${
+                        currentPage === n
+                          ? "bg-accent-yellow shadow-lg text-gray-700 font-bold"
+                          : "bg-transparent"
+                      }`}
+                    >
+                      {n + 1}
+                    </div>
+                  );
+                })}
+                <button
                   disabled={!pagination.hasNext}
-                  onClick={() => setCurrentPage(prev => prev + 1)}
+                  onClick={() => setCurrentPage((prev) => prev + 1)}
                   className="flex h-9 w-9 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100 disabled:opacity-50 disabled:hover:bg-transparent"
                 >
                   <ChevronRight size={18} />
@@ -246,15 +318,17 @@ const ProductsPage = () => {
             <FileSpreadsheet size={22} className="text-neutral-500" />
           </div>
           <div>
-            <p className="text-sm font-bold text-neutral-700">Xuất báo cáo tồn kho</p>
+            <p className="text-sm font-bold text-neutral-700">
+              Xuất báo cáo tồn kho
+            </p>
             <p className="mt-0.5 text-sm text-neutral-400">
               Tải xuống file Excel dữ liệu sản phẩm hiện tại.
             </p>
           </div>
         </div>
-        <button className="rounded-xl bg-brand-primary px-7 py-3 text-sm font-semibold text-white shadow-md transition-all hover:bg-brand-dark hover:shadow-lg active:scale-[0.98]">
+        <div className="rounded-xl bg-brand-primary px-7 py-3 text-sm font-semibold text-white shadow-md transition-all hover:bg-brand-dark hover:shadow-lg active:scale-[0.98]">
           Tải báo cáo (.csv)
-        </button>
+        </div>
       </div>
     </div>
   );

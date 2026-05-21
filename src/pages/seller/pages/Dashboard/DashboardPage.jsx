@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { useSellerDashboard } from '../../hooks';
 import {
   ShoppingCart,
   Image,
@@ -7,45 +9,29 @@ import {
 } from 'lucide-react';
 
 /* ============================================================
-   MOCK DATA
-   ============================================================ */
-const revenueByTime = [
-  { label: 'TUẦN 1', light: 50, dark: 72 },
-  { label: 'TUẦN 2', light: 68, dark: 153 },
-  { label: 'TUẦN 3', light: 55, dark: 100 },
-  { label: 'TUẦN 4', light: 45, dark: 85 },
-];
-
-const notifications = [
-  {
-    id: 1,
-    icon: <ShoppingBag size={18} className="text-white" />,
-    iconBg: 'bg-brand-primary',
-    title: 'Đơn hàng #TC1204 mới!',
-    desc: 'Lan Anh vừa đặt "Váy Vintage Hoa Nhí". Cần xác nhận ngay.',
-    time: '10 phút trước',
-  },
-  {
-    id: 2,
-    icon: <MessageSquare size={18} className="text-white" />,
-    iconBg: 'bg-neutral-400',
-    title: 'Câu hỏi khách hàng',
-    desc: '"Áo len này có bị xù lông không shop ơi?" từ Minh Tú.',
-    time: '2 giờ trước',
-  },
-];
-
-const categoryData = [
-  { label: 'Áo', percent: 40, color: '#c75c2e' },
-  { label: 'Quần', percent: 30, color: '#d4724a' },
-  { label: 'Váy', percent: 20, color: '#f5c9a8' },
-  { label: 'Phụ kiện', percent: 10, color: '#e8e5de' },
-];
-
-/* ============================================================
    COMPONENT
    ============================================================ */
 const DashboardPage = () => {
+  const [periodMode, setPeriodMode] = useState('preset'); // 'preset' | 'custom'
+  const [revenuePeriod, setRevenuePeriod] = useState('30_DAYS');
+
+  // Default custom range: last 30 days
+  const today = new Date().toISOString().split('T')[0]; // yyyy-MM-dd
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const [startDate, setStartDate] = useState(thirtyDaysAgo);
+  const [endDate, setEndDate] = useState(today);
+
+  const queryParams = periodMode === 'custom'
+    ? { startDate, endDate }
+    : { revenuePeriod };
+
+  const { data, isLoading, error } = useSellerDashboard(queryParams);
+
+  if (isLoading) return <div className="p-8 text-center text-neutral-500">Đang tải dữ liệu...</div>;
+  if (error) return <div className="p-8 text-center text-red-500">Lỗi tải dữ liệu. Vui lòng thử lại.</div>;
+
+  const { summary, revenueChart, categoryBreakdown, recentNotifications } = data || {};
+
   return (
     <div className="space-y-6">
       {/* ── Row 1: Stat Cards ── */}
@@ -57,21 +43,21 @@ const DashboardPage = () => {
               Doanh thu tổng
             </p>
             <span className="rounded-full bg-accent-green-light px-2.5 py-0.5 text-[11px] font-bold text-accent-green">
-              +12.5%
+              {summary?.revenueGrowthPercentage > 0 ? '+' : ''}{summary?.revenueGrowthPercentage}%
             </span>
           </div>
           <p className="mt-3 font-heading text-[28px] font-bold text-brand-primary">
-            12.450.000đ
+            {summary?.totalRevenue?.toLocaleString('vi-VN')}đ
           </p>
           {/* Mini bar chart */}
           <div className="mt-5 flex items-end gap-2 h-12">
-            {[35, 38, 42, 48, 80, 50, 55].map((h, i) => (
+            {summary?.revenueTrend?.map((h, i) => (
               <div
                 key={i}
                 className="flex-1 rounded-sm"
                 style={{
                   height: `${h}%`,
-                  backgroundColor: i === 4 ? '#6b3420' : '#f0cdb5',
+                  backgroundColor: i === summary.revenueTrend.length - 1 ? '#6b3420' : '#f0cdb5',
                 }}
               />
             ))}
@@ -90,16 +76,16 @@ const DashboardPage = () => {
           </div>
           <div className="mt-1 flex items-baseline gap-2">
             <span className="font-heading text-[56px] font-bold leading-none text-brand-primary">
-              08
+              {String(summary?.pendingOrdersCount).padStart(2, '0')}
             </span>
             <span className="text-sm text-brand-primary">đơn chưa xử lý</span>
           </div>
           {/* Stacked avatars */}
           <div className="mt-4 flex items-center">
-            {[12, 25, 33].map((n, i) => (
+            {summary?.recentCustomerAvatars?.map((url, i) => (
               <img
-                key={n}
-                src={`https://i.pravatar.cc/32?img=${n}`}
+                key={i}
+                src={url}
                 alt=""
                 className="rounded-full border-2 border-white object-cover"
                 style={{
@@ -111,12 +97,14 @@ const DashboardPage = () => {
                 }}
               />
             ))}
-            <span
-              className="flex items-center justify-center rounded-full bg-accent-green text-[10px] font-bold text-white"
-              style={{ height: 30, width: 30, marginLeft: -8, position: 'relative', zIndex: 0 }}
-            >
-              +5
-            </span>
+            {summary?.extraOrdersCount > 0 && (
+              <span
+                className="flex items-center justify-center rounded-full bg-accent-green text-[10px] font-bold text-white"
+                style={{ height: 30, width: 30, marginLeft: -8, position: 'relative', zIndex: 0 }}
+              >
+                +{summary?.extraOrdersCount}
+              </span>
+            )}
           </div>
         </div>
 
@@ -140,12 +128,12 @@ const DashboardPage = () => {
                   fill="none"
                   stroke="#4caf50"
                   strokeWidth="3.5"
-                  strokeDasharray="72 28"
+                  strokeDasharray={`${(summary?.activeProductsCount / Math.max(1, summary?.totalProducts)) * 100} 100`}
                   strokeLinecap="round"
                 />
               </svg>
               <div className="absolute text-center top-5">
-                <span className="text-xl font-bold leading-none text-neutral-800">42</span>
+                <span className="text-xl font-bold leading-none text-neutral-800">{summary?.totalProducts}</span>
                 <p className="text-[8px] font-bold uppercase tracking-wider text-neutral-400">Món</p>
               </div>
             </div>
@@ -153,11 +141,11 @@ const DashboardPage = () => {
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <span className="h-2.5 w-2.5 rounded-full bg-accent-green" />
-                <span className="text-sm text-neutral-600">Hoạt động (32)</span>
+                <span className="text-sm text-neutral-600">Hoạt động ({summary?.activeProductsCount})</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="h-2.5 w-2.5 rounded-full bg-accent-yellow" />
-                <span className="text-sm text-neutral-600">Chờ duyệt (10)</span>
+                <span className="text-sm text-neutral-600">Chờ duyệt ({summary?.pendingProductsCount})</span>
               </div>
             </div>
           </div>
@@ -168,42 +156,126 @@ const DashboardPage = () => {
       <div className="grid grid-cols-3 gap-6">
         {/* Revenue over time */}
         <div className="col-span-2 rounded-2xl border border-neutral-200 bg-white p-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="font-heading text-lg font-bold text-neutral-800">
               Doanh thu theo thời gian
             </h2>
-            <select className="rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-sm font-medium text-neutral-600 outline-none cursor-pointer">
-              <option>30 ngày qua</option>
-              <option>7 ngày qua</option>
-              <option>90 ngày qua</option>
-            </select>
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Tab: Preset options */}
+              <div className="flex items-center bg-neutral-100 p-1 rounded-full border border-neutral-200">
+                <button
+                  onClick={() => {
+                    setPeriodMode('preset');
+                    setRevenuePeriod('7_DAYS');
+                  }}
+                  className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                    periodMode === 'preset' && revenuePeriod === '7_DAYS'
+                      ? 'bg-white text-neutral-800 shadow-xs'
+                      : 'text-neutral-500 hover:text-neutral-800'
+                  }`}
+                >
+                  7 ngày
+                </button>
+                <button
+                  onClick={() => {
+                    setPeriodMode('preset');
+                    setRevenuePeriod('30_DAYS');
+                  }}
+                  className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                    periodMode === 'preset' && revenuePeriod === '30_DAYS'
+                      ? 'bg-white text-neutral-800 shadow-xs'
+                      : 'text-neutral-500 hover:text-neutral-800'
+                  }`}
+                >
+                  30 ngày
+                </button>
+                <button
+                  onClick={() => {
+                    setPeriodMode('preset');
+                    setRevenuePeriod('90_DAYS');
+                  }}
+                  className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                    periodMode === 'preset' && revenuePeriod === '90_DAYS'
+                      ? 'bg-white text-neutral-800 shadow-xs'
+                      : 'text-neutral-500 hover:text-neutral-800'
+                  }`}
+                >
+                  90 ngày
+                </button>
+              </div>
+
+              {/* Tab: Khoảng ngày */}
+              <button
+                onClick={() => {
+                  setPeriodMode('custom');
+                }}
+                className={`rounded-full px-5 py-2 text-xs font-semibold transition-all border border-neutral-200 cursor-pointer ${
+                  periodMode === 'custom'
+                    ? 'bg-accent-yellow border-accent-yellow/40 text-gray-700 shadow-sm'
+                    : 'bg-white text-neutral-500 hover:bg-neutral-50 hover:text-neutral-700'
+                }`}
+              >
+                Khoảng ngày
+              </button>
+
+              {/* Date pickers (only when in custom mode) */}
+              {periodMode === 'custom' && (
+                <div className="flex items-center gap-2 animate-fadeIn">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">Từ</span>
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="rounded-lg border border-neutral-200 bg-white px-2.5 py-1 text-xs font-medium text-neutral-600 outline-none focus:border-brand-primary"
+                    />
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">Đến</span>
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="rounded-lg border border-neutral-200 bg-white px-2.5 py-1 text-xs font-medium text-neutral-600 outline-none focus:border-brand-primary"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Bar chart */}
           <div className="mt-8 flex items-end gap-10 px-6" style={{ height: 200 }}>
-            {revenueByTime.map((item) => (
-              <div key={item.label} className="flex flex-1 flex-col items-center gap-3">
-                <div className="flex items-end justify-center gap-1.5 w-full">
-                  <div
-                    className="w-7 rounded-t-md"
-                    style={{
-                      height: `${item.light}px`,
-                      backgroundColor: '#f5dcc8',
-                    }}
-                  />
-                  <div
-                    className="w-7 rounded-t-md"
-                    style={{
-                      height: `${item.dark}px`,
-                      backgroundColor: item.dark > 120 ? '#c75c2e' : '#f0c4a8',
-                    }}
-                  />
+            {revenueChart?.map((item) => {
+              // Normalize chart heights for visual scaling
+              const maxVal = Math.max(...revenueChart.map(i => Math.max(i.light, i.dark)), 1);
+              const lightHeight = (item.light / maxVal) * 160;
+              const darkHeight = (item.dark / maxVal) * 160;
+
+              return (
+                <div key={item.label} className="flex flex-1 flex-col items-center gap-3">
+                  <div className="flex items-end justify-center gap-1.5 w-full">
+                    <div
+                      className="w-7 rounded-t-md transition-all duration-300"
+                      style={{
+                        height: `${Math.max(lightHeight, 2)}px`,
+                        backgroundColor: '#f5dcc8',
+                      }}
+                    />
+                    <div
+                      className="w-7 rounded-t-md transition-all duration-300"
+                      style={{
+                        height: `${Math.max(darkHeight, 2)}px`,
+                        backgroundColor: item.dark > item.light ? '#c75c2e' : '#f0c4a8',
+                      }}
+                    />
+                  </div>
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
+                    {item.label}
+                  </span>
                 </div>
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
-                  {item.label}
-                </span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -213,10 +285,10 @@ const DashboardPage = () => {
             Thông báo mới nhất
           </h2>
           <div className="mt-5 space-y-5">
-            {notifications.map((n) => (
+            {recentNotifications?.map((n) => (
               <div key={n.id} className="flex gap-3">
-                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${n.iconBg}`}>
-                  {n.icon}
+                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${n.type === 'ORDER' ? 'bg-brand-primary' : 'bg-neutral-400'}`}>
+                  {n.type === 'ORDER' ? <ShoppingBag size={18} className="text-white" /> : <MessageSquare size={18} className="text-white" />}
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-bold text-neutral-700">{n.title}</p>
@@ -243,21 +315,23 @@ const DashboardPage = () => {
             {/* Donut chart */}
             <div className="relative flex h-28 w-28 shrink-0 items-center justify-center">
               <svg viewBox="0 0 36 36" className="h-28 w-28 -rotate-90">
-                {categoryData.reduce(
+                {categoryBreakdown?.reduce(
                   (acc, item) => {
                     const dash = item.percent;
-                    acc.elements.push(
-                      <circle
-                        key={item.label}
-                        cx="18" cy="18" r="15.5"
-                        fill="none"
-                        stroke={item.color}
-                        strokeWidth="3.5"
-                        strokeDasharray={`${dash} ${100 - dash}`}
-                        strokeDashoffset={`-${acc.offset}`}
-                      />
-                    );
-                    acc.offset += dash;
+                    if (dash > 0) {
+                      acc.elements.push(
+                        <circle
+                          key={item.label}
+                          cx="18" cy="18" r="15.5"
+                          fill="none"
+                          stroke={item.color}
+                          strokeWidth="3.5"
+                          strokeDasharray={`${dash} ${100 - dash}`}
+                          strokeDashoffset={`-${acc.offset}`}
+                        />
+                      );
+                      acc.offset += dash;
+                    }
                     return acc;
                   },
                   { elements: [], offset: 0 }
@@ -267,13 +341,13 @@ const DashboardPage = () => {
             </div>
             {/* Legend */}
             <div className="grid grid-cols-2 gap-x-5 gap-y-2.5">
-              {categoryData.map((c) => (
+              {categoryBreakdown?.map((c) => (
                 <div key={c.label} className="flex items-center gap-2">
                   <span
-                    className="h-3 w-3 rounded-full"
+                    className="h-3 w-3 rounded-full shrink-0"
                     style={{ backgroundColor: c.color }}
                   />
-                  <span className="text-sm text-neutral-600">
+                  <span className="text-sm text-neutral-600 line-clamp-1">
                     {c.label} ({c.percent}%)
                   </span>
                 </div>

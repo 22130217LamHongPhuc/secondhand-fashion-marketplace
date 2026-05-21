@@ -1,7 +1,9 @@
 import { Outlet } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import Sidebar from '../components/layout/Sidebar';
 import Header from '../components/layout/Header';
 import { useSellerOrderEvents } from '../hooks';
+import { toasterProps } from '@/services/toastService';
 
 const SellerLayout = () => {
   // TODO: Replace with actual sellerId from auth context
@@ -10,6 +12,9 @@ const SellerLayout = () => {
 
   return (
     <div className="seller-root flex h-screen overflow-hidden bg-brand-bg">
+      {/* Toast Notification Container */}
+      <Toaster {...toasterProps} />
+
       {/* Sidebar */}
       <Sidebar />
 

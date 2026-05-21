@@ -1,5 +1,3 @@
-import ShippingAddress from "./ShippingAddress";
-
 export const ORDER_STATUS_LABELS = {
   PENDING: "Chờ xác nhận",
   CONFIRMED: "Đã xác nhận",
@@ -24,43 +22,26 @@ export default class Order {
   constructor(raw = {}) {
     this.id = raw.id ?? null;
     this.orderCode = raw.orderCode ?? "";
-    this.shippingAddress = ShippingAddress.fromApi(raw.shippingAddress);
+    this.customerName = raw.customerName ?? "Khách hàng";
+    this.status = raw.status ?? "PENDING";
+    this.statusLabel = raw.statusLabel ?? "";
     this.subtotal = raw.subtotal ?? 0;
     this.shippingFee = raw.shippingFee ?? 0;
-    this.status = raw.status ?? "PENDING";
+    this.formattedSubtotal = raw.formattedSubtotal ?? "";
+    this.formattedTotal = raw.formattedTotal ?? "";
+    this.formattedDate = raw.formattedDate ?? "";
     this.paymentMethod = raw.paymentMethod ?? "COD";
+    this.paymentMethodLabel = raw.paymentMethodLabel ?? "";
     this.paymentStatus = raw.paymentStatus ?? "UNPAID";
+    this.paymentStatusLabel = raw.paymentStatusLabel ?? "";
     this.cancelReason = raw.cancelReason ?? null;
-    this.paidAt = raw.paidAt ?? null;
-    this.deliveredAt = raw.deliveredAt ?? null;
-    this.createdAt = raw.createdAt ?? null;
-    this.updatedAt = raw.updatedAt ?? null;
+    this.paidAt = raw.paidAt ?? "";
+    this.deliveredAt = raw.deliveredAt ?? "";
+    this.createdAt = raw.createdAt ?? "";
+    this.updatedAt = raw.updatedAt ?? "";
 
-    this.statusLabel = ORDER_STATUS_LABELS[this.status] || this.status;
-    this.paymentMethodLabel = PAYMENT_METHOD_LABELS[this.paymentMethod] || this.paymentMethod;
-    this.paymentStatusLabel = PAYMENT_STATUS_LABELS[this.paymentStatus] || this.paymentStatus;
-  }
-
-  get displayTotal() {
-    return this.subtotal + this.shippingFee;
-  }
-
-  get formattedSubtotal() {
-    return new Intl.NumberFormat("vi-VN").format(this.subtotal) + "đ";
-  }
-
-  get formattedTotal() {
-    return new Intl.NumberFormat("vi-VN").format(this.displayTotal) + "đ";
-  }
-
-  get formattedDate() {
-    if (!this.createdAt) return "";
-    const date = new Date(this.createdAt);
-    return date.toLocaleDateString("vi-VN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric"
-    });
+    this.shippingAddress = raw.shippingAddress ?? null;
+    this.items = raw.items ?? [];
   }
 
   static fromApi(raw) {

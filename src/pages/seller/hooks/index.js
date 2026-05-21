@@ -1,6 +1,5 @@
 export {
   useSellerProductList,
-  useSellerProductsByStatus,
   useSellerProductDetail,
   useCreateProduct,
   useUpdateProduct,
@@ -19,5 +18,11 @@ export {
 
 export { useSellerOrderEvents } from "./useSellerOrderEvents";
 
-// Future exports:
-// export { default as useSellerStatistics } from "./useSellerStatistics";
+export {
+  useSellerDashboard,
+  useSellerAnalytics,
+} from "./useSellerStatistics";
+
+export { useSellerCategories } from "./useSellerCategories";
+
+export * from "./sellerQueryKeys";
