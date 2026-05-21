@@ -12,8 +12,20 @@ import {
    COMPONENT
    ============================================================ */
 const DashboardPage = () => {
+  const [periodMode, setPeriodMode] = useState('preset'); // 'preset' | 'custom'
   const [revenuePeriod, setRevenuePeriod] = useState('30_DAYS');
-  const { data, isLoading, error } = useSellerDashboard({ revenuePeriod });
+
+  // Default custom range: last 30 days
+  const today = new Date().toISOString().split('T')[0]; // yyyy-MM-dd
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const [startDate, setStartDate] = useState(thirtyDaysAgo);
+  const [endDate, setEndDate] = useState(today);
+
+  const queryParams = periodMode === 'custom'
+    ? { startDate, endDate }
+    : { revenuePeriod };
+
+  const { data, isLoading, error } = useSellerDashboard(queryParams);
 
   if (isLoading) return <div className="p-8 text-center text-neutral-500">Đang tải dữ liệu...</div>;
   if (error) return <div className="p-8 text-center text-red-500">Lỗi tải dữ liệu. Vui lòng thử lại.</div>;
@@ -144,19 +156,92 @@ const DashboardPage = () => {
       <div className="grid grid-cols-3 gap-6">
         {/* Revenue over time */}
         <div className="col-span-2 rounded-2xl border border-neutral-200 bg-white p-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="font-heading text-lg font-bold text-neutral-800">
               Doanh thu theo thời gian
             </h2>
-            <select
-              value={revenuePeriod}
-              onChange={(e) => setRevenuePeriod(e.target.value)}
-              className="rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-sm font-medium text-neutral-600 outline-none cursor-pointer"
-            >
-              <option value="30_DAYS">30 ngày qua</option>
-              <option value="7_DAYS">7 ngày qua</option>
-              <option value="90_DAYS">90 ngày qua</option>
-            </select>
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Tab: Preset options */}
+              <div className="flex items-center bg-neutral-100 p-1 rounded-full border border-neutral-200">
+                <button
+                  onClick={() => {
+                    setPeriodMode('preset');
+                    setRevenuePeriod('7_DAYS');
+                  }}
+                  className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                    periodMode === 'preset' && revenuePeriod === '7_DAYS'
+                      ? 'bg-white text-neutral-800 shadow-xs'
+                      : 'text-neutral-500 hover:text-neutral-800'
+                  }`}
+                >
+                  7 ngày
+                </button>
+                <button
+                  onClick={() => {
+                    setPeriodMode('preset');
+                    setRevenuePeriod('30_DAYS');
+                  }}
+                  className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                    periodMode === 'preset' && revenuePeriod === '30_DAYS'
+                      ? 'bg-white text-neutral-800 shadow-xs'
+                      : 'text-neutral-500 hover:text-neutral-800'
+                  }`}
+                >
+                  30 ngày
+                </button>
+                <button
+                  onClick={() => {
+                    setPeriodMode('preset');
+                    setRevenuePeriod('90_DAYS');
+                  }}
+                  className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                    periodMode === 'preset' && revenuePeriod === '90_DAYS'
+                      ? 'bg-white text-neutral-800 shadow-xs'
+                      : 'text-neutral-500 hover:text-neutral-800'
+                  }`}
+                >
+                  90 ngày
+                </button>
+              </div>
+
+              {/* Tab: Khoảng ngày */}
+              <button
+                onClick={() => {
+                  setPeriodMode('custom');
+                }}
+                className={`rounded-full px-5 py-2 text-xs font-semibold transition-all border border-neutral-200 cursor-pointer ${
+                  periodMode === 'custom'
+                    ? 'bg-accent-yellow border-accent-yellow/40 text-gray-700 shadow-sm'
+                    : 'bg-white text-neutral-500 hover:bg-neutral-50 hover:text-neutral-700'
+                }`}
+              >
+                Khoảng ngày
+              </button>
+
+              {/* Date pickers (only when in custom mode) */}
+              {periodMode === 'custom' && (
+                <div className="flex items-center gap-2 animate-fadeIn">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">Từ</span>
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="rounded-lg border border-neutral-200 bg-white px-2.5 py-1 text-xs font-medium text-neutral-600 outline-none focus:border-brand-primary"
+                    />
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">Đến</span>
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="rounded-lg border border-neutral-200 bg-white px-2.5 py-1 text-xs font-medium text-neutral-600 outline-none focus:border-brand-primary"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Bar chart */}

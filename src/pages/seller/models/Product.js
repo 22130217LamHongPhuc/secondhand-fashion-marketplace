@@ -30,6 +30,7 @@ export default class Product {
   constructor(raw = {}) {
     /* ── Raw fields ── */
     this.id = raw.id ?? null;
+    this.categoryId = raw.categoryId ?? null;
     this.name = raw.name ?? "";
     this.description = raw.description ?? "";
     this.brand = raw.brand ?? "";

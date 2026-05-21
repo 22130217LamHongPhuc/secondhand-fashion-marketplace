@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Search,
@@ -11,9 +11,9 @@ import {
 } from "lucide-react";
 import {
   useSellerProductList,
-  useSellerProductsByStatus,
   useDeleteProduct,
 } from "../../hooks";
+import { toastService } from "@/services/toastService";
 import { Pagination } from "../../models";
 import TableSkeleton from "../../components/common/TableSkeleton";
 import ErrorState from "../../components/common/ErrorState";
@@ -56,31 +56,40 @@ const StatusBadge = ({ status }) => {
 const ProductsPage = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [currentPage, setCurrentPage] = useState(0);
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedKeyword, setDebouncedKeyword] = useState("");
   const navigate = useNavigate();
 
-  const isFilteredByStatus = activeTab !== 0;
-  const queryParams = isFilteredByStatus
-    ? { isActive: activeTab === 1, page: currentPage }
-    : { page: currentPage };
+  // Debounce search input
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedKeyword(searchInput);
+      setCurrentPage(0); // Reset page when search term changes
+    }, 400);
+
+    return () => clearTimeout(handler);
+  }, [searchInput]);
+
+  const queryParams = {
+    page: currentPage,
+  };
+  if (debouncedKeyword.trim()) {
+    queryParams.keyword = debouncedKeyword.trim();
+  }
+  if (activeTab === 1) {
+    queryParams.isActive = true;
+  } else if (activeTab === 2) {
+    queryParams.isActive = false;
+  }
 
   const {
-    data: allData,
-    isLoading: allLoading,
-    error: allError,
-  } = useSellerProductList(queryParams, { enabled: !isFilteredByStatus });
-  const {
-    data: statusData,
-    isLoading: statusLoading,
-    error: statusError,
-  } = useSellerProductsByStatus(queryParams, { enabled: isFilteredByStatus });
+    data,
+    isLoading: loading,
+    error,
+  } = useSellerProductList(queryParams);
 
-  const loading = isFilteredByStatus ? statusLoading : allLoading;
-  const error = isFilteredByStatus ? statusError : allError;
-  const products =
-    (isFilteredByStatus ? statusData?.products : allData?.products) || [];
-  const pagination =
-    (isFilteredByStatus ? statusData?.pagination : allData?.pagination) ||
-    Pagination.empty();
+  const products = data?.products || [];
+  const pagination = data?.pagination || Pagination.empty();
 
   const { mutateAsync: deleteProduct } = useDeleteProduct();
 
@@ -95,7 +104,7 @@ const ProductsPage = () => {
         await deleteProduct(id);
       } catch (e) {
         console.log(e);
-        alert("Xóa thất bại!");
+        toastService.error("Xóa thất bại!");
       }
     }
   };
@@ -117,6 +126,8 @@ const ProductsPage = () => {
           />
           <input
             type="text"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Tìm kiếm sản phẩm..."
             className="w-full rounded-full border border-neutral-200 bg-white py-2.5 pl-10 pr-4 text-sm outline-none transition-all focus:border-brand-primary/40 focus:ring-2 focus:ring-brand-primary/10"
           />
@@ -262,19 +273,31 @@ const ProductsPage = () => {
                 >
                   <ChevronLeft size={18} />
                 </button>
-                {pagination.pageNumbers.map((n) => (
-                  <div
-                    key={n}
-                    onClick={() => setCurrentPage(n)}
-                    className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold transition-colors hover:bg-neutral-100 text-neutral-500 ${
-                      currentPage === n
-                        ? "bg-accent-yellow shadow-lg"
-                        : "bg-transparent"
-                    }`}
-                  >
-                    {n + 1}
-                  </div>
-                ))}
+                {pagination.getVisiblePages().map((n, idx) => {
+                  if (n === '...') {
+                    return (
+                      <div
+                        key={`ellipsis-${idx}`}
+                        className="flex h-9 w-9 items-center justify-center text-sm font-semibold text-neutral-400 select-none cursor-default"
+                      >
+                        ...
+                      </div>
+                    );
+                  }
+                  return (
+                    <div
+                      key={n}
+                      onClick={() => setCurrentPage(n)}
+                      className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold transition-colors hover:bg-neutral-100 text-neutral-500 cursor-pointer ${
+                        currentPage === n
+                          ? "bg-accent-yellow shadow-lg text-gray-700 font-bold"
+                          : "bg-transparent"
+                      }`}
+                    >
+                      {n + 1}
+                    </div>
+                  );
+                })}
                 <button
                   disabled={!pagination.hasNext}
                   onClick={() => setCurrentPage((prev) => prev + 1)}

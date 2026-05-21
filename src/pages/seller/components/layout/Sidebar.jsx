@@ -1,4 +1,4 @@
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   Shirt,
@@ -6,14 +6,14 @@ import {
   BarChart3,
   Store,
   Plus,
-} from 'lucide-react';
+} from "lucide-react";
 
 const navItems = [
-  { to: '/seller/dashboard', label: 'Bảng điều khiển', icon: LayoutDashboard },
-  { to: '/seller/products', label: 'Sản phẩm', icon: Shirt },
-  { to: '/seller/orders', label: 'Đơn hàng', icon: ShoppingCart },
-  { to: '/seller/analytics', label: 'Phân tích', icon: BarChart3 },
-  { to: '/seller/store-profile', label: 'Hồ sơ cửa hàng', icon: Store },
+  { to: "/seller/dashboard", label: "Bảng điều khiển", icon: LayoutDashboard },
+  { to: "/seller/products", label: "Sản phẩm", icon: Shirt },
+  { to: "/seller/orders", label: "Đơn hàng", icon: ShoppingCart },
+  { to: "/seller/analytics", label: "Phân tích", icon: BarChart3 },
+  { to: "/seller/store-profile", label: "Hồ sơ cửa hàng", icon: Store },
 ];
 
 const Sidebar = () => {
@@ -22,7 +22,7 @@ const Sidebar = () => {
   return (
     <aside className="flex w-60 flex-col border-r border-neutral-200 bg-brand-sidebar">
       {/* Logo */}
-      <div className="mx-auto">
+      <div className="mx-auto p-4">
         <h1 className="font-heading text-3xl font-bold italic text-brand-primary">
           Tủ cũ chill
         </h1>
@@ -40,8 +40,8 @@ const Sidebar = () => {
               to={item.to}
               className={`flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${
                 isActive
-                  ? 'text-brand-primary bg-brand-primary/5'
-                  : 'text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100'
+                  ? "text-brand-primary bg-brand-primary/5"
+                  : "text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100"
               }`}
             >
               <Icon size={18} strokeWidth={isActive ? 2.2 : 1.8} />

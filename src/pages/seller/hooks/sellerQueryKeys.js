@@ -2,8 +2,6 @@ export const sellerProductKeys = {
   all:      ['seller', 'products'],
   lists:    () => [...sellerProductKeys.all, 'list'],
   list:     (params) => [...sellerProductKeys.lists(), params],
-  statuses: () => [...sellerProductKeys.all, 'status'],
-  status:   (params) => [...sellerProductKeys.statuses(), params],
   details:  () => [...sellerProductKeys.all, 'detail'],
   detail:   (id) => [...sellerProductKeys.details(), id],
 };

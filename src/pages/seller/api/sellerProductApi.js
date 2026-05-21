@@ -11,10 +11,21 @@ const sellerProductApi = {
    * 1. Lay danh sach san pham (cursor + page)
    * GET /api/seller/products?lastId=0&page=0
    */
+  /**
+   * 1. Lay danh sach san pham (keyword + isActive + page)
+   * GET /api/seller/products?keyword=&isActive=&page=0
+   */
   getAll: (params = {}) => {
-    const { lastId = 0, page = 0 } = params;
+    const { keyword, isActive, page = 0 } = params;
+    const queryParams = { page };
+    if (keyword) {
+      queryParams.keyword = keyword;
+    }
+    if (isActive !== undefined && isActive !== null) {
+      queryParams.isActive = isActive;
+    }
     return axiosInstance.get(BASE, {
-      params: { lastId, page },
+      params: queryParams,
     });
   },
 
@@ -24,17 +35,6 @@ const sellerProductApi = {
    */
   getById: (id) => {
     return axiosInstance.get(`${BASE}/${id}`);
-  },
-
-  /**
-   * 3. Lay danh sach san pham theo trang thai
-   * GET /api/seller/products/status?isActive=true&lastId=0&page=0
-   */
-  getByStatus: (params = {}) => {
-    const { isActive, lastId = 0, page = 0 } = params;
-    return axiosInstance.get(`${BASE}/status`, {
-      params: { isActive, lastId, page },
-    });
   },
 
   /**

@@ -15,6 +15,7 @@ import {
   useCompleteOrder,
   useCancelOrder,
 } from "../../hooks";
+import { toastService } from "@/services/toastService";
 import { Pagination } from "../../models";
 import TableSkeleton from "../../components/common/TableSkeleton";
 import ErrorState from "../../components/common/ErrorState";
@@ -95,9 +96,9 @@ const OrdersPage = () => {
         });
       }
 
-      alert("Thao tác thành công");
+      toastService.success("Thao tác thành công");
     } catch (e) {
-      alert("Thao tác thất bại: " + e);
+      toastService.error("Thao tác thất bại: " + (e?.message || e));
     }
   };
 

@@ -1,6 +1,5 @@
 export {
   useSellerProductList,
-  useSellerProductsByStatus,
   useSellerProductDetail,
   useCreateProduct,
   useUpdateProduct,
@@ -23,5 +22,7 @@ export {
   useSellerDashboard,
   useSellerAnalytics,
 } from "./useSellerStatistics";
+
+export { useSellerCategories } from "./useSellerCategories";
 
 export * from "./sellerQueryKeys";
