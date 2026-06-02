@@ -47,6 +47,13 @@ export const productService = {
       body: JSON.stringify({ ids }),
     });
   },
+
+  // Toggle active status
+  toggleActive: async (id, active) => {
+    return http(`/api/admin/products/${id}/active?active=${active}`, {
+      method: "PUT",
+    });
+  },
 };
 
 // User Management
@@ -71,6 +78,13 @@ export const userService = {
     return http(`/api/admin/users/${id}`, {
       method: "PUT",
       body: JSON.stringify(data),
+    });
+  },
+
+  // Update user role
+  updateRole: async (id, role) => {
+    return http(`/api/admin/users/${id}/role?role=${role}`, {
+      method: "PATCH",
     });
   },
 
@@ -228,10 +242,10 @@ export const complaintService = {
   getAll: async () => {
     return http("/api/admin/complaints");
   },
-  updateStatus: async (id, status) => {
+  updateStatus: async (id, status, resolution) => {
     return http(`/api/admin/complaints/${id}/status`, {
       method: "PUT",
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status, resolution }),
     });
   },
 };

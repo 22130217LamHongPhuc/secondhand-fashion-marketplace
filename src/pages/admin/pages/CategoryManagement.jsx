@@ -20,6 +20,72 @@ export function CategoryManagement() {
   const [formSortOrder, setFormSortOrder] = useState(0);
   const [formIsActive, setFormIsActive] = useState(true);
 
+  const renderCategoryIcon = (name, iconUrl) => {
+    // If iconUrl is a custom emoji that the user specified, we can render it.
+    // However, if it's empty, null, "📁", or standard placeholder, we map to clean SVGs.
+    const lowerName = (name || "").toLowerCase();
+    
+    if (iconUrl && iconUrl.trim() && iconUrl !== "📁" && iconUrl !== "🌳" && iconUrl.length <= 4) {
+      return <span>{iconUrl}</span>;
+    }
+
+    // Shirt / Apparel (Áo, Áo thun, Áo sơ mi)
+    if (lowerName.includes("áo thun") || lowerName.includes("áo sơ mi") || lowerName === "áo") {
+      return (
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#8b5a3c" }}>
+          <path d="M20.38 3.46L16 2a4 4 0 0 0-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.85 5.68a2 2 0 0 0 1.99 1.7L7 13v8a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-8l1.88-.07a2 2 0 0 0 1.99-1.7l.85-5.68a2 2 0 0 0-1.34-2.23z"/>
+        </svg>
+      );
+    }
+    
+    // Pants / Jeans (Quần)
+    if (lowerName.includes("quần") || lowerName.includes("jeans") || lowerName.includes("denim")) {
+      return (
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#8b5a3c" }}>
+          <path d="M6 2L3 22h7l2-9 2 9h7L18 2H6z"/>
+        </svg>
+      );
+    }
+    
+    // Jacket / Outerwear (Áo khoác)
+    if (lowerName.includes("áo khoác") || lowerName.includes("jacket") || lowerName.includes("blazer")) {
+      return (
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#8b5a3c" }}>
+          <path d="M5 3L2 21h7l3-10 3 10h7L19 3H5z"/>
+          <path d="M12 3v8"/>
+        </svg>
+      );
+    }
+    
+    // Dress / Skirt (Váy & Đầm)
+    if (lowerName.includes("váy") || lowerName.includes("đầm") || lowerName.includes("dress") || lowerName.includes("skirt")) {
+      return (
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#8b5a3c" }}>
+          <path d="M6 3h12l3 18H3L6 3z"/>
+          <path d="M12 3v18"/>
+          <path d="M6 8h12"/>
+        </svg>
+      );
+    }
+    
+    // Accessories / Shoes (Phụ kiện)
+    if (lowerName.includes("phụ kiện") || lowerName.includes("túi") || lowerName.includes("giày") || lowerName.includes("kính") || lowerName.includes("accessories")) {
+      return (
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#8b5a3c" }}>
+          <circle cx="12" cy="12" r="7"/>
+          <polyline points="12 9 12 12 14 14"/>
+        </svg>
+      );
+    }
+
+    // Default icon (Folder)
+    return (
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#8b5a3c" }}>
+        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+      </svg>
+    );
+  };
+
   const fetchCategories = () => {
     setLoading(true);
     categoryService.getAll()
@@ -198,7 +264,12 @@ export function CategoryManagement() {
       <div className="category-two-cols-layout">
         {/* Left Column: Parent Categories List */}
         <div className="parent-categories-card">
-          <h3 className="section-inner-title">📁 Danh mục Cha (Chính)</h3>
+          <h3 className="section-inner-title" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#3e2723" }}>
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+            </svg>
+            <span>Danh mục Cha (Chính)</span>
+          </h3>
           <div className="parent-cats-list">
             {parentCategories.map((parent) => (
               <div 
@@ -207,7 +278,7 @@ export function CategoryManagement() {
                 onClick={() => setSelectedParentId(parent.id)}
               >
                 <div className="parent-info-left">
-                  <span className="parent-icon-bubble">{parent.iconUrl}</span>
+                  <span className="parent-icon-bubble">{renderCategoryIcon(parent.name, parent.iconUrl)}</span>
                   <div className="parent-name-meta">
                     <h4 className="parent-name-text">{parent.name}</h4>
                     <span className="parent-slug-text">/{parent.slug}</span>
@@ -215,9 +286,33 @@ export function CategoryManagement() {
                 </div>
                 
                 <div className="parent-actions-right" onClick={(e) => e.stopPropagation()}>
-                  <span className={`status-badge-pill ${parent.isActive ? "active" : "inactive"}`} onClick={() => handleToggleStatus(parent.id)}>
-                    {parent.isActive ? "Kích hoạt" : "Khóa"}
-                  </span>
+                  <select 
+                    value={parent.isActive ? "active" : "inactive"} 
+                    onChange={() => handleToggleStatus(parent.id)}
+                    className={`status-select-dropdown ${parent.isActive ? "active" : "inactive"}`}
+                    style={{
+                      backgroundColor: parent.isActive ? "#e8f5e9" : "#ffebee",
+                      color: parent.isActive ? "#2e7d32" : "#c62828",
+                      border: parent.isActive ? "1px solid #c8e6c9" : "1px solid #ffcdd2",
+                      padding: "4px 8px",
+                      paddingRight: "20px",
+                      borderRadius: "8px",
+                      fontSize: "12px",
+                      fontWeight: "700",
+                      cursor: "pointer",
+                      outline: "none",
+                      appearance: "none",
+                      backgroundRepeat: "no-repeat",
+                      backgroundPosition: "right 6px center",
+                      backgroundImage: parent.isActive 
+                        ? `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%232e7d32' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`
+                        : `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23c62828' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                      marginRight: "6px"
+                    }}
+                  >
+                    <option value="active">Kích hoạt</option>
+                    <option value="inactive">Khóa</option>
+                  </select>
                   <button className="icon-btn-edit" title="Sửa" onClick={() => handleOpenEdit(parent)}>
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4Z"/></svg>
                   </button>
@@ -233,8 +328,13 @@ export function CategoryManagement() {
         {/* Right Column: Subcategories Table */}
         <div className="subcategories-panel-card">
           <div className="sub-header-bar">
-            <h3 className="section-inner-title">
-              🌳 Danh mục Con của <span className="highlight-parent-title">"{getParentName(selectedParentId)}"</span>
+            <h3 className="section-inner-title" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#3e2723" }}>
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+              </svg>
+              <span>
+                Danh mục Con của <span className="highlight-parent-title">"{getParentName(selectedParentId)}"</span>
+              </span>
             </h3>
             
             {/* Search filter for subcategories */}
@@ -266,7 +366,7 @@ export function CategoryManagement() {
                   subCategories.map((sub) => (
                     <tr key={sub.id}>
                       <td style={{ textAlign: "center" }}>
-                        <span className="sub-icon-cell">{sub.iconUrl}</span>
+                        <span className="sub-icon-cell">{renderCategoryIcon(sub.name, sub.iconUrl)}</span>
                       </td>
                       <td className="sub-name-cell">{sub.name}</td>
                       <td className="sub-slug-cell">/{sub.slug}</td>
@@ -274,21 +374,40 @@ export function CategoryManagement() {
                         {sub.sortOrder}
                       </td>
                       <td style={{ textAlign: "center" }}>
-                        <span 
-                          className={`status-indicator-badge ${sub.isActive ? "active" : "inactive"}`}
-                          onClick={() => handleToggleStatus(sub.id)}
-                          style={{ cursor: "pointer" }}
+                        <select 
+                          value={sub.isActive ? "active" : "inactive"} 
+                          onChange={() => handleToggleStatus(sub.id)}
+                          className={`status-select-dropdown ${sub.isActive ? "active" : "inactive"}`}
+                          style={{
+                            backgroundColor: sub.isActive ? "#e8f5e9" : "#ffebee",
+                            color: sub.isActive ? "#2e7d32" : "#c62828",
+                            border: sub.isActive ? "1px solid #c8e6c9" : "1px solid #ffcdd2",
+                            padding: "4px 8px",
+                            paddingRight: "20px",
+                            borderRadius: "8px",
+                            fontSize: "12px",
+                            fontWeight: "700",
+                            cursor: "pointer",
+                            outline: "none",
+                            appearance: "none",
+                            backgroundRepeat: "no-repeat",
+                            backgroundPosition: "right 6px center",
+                            backgroundImage: sub.isActive 
+                              ? `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%232e7d32' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`
+                              : `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23c62828' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`
+                          }}
                         >
-                          {sub.isActive ? "Đang chạy" : "Tạm khóa"}
-                        </span>
+                          <option value="active">Đang chạy</option>
+                          <option value="inactive">Tạm khóa</option>
+                        </select>
                       </td>
                       <td style={{ textAlign: "center" }}>
-                        <div className="actions-cell-group">
-                          <button className="icon-btn-edit table" onClick={() => handleOpenEdit(sub)}>
-                            Sửa
+                        <div className="actions-cell-group" style={{ display: "flex", justifyContent: "center", gap: "8px" }}>
+                          <button className="icon-btn-edit" title="Sửa" onClick={() => handleOpenEdit(sub)}>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4Z"/></svg>
                           </button>
-                          <button className="icon-btn-delete table" onClick={() => handleDeleteCategory(sub.id)}>
-                            Xóa
+                          <button className="icon-btn-delete" title="Xóa" onClick={() => handleDeleteCategory(sub.id)}>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                           </button>
                         </div>
                       </td>

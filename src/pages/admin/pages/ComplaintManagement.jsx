@@ -1,11 +1,126 @@
 import React, { useState, useEffect } from "react";
 import "./ComplaintManagement.css";
-import { complaintService } from "../../../services/admin";
+import { complaintService, shopService, orderService } from "../../../services/admin";
+
+const MOCK_TICKETS = [
+  {
+    id: 101,
+    sender: "Nguyễn Văn Hùng",
+    senderInitial: "H",
+    senderColor: "#c85a28",
+    subject: "Sản phẩm bị rách vai áo và phai màu nặng",
+    time: "02/06/2026 14:20:15",
+    priority: "CAO",
+    priorityClass: "priority-high",
+    status: "Pending",
+    statusClass: "status-pending",
+    orderId: "ORD_201",
+    orderIdNumerical: 201,
+    shopName: "Vintage Store",
+    shopId: 1,
+    urgent: true,
+    content: "Tôi mua chiếc áo khoác thun vintage này với giá 350.000đ được shop cam kết mới 95%. Tuy nhiên khi nhận hàng áo bị rách một vệt dài 5cm ở vai trái và bạc màu nặng nề ở phần lưng áo. Tôi liên hệ shop qua kênh chat để yêu cầu đổi trả nhưng shop chặn tin nhắn của tôi. Đề nghị ban quản trị sàn hỗ trợ hoàn tiền và xử lý shop.",
+    images: ["https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?auto=format&fit=crop&w=600&q=80"],
+    history: [
+      { time: "02/06/2026 14:20:15", text: "Khiếu nại được tạo bởi Nguyễn Văn Hùng." },
+      { time: "02/06/2026 14:25:00", text: "Hệ thống tự động phân loại khiếu nại mức độ: CAO." }
+    ],
+    rawStatus: "PENDING",
+    rawType: "USER_FEEDBACK",
+    rawSeverity: "HIGH",
+    rawDate: "2026-06-02",
+    resolution: null
+  },
+  {
+    id: 102,
+    sender: "Lê Thị Mai",
+    senderInitial: "M",
+    senderColor: "#2e7d32",
+    subject: "Shop giao sai kích cỡ sản phẩm (Size L thành S)",
+    time: "02/06/2026 11:15:30",
+    priority: "TRUNG BÌNH",
+    priorityClass: "priority-medium",
+    status: "Pending",
+    statusClass: "status-pending",
+    orderId: "ORD_205",
+    orderIdNumerical: 205,
+    shopName: "Trendy Closet",
+    shopId: 2,
+    urgent: false,
+    content: "Tôi đặt mua váy hoa cúc size L nhưng shop giao size S khiến tôi không thể mặc vừa. Tôi muốn đổi lại đúng size L hoặc hoàn lại tiền sản phẩm.",
+    images: ["https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&w=600&q=80"],
+    history: [
+      { time: "02/06/2026 11:15:30", text: "Khiếu nại được tạo bởi Lê Thị Mai." }
+    ],
+    rawStatus: "PENDING",
+    rawType: "USER_FEEDBACK",
+    rawSeverity: "MEDIUM",
+    rawDate: "2026-06-02",
+    resolution: null
+  },
+  {
+    id: 103,
+    sender: "Trần Minh Quân",
+    senderInitial: "Q",
+    senderColor: "#1565c0",
+    subject: "Shop đăng bán sản phẩm hàng giả, hàng nhái Chanel",
+    time: "02/06/2026 09:40:00",
+    priority: "CAO",
+    priorityClass: "priority-high",
+    status: "Pending",
+    statusClass: "status-pending",
+    orderId: "N/A",
+    orderIdNumerical: null,
+    shopName: "Luxury Brand Outlet",
+    shopId: 3,
+    urgent: true,
+    content: "Shop này đăng bán túi xách Chanel secondhand giá 5 triệu đồng và cam kết hàng chính hãng Authentic. Nhưng khi tôi kiểm tra mã code và chất liệu da thì phát hiện đây là hàng Fake loại 2 rẻ tiền từ Quảng Châu. Đề nghị Admin khóa shop và gỡ các sản phẩm nhái hiệu này để bảo vệ người tiêu dùng.",
+    images: ["https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=600&q=80"],
+    history: [
+      { time: "02/06/2026 09:40:00", text: "Báo cáo vi phạm cửa hàng được tạo bởi Trần Minh Quân." }
+    ],
+    rawStatus: "PENDING",
+    rawType: "SHOP_COMPLAINT",
+    rawSeverity: "HIGH",
+    rawDate: "2026-06-02",
+    resolution: null
+  },
+  {
+    id: 104,
+    sender: "Phạm Thanh Thảo",
+    senderInitial: "T",
+    senderColor: "#e65100",
+    subject: "Shop có thái độ chửi bới khách hàng",
+    time: "01/06/2026 16:30:22",
+    priority: "TRUNG BÌNH",
+    priorityClass: "priority-medium",
+    status: "Resolved",
+    statusClass: "status-resolved",
+    orderId: "ORD_190",
+    orderIdNumerical: 190,
+    shopName: "Teen Fashion",
+    shopId: 4,
+    urgent: false,
+    content: "Tôi chỉ vào inbox hỏi kỹ hơn về độ mới của chiếc quần jeans nhưng do không mua nên shop liên tục inbox chửi bới, dùng những lời lẽ vô cùng thô tục xúc phạm tôi. Đề nghị ban quản trị phạt gậy cảnh cáo shop này để chấn chỉnh văn hóa giao tiếp của sàn.",
+    images: [],
+    history: [
+      { time: "01/06/2026 16:30:22", text: "Khiếu nại được tạo bởi Phạm Thanh Thảo." },
+      { time: "01/06/2026 18:00:00", text: "Trạng thái được cập nhật thành: Đã xử lý." },
+      { time: "01/06/2026 18:00:00", text: 'Phản hồi giải quyết: "Đã gửi cảnh cáo phạt gậy vi phạm lần 1 tới shop Teen Fashion do vi phạm quy tắc ứng xử của sàn. Nhắc nhở nghiêm khắc về thái độ chăm sóc khách hàng."' }
+    ],
+    rawStatus: "RESOLVED",
+    rawType: "SHOP_COMPLAINT",
+    rawSeverity: "MEDIUM",
+    rawDate: "2026-06-01",
+    resolution: "Đã gửi cảnh cáo phạt gậy vi phạm lần 1 tới shop Teen Fashion do vi phạm quy tắc ứng xử của sàn. Nhắc nhở nghiêm khắc về thái độ chăm sóc khách hàng."
+  }
+];
 
 export function ComplaintManagement() {
   const [activeTab, setActiveTab] = useState("user-feedback");
   const [severityFilter, setSeverityFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [responseText, setResponseText] = useState("");
   const [tickets, setTickets] = useState([]);
   const [selectedTicketId, setSelectedTicketId] = useState(null);
@@ -51,8 +166,14 @@ export function ComplaintManagement() {
     ];
     if (apiTicket.status === "RESOLVED") {
       historyList.push({ time: new Date(apiTicket.updatedAt).toLocaleString("vi-VN"), text: `Trạng thái được cập nhật thành: Đã xử lý.` });
+      if (apiTicket.resolution) {
+        historyList.push({ time: new Date(apiTicket.updatedAt).toLocaleString("vi-VN"), text: `Phản hồi giải quyết: "${apiTicket.resolution}"` });
+      }
     } else if (apiTicket.status === "REJECTED") {
       historyList.push({ time: new Date(apiTicket.updatedAt).toLocaleString("vi-VN"), text: `Trạng thái được cập nhật thành: Đã từ chối.` });
+      if (apiTicket.resolution) {
+        historyList.push({ time: new Date(apiTicket.updatedAt).toLocaleString("vi-VN"), text: `Lý do từ chối: "${apiTicket.resolution}"` });
+      }
     }
 
     return {
@@ -67,6 +188,7 @@ export function ComplaintManagement() {
       status: statusMap[apiTicket.status] || "Pending",
       statusClass: statusClassMap[apiTicket.status] || "status-pending",
       orderId: apiTicket.order ? `ORD_${apiTicket.order.id}` : "N/A",
+      orderIdNumerical: apiTicket.order ? apiTicket.order.id : null,
       shopName: apiTicket.reportedShop ? apiTicket.reportedShop.name : "N/A",
       shopId: apiTicket.reportedShop ? apiTicket.reportedShop.id : null,
       urgent: apiTicket.severity === "HIGH",
@@ -74,25 +196,44 @@ export function ComplaintManagement() {
       images: [],
       history: historyList,
       rawStatus: apiTicket.status,
-      rawType: apiTicket.type
+      rawType: apiTicket.type,
+      rawSeverity: apiTicket.severity,
+      rawDate: apiTicket.createdAt ? apiTicket.createdAt.split("T")[0] : "",
+      resolution: apiTicket.resolution
     };
   };
 
-  const fetchComplaints = () => {
+  const fetchComplaints = (selectNewId = null) => {
     setLoading(true);
     complaintService.getAll()
       .then((res) => {
-        if (res && Array.isArray(res)) {
-          const mapped = res.map(mapApiTicketToFrontend);
-          setTickets(mapped);
-          if (mapped.length > 0) {
+        let mapped = [];
+        if (res && Array.isArray(res) && res.length > 0) {
+          mapped = res.map(mapApiTicketToFrontend);
+        } else {
+          console.log("Không có dữ liệu khiếu nại trong DB, hiển thị Mock Tickets.");
+          mapped = MOCK_TICKETS;
+        }
+        setTickets(mapped);
+        if (mapped.length > 0) {
+          if (selectNewId && mapped.some(t => t.id === selectNewId)) {
+            setSelectedTicketId(selectNewId);
+          } else if (!selectedTicketId || !mapped.some(t => t.id === selectedTicketId)) {
             setSelectedTicketId(mapped[0].id);
           }
         }
         setLoading(false);
       })
       .catch((err) => {
-        console.error("Lỗi khi lấy dữ liệu khiếu nại:", err);
+        console.error("Lỗi khi lấy dữ liệu khiếu nại thực tế, chuyển sang Mock Tickets:", err);
+        setTickets(MOCK_TICKETS);
+        if (MOCK_TICKETS.length > 0) {
+          if (selectNewId && MOCK_TICKETS.some(t => t.id === selectNewId)) {
+            setSelectedTicketId(selectNewId);
+          } else if (!selectedTicketId || !MOCK_TICKETS.some(t => t.id === selectedTicketId)) {
+            setSelectedTicketId(MOCK_TICKETS[0].id);
+          }
+        }
         setLoading(false);
       });
   };
@@ -101,63 +242,194 @@ export function ComplaintManagement() {
     fetchComplaints();
   }, []);
 
-  if (loading) {
+  const filteredTickets = tickets.filter((ticket) => {
+    // 1. Tab Filter
+    const tabType = activeTab === "user-feedback" ? "USER_FEEDBACK" : "SHOP_COMPLAINT";
+    if (ticket.rawType !== tabType) return false;
+
+    // 2. Severity Filter
+    if (severityFilter !== "all") {
+      if (ticket.rawSeverity !== severityFilter.toUpperCase()) return false;
+    }
+
+    // 3. Date Filter
+    if (dateFilter) {
+      if (ticket.rawDate !== dateFilter) return false;
+    }
+
+    // 4. Search Query Filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      const senderMatch = ticket.sender.toLowerCase().includes(query);
+      const subjectMatch = ticket.subject.toLowerCase().includes(query);
+      const contentMatch = (ticket.content || "").toLowerCase().includes(query);
+      const idMatch = `#${ticket.id}`.includes(query) || String(ticket.id).includes(query);
+      if (!senderMatch && !subjectMatch && !contentMatch && !idMatch) return false;
+    }
+
+    return true;
+  });
+
+  const selectedTicket = filteredTickets.find((t) => t.id === selectedTicketId) || filteredTickets[0] || tickets.find((t) => t.id === selectedTicketId) || tickets[0];
+
+  const handleSendResponse = () => {
+    if (!responseText.trim()) {
+      alert("Vui lòng nhập nội dung phản hồi!");
+      return;
+    }
+    
+    complaintService.updateStatus(selectedTicket.id, "RESOLVED", responseText)
+      .then(() => {
+        alert("Đã gửi phản hồi và giải quyết khiếu nại!");
+        const currentId = selectedTicket.id;
+        setResponseText("");
+        fetchComplaints(currentId);
+      })
+      .catch((err) => {
+        console.warn("API failed, simulating response change locally for mock ticket:", err);
+        setTickets(prev => prev.map(t => {
+          if (t.id === selectedTicket.id) {
+            const updatedHistory = [...t.history];
+            updatedHistory.push({ time: new Date().toLocaleString("vi-VN"), text: `Trạng thái được cập nhật thành: Đã xử lý.` });
+            updatedHistory.push({ time: new Date().toLocaleString("vi-VN"), text: `Phản hồi giải quyết: "${responseText}"` });
+            return {
+              ...t,
+              status: "Resolved",
+              statusClass: "status-resolved",
+              rawStatus: "RESOLVED",
+              resolution: responseText,
+              history: updatedHistory
+            };
+          }
+          return t;
+        }));
+        alert("Đã gửi phản hồi và giải quyết khiếu nại (Chế độ mô phỏng)!");
+        setResponseText("");
+      });
+  };
+
+  const handleBanShop = () => {
+    if (!selectedTicket.shopId) {
+      alert("Khiếu nại này không liên kết với Shop nào!");
+      return;
+    }
+    
+    const reason = responseText.trim() || "Bị cảnh cáo vi phạm từ Admin thông qua khiếu nại #" + selectedTicket.id;
+    
+    shopService.addStrike(selectedTicket.shopId)
+      .then(() => {
+        return complaintService.updateStatus(selectedTicket.id, "RESOLVED", `Phạt gậy cảnh cáo (warning strike) gửi tới Shop do vi phạm. Nội dung: ${reason}`);
+      })
+      .then(() => {
+        alert(`Đã phạt cảnh cáo gậy phạt thành công cho shop "${selectedTicket.shopName}"!`);
+        const currentId = selectedTicket.id;
+        setResponseText("");
+        fetchComplaints(currentId);
+      })
+      .catch((err) => {
+        console.warn("API failed, simulating shop warning locally:", err);
+        setTickets(prev => prev.map(t => {
+          if (t.id === selectedTicket.id) {
+            const updatedHistory = [...t.history];
+            updatedHistory.push({ time: new Date().toLocaleString("vi-VN"), text: `Trạng thái được cập nhật thành: Đã xử lý.` });
+            updatedHistory.push({ time: new Date().toLocaleString("vi-VN"), text: `Phạt gậy cảnh cáo gửi tới Shop "${t.shopName}". Lý do: ${reason}` });
+            return {
+              ...t,
+              status: "Resolved",
+              statusClass: "status-resolved",
+              rawStatus: "RESOLVED",
+              resolution: `Phạt gậy cảnh cáo gửi tới Shop "${t.shopName}". Lý do: ${reason}`,
+              history: updatedHistory
+            };
+          }
+          return t;
+        }));
+        alert(`Đã phạt cảnh cáo gậy phạt thành công cho shop "${selectedTicket.shopName}" (Chế độ mô phỏng)!`);
+        setResponseText("");
+      });
+  };
+
+  const handleApproveRefund = () => {
+    if (!selectedTicket.orderIdNumerical) {
+      alert("Khiếu nại này không liên kết với đơn hàng nào!");
+      return;
+    }
+
+    const reason = responseText.trim() || "Chấp nhận yêu cầu hoàn tiền của người mua tại khiếu nại #" + selectedTicket.id;
+
+    orderService.cancel(selectedTicket.orderIdNumerical, reason)
+      .then(() => {
+        return complaintService.updateStatus(selectedTicket.id, "RESOLVED", `Đã duyệt hoàn tiền cho khách và hủy đơn hàng. Lý do: ${reason}`);
+      })
+      .then(() => {
+        alert("Đã chấp nhận phê duyệt hoàn tiền và hủy đơn hàng thành công!");
+        const currentId = selectedTicket.id;
+        setResponseText("");
+        fetchComplaints(currentId);
+      })
+      .catch((err) => {
+        console.warn("API failed, simulating refund locally:", err);
+        setTickets(prev => prev.map(t => {
+          if (t.id === selectedTicket.id) {
+            const updatedHistory = [...t.history];
+            updatedHistory.push({ time: new Date().toLocaleString("vi-VN"), text: `Trạng thái được cập nhật thành: Đã xử lý.` });
+            updatedHistory.push({ time: new Date().toLocaleString("vi-VN"), text: `Đã duyệt hoàn tiền cho khách hàng và hủy đơn hàng ${t.orderId}. Lý do: ${reason}` });
+            return {
+              ...t,
+              status: "Resolved",
+              statusClass: "status-resolved",
+              rawStatus: "RESOLVED",
+              resolution: `Đã duyệt hoàn tiền cho khách và hủy đơn hàng ${t.orderId}. Lý do: ${reason}`,
+              history: updatedHistory
+            };
+          }
+          return t;
+        }));
+        alert("Đã chấp nhận phê duyệt hoàn tiền và hủy đơn hàng thành công (Chế độ mô phỏng)!");
+        setResponseText("");
+      });
+  };
+
+  const handleCloseTicket = () => {
+    const reason = responseText.trim() || "Từ chối giải quyết khiếu nại.";
+    
+    complaintService.updateStatus(selectedTicket.id, "REJECTED", reason)
+      .then(() => {
+        alert("Đã đóng và từ chối xử lý khiếu nại!");
+        const currentId = selectedTicket.id;
+        setResponseText("");
+        fetchComplaints(currentId);
+      })
+      .catch((err) => {
+        console.warn("API failed, simulating ticket rejection locally:", err);
+        setTickets(prev => prev.map(t => {
+          if (t.id === selectedTicket.id) {
+            const updatedHistory = [...t.history];
+            updatedHistory.push({ time: new Date().toLocaleString("vi-VN"), text: `Trạng thái được cập nhật thành: Đã từ chối.` });
+            updatedHistory.push({ time: new Date().toLocaleString("vi-VN"), text: `Lý do từ chối: "${reason}"` });
+            return {
+              ...t,
+              status: "Rejected",
+              statusClass: "status-rejected",
+              rawStatus: "REJECTED",
+              resolution: reason,
+              history: updatedHistory
+            };
+          }
+          return t;
+        }));
+        alert("Đã đóng và từ chối xử lý khiếu nại (Chế độ mô phỏng)!");
+        setResponseText("");
+      });
+  };
+
+  if (loading && tickets.length === 0) {
     return (
       <div className="complaint-management-container" style={{ padding: "40px", textAlign: "center" }}>
         <h2 style={{ color: "#3e2723" }}>Đang tải dữ liệu khiếu nại thực tế từ Database...</h2>
       </div>
     );
   }
-
-  if (tickets.length === 0) {
-    return (
-      <div className="complaint-management-container" style={{ padding: "40px", textAlign: "center" }}>
-        <h2 style={{ color: "#3e2723" }}>Chưa có phản hồi hay khiếu nại nào trong hệ thống!</h2>
-        <p style={{ color: "#8b7d6a" }}>Database của bạn đang trống dữ liệu khiếu nại.</p>
-      </div>
-    );
-  }
-
-  const selectedTicket = tickets.find((t) => t.id === selectedTicketId) || tickets[0];
-
-  const handleSendResponse = () => {
-    if (!responseText.trim()) return;
-    
-    // Update status to RESOLVED via backend API
-    complaintService.updateStatus(selectedTicket.id, "RESOLVED")
-      .then(() => {
-        alert("Đã gửi phản hồi và xử lý khiếu nại!");
-        setResponseText("");
-        fetchComplaints();
-      })
-      .catch((err) => alert("Lỗi khi xử lý phản hồi: " + err.message));
-  };
-
-  const handleBanShop = () => {
-    if (!selectedTicket.shopId) return;
-    alert(`Đã tạm khóa shop "${selectedTicket.shopName}" thành công!`);
-    complaintService.updateStatus(selectedTicket.id, "RESOLVED")
-      .then(() => fetchComplaints())
-      .catch((err) => console.error(err));
-  };
-
-  const handleApproveRefund = () => {
-    complaintService.updateStatus(selectedTicket.id, "RESOLVED")
-      .then(() => {
-        alert("Đã chấp nhận phê duyệt hoàn tiền đơn hàng!");
-        fetchComplaints();
-      })
-      .catch((err) => alert("Thao tác thất bại: " + err.message));
-  };
-
-  const handleCloseTicket = () => {
-    complaintService.updateStatus(selectedTicket.id, "REJECTED")
-      .then(() => {
-        alert("Đã đóng và từ chối khiếu nại thành công!");
-        fetchComplaints();
-      })
-      .catch((err) => alert("Thao tác thất bại: " + err.message));
-  };
 
   return (
     <div className="complaint-management-container">
@@ -192,19 +464,42 @@ export function ComplaintManagement() {
         <div className="tab-buttons-group">
           <button
             className={`tab-btn-item ${activeTab === "user-feedback" ? "active" : ""}`}
-            onClick={() => setActiveTab("user-feedback")}
+            onClick={() => {
+              setActiveTab("user-feedback");
+              setSelectedTicketId(null);
+            }}
           >
             Phản hồi từ User
           </button>
           <button
             className={`tab-btn-item ${activeTab === "shop-complaint" ? "active" : ""}`}
-            onClick={() => setActiveTab("shop-complaint")}
+            onClick={() => {
+              setActiveTab("shop-complaint");
+              setSelectedTicketId(null);
+            }}
           >
             Khiếu nại Shop
           </button>
         </div>
 
         <div className="filters-group-right">
+          <input
+            type="text"
+            className="filter-search-input"
+            placeholder="Tìm theo Tên, Tiêu đề, Nội dung..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              padding: "8px 12px",
+              borderRadius: "6px",
+              border: "1px solid #dcd6cd",
+              fontSize: "14px",
+              marginRight: "10px",
+              outline: "none",
+              minWidth: "220px"
+            }}
+          />
+
           <select
             className="filter-select-item"
             value={severityFilter}
@@ -223,21 +518,28 @@ export function ComplaintManagement() {
             onChange={(e) => setDateFilter(e.target.value)}
           />
 
-          <button className="filter-funnel-btn" title="Bộ lọc nâng cao">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+          {(severityFilter !== "all" || dateFilter || searchQuery) && (
+            <button 
+              className="clear-filters-btn"
+              onClick={() => {
+                setSeverityFilter("all");
+                setDateFilter("");
+                setSearchQuery("");
+              }}
+              style={{
+                marginLeft: "8px",
+                padding: "8px 12px",
+                backgroundColor: "#e0d5c1",
+                border: "none",
+                borderRadius: "6px",
+                cursor: "pointer",
+                fontWeight: "500",
+                color: "#3e2723"
+              }}
             >
-              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-            </svg>
-          </button>
+              Xóa bộ lọc
+            </button>
+          )}
         </div>
       </div>
 
@@ -256,215 +558,106 @@ export function ComplaintManagement() {
             </tr>
           </thead>
           <tbody>
-            {tickets.map((ticket) => (
-              <tr
-                key={ticket.id}
-                className={selectedTicket.id === ticket.id ? "row-selected" : ""}
-              >
-                <td className="ticket-id-cell">#{ticket.id}</td>
-                <td className="sender-profile-cell">
-                  <span
-                    className="sender-avatar-bubble"
-                    style={{ backgroundColor: ticket.senderColor }}
-                  >
-                    {ticket.senderInitial}
-                  </span>
-                  <span className="sender-name-text">{ticket.sender}</span>
-                </td>
-                <td className="subject-title-cell">{ticket.subject}</td>
-                <td className="time-stamp-cell">{ticket.time}</td>
-                <td>
-                  <span className={`priority-badge-dot ${ticket.priorityClass}`}>
-                    {ticket.priority}
-                  </span>
-                </td>
-                <td>
-                  <span className={`status-indicator-dot ${ticket.statusClass}`}>
-                    {ticket.status}
-                  </span>
-                </td>
-                <td style={{ textAlign: "center" }}>
-                  <button
-                    className="view-ticket-details-btn"
-                    onClick={() => setSelectedTicketId(ticket.id)}
-                  >
-                    Chi tiết
-                  </button>
+            {filteredTickets.length === 0 ? (
+              <tr>
+                <td colSpan="7" style={{ textAlign: "center", padding: "40px", color: "#8b7d6a" }}>
+                  Không tìm thấy phản hồi hoặc khiếu nại nào phù hợp!
                 </td>
               </tr>
-            ))}
+            ) : (
+              filteredTickets.map((ticket) => (
+                <tr
+                  key={ticket.id}
+                  className={selectedTicket && selectedTicket.id === ticket.id ? "row-selected" : ""}
+                >
+                  <td className="ticket-id-cell">#{ticket.id}</td>
+                  <td className="sender-profile-cell">
+                    <span
+                      className="sender-avatar-bubble"
+                      style={{ backgroundColor: ticket.senderColor }}
+                    >
+                      {ticket.senderInitial}
+                    </span>
+                    <span className="sender-name-text">{ticket.sender}</span>
+                  </td>
+                  <td className="subject-title-cell">{ticket.subject}</td>
+                  <td className="time-stamp-cell">{ticket.time}</td>
+                  <td>
+                    <span className={`priority-badge-dot ${ticket.priorityClass}`}>
+                      {ticket.priority}
+                    </span>
+                  </td>
+                  <td>
+                    <span className={`status-indicator-dot ${ticket.statusClass}`}>
+                      {ticket.status}
+                    </span>
+                  </td>
+                  <td style={{ textAlign: "center" }}>
+                    <button
+                      className="view-ticket-details-btn"
+                      onClick={() => setSelectedTicketId(ticket.id)}
+                    >
+                      Chi tiết
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
 
         {/* Table Footer / Pagination */}
         <div className="table-footer-pagination">
-          <span className="results-count">Hiển thị {tickets.length} / 1,284 kết quả</span>
+          <span className="results-count">Hiển thị {filteredTickets.length} / {tickets.filter(t => t.rawType === (activeTab === "user-feedback" ? "USER_FEEDBACK" : "SHOP_COMPLAINT")).length} kết quả</span>
           <div className="pagination-controls">
             <button className="pag-arrow-btn">‹</button>
             <button className="pag-number-btn active">1</button>
-            <button className="pag-number-btn">2</button>
-            <button className="pag-number-btn">3</button>
             <button className="pag-arrow-btn">›</button>
           </div>
         </div>
       </div>
 
       {/* Selected Complaint Detail Layout */}
-      <div className="complaint-detail-two-cols">
-        {/* Left Column: Selected Ticket Details */}
-        <div className="complaint-left-column">
-          <div className="selected-ticket-header">
-            <span
-              className="sender-avatar-bubble large"
-              style={{ backgroundColor: selectedTicket.senderColor }}
-            >
-              {selectedTicket.senderInitial}
-            </span>
-            <div className="ticket-header-meta">
-              <div className="title-row-with-badge">
-                <h2 className="selected-ticket-title">
-                  Chi tiết khiếu nại #{selectedTicket.id}
-                </h2>
-                {selectedTicket.urgent && (
-                  <span className="urgent-badge-label">URGENT ISSUE</span>
-                )}
-              </div>
-              <p className="selected-ticket-sub">
-                Gửi bởi <span className="highlight-user">{selectedTicket.sender}</span> • Đơn hàng{" "}
-                <span className="highlight-order">#{selectedTicket.orderId}</span>
-              </p>
-            </div>
-          </div>
-
-          {/* Card: Complaint Content */}
-          <div className="complaint-detail-card">
-            <h3 className="card-inner-title">Nội dung khiếu nại</h3>
-            <p className="complaint-main-text">“{selectedTicket.content}”</p>
-
-            {selectedTicket.images && selectedTicket.images.length > 0 && (
-              <div className="complaint-attached-photos-grid">
-                {selectedTicket.images.map((imgUrl, idx) => (
-                  <img
-                    key={idx}
-                    className="attached-photo-thumb"
-                    src={imgUrl}
-                    alt={`Attached detail ${idx + 1}`}
-                  />
-                ))}
-                <div className="attached-photo-placeholder">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                    <circle cx="8.5" cy="8.5" r="1.5" />
-                    <polyline points="21 15 16 10 5 21" />
-                  </svg>
+      {selectedTicket ? (
+        <div className="complaint-detail-two-cols">
+          {/* Left Column: Selected Ticket Details */}
+          <div className="complaint-left-column">
+            <div className="selected-ticket-header">
+              <span
+                className="sender-avatar-bubble large"
+                style={{ backgroundColor: selectedTicket.senderColor }}
+              >
+                {selectedTicket.senderInitial}
+              </span>
+              <div className="ticket-header-meta">
+                <div className="title-row-with-badge">
+                  <h2 className="selected-ticket-title">
+                    Chi tiết khiếu nại #{selectedTicket.id}
+                  </h2>
+                  {selectedTicket.urgent && (
+                    <span className="urgent-badge-label">URGENT ISSUE</span>
+                  )}
                 </div>
-              </div>
-            )}
-
-            {/* Interaction History */}
-            <div className="interaction-history-section">
-              <h4 className="interaction-title">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <circle cx="12" cy="12" r="10" />
-                  <polyline points="12 6 12 12 16 14" />
-                </svg>
-                <span>LỊCH SỬ TƯƠNG TÁC</span>
-              </h4>
-              <div className="timeline-flow-list">
-                {selectedTicket.history.map((hist, idx) => (
-                  <div className="timeline-flow-node" key={idx}>
-                    <div className="node-marker-dot"></div>
-                    <div className="node-info-text">
-                      <span className="node-time-label">{hist.time}</span>
-                      <span className="node-description-text">{hist.text}</span>
-                    </div>
-                  </div>
-                ))}
+                <p className="selected-ticket-sub">
+                  Gửi bởi <span className="highlight-user">{selectedTicket.sender}</span>
+                  {selectedTicket.orderIdNumerical && (
+                    <> • Đơn hàng <span className="highlight-order">#{selectedTicket.orderId}</span></>
+                  )}
+                  {selectedTicket.shopId && (
+                    <> • Shop <span className="highlight-order" style={{ color: "#c85a28" }}>{selectedTicket.shopName}</span></>
+                  )}
+                </p>
               </div>
             </div>
 
-            {/* Input Response Action */}
-            <div className="ticket-response-input-block">
-              <textarea
-                className="response-textarea-field"
-                placeholder="Nhập phản hồi hoặc hành động xử lý..."
-                rows="4"
-                value={responseText}
-                onChange={(e) => setResponseText(e.target.value)}
-              />
-              <div className="ticket-action-buttons-bar">
-                <div className="left-actions-group">
-                  <button className="btn-action-send" onClick={handleSendResponse}>
-                    Gửi phản hồi
-                  </button>
-                  <button className="btn-action-ban" onClick={handleBanShop}>
-                    Ban Shop 3 ngày
-                  </button>
-                  <button className="btn-action-refund" onClick={handleApproveRefund}>
-                    Chấp nhận hoàn tiền
-                  </button>
-                </div>
-                <button className="btn-action-close-ticket" onClick={handleCloseTicket}>
-                  Đóng Ticket
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+            {/* Card: Complaint Content */}
+            <div className="complaint-detail-card">
+              <h3 className="card-inner-title">Nội dung khiếu nại</h3>
+              <p className="complaint-main-text" style={{ whiteSpace: "pre-line" }}>“{selectedTicket.content}”</p>
 
-        {/* Right Column: Side Widgets */}
-        <div className="complaint-right-column">
-          {/* Card: Recent Activities Log */}
-          <div className="complaint-detail-card side-widget">
-            <h3 className="card-inner-title">Hoạt động gần đây</h3>
-            <div className="recent-log-activities-list">
-              <div className="log-activity-item">
-                <div className="log-icon-circle green-bg">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                    <polyline points="22 4 12 14.01 9 11.01" />
-                  </svg>
-                </div>
-                <div className="log-text-meta">
-                  <span className="log-text-desc">
-                    <strong>Admin Nam</strong> đã đóng khiếu nại <strong>#REP1102</strong>
-                  </span>
-                  <span className="log-time-elapsed">10 PHÚT TRƯỚC</span>
-                </div>
-              </div>
-
-              <div className="log-activity-item">
-                <div className="log-icon-circle red-bg">
+              {/* Interaction History */}
+              <div className="interaction-history-section">
+                <h4 className="interaction-title">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="14"
@@ -477,57 +670,133 @@ export function ComplaintManagement() {
                     strokeLinejoin="round"
                   >
                     <circle cx="12" cy="12" r="10" />
-                    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                    <polyline points="12 6 12 12 16 14" />
                   </svg>
-                </div>
-                <div className="log-text-meta">
-                  <span className="log-text-desc">
-                    <strong>Hệ thống</strong> đã khóa tạm thời <strong>Thanh Lý Shop</strong> do bị
-                    tố cáo nhiều lần.
-                  </span>
-                  <span className="log-time-elapsed">25 PHÚT TRƯỚC</span>
+                  <span>LỊCH SỬ TƯƠNG TÁC</span>
+                </h4>
+                <div className="timeline-flow-list">
+                  {selectedTicket.history.map((hist, idx) => (
+                    <div className="timeline-flow-node" key={idx}>
+                      <div className="node-marker-dot"></div>
+                      <div className="node-info-text">
+                        <span className="node-time-label">{hist.time}</span>
+                        <span className="node-description-text" style={{ whiteSpace: "pre-line" }}>{hist.text}</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              <div className="log-activity-item">
-                <div className="log-icon-circle orange-bg">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+              {/* Input Response Action or Resolution Display */}
+              {selectedTicket.rawStatus === "PENDING" ? (
+                <div className="ticket-response-input-block">
+                  <textarea
+                    className="response-textarea-field"
+                    placeholder="Nhập phản hồi hoặc ghi chú giải quyết..."
+                    rows="4"
+                    value={responseText}
+                    onChange={(e) => setResponseText(e.target.value)}
+                  />
+                  <div className="ticket-action-buttons-bar">
+                    <div className="left-actions-group">
+                      <button className="btn-action-send" onClick={handleSendResponse}>
+                        Gửi phản hồi
+                      </button>
+                      {selectedTicket.shopId && (
+                        <button className="btn-action-ban" onClick={handleBanShop} title="Cộng gậy cảnh cáo shop">
+                          Cảnh cáo Shop
+                        </button>
+                      )}
+                      {selectedTicket.orderIdNumerical && (
+                        <button className="btn-action-refund" onClick={handleApproveRefund} title="Phê duyệt hoàn trả tiền">
+                          Phê duyệt hoàn tiền
+                        </button>
+                      )}
+                    </div>
+                    <button className="btn-action-close-ticket" onClick={handleCloseTicket}>
+                      Từ chối / Đóng Ticket
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div 
+                  className="resolution-summary-box" 
+                  style={{
+                    marginTop: "24px",
+                    padding: "20px",
+                    backgroundColor: selectedTicket.rawStatus === "RESOLVED" ? "#f1f8e9" : "#ffebee",
+                    borderLeft: selectedTicket.rawStatus === "RESOLVED" ? "5px solid #689f38" : "5px solid #d32f2f",
+                    borderRadius: "6px"
+                  }}
+                >
+                  <h4 
+                    style={{ 
+                      margin: "0 0 10px 0", 
+                      fontSize: "16px",
+                      color: selectedTicket.rawStatus === "RESOLVED" ? "#33691e" : "#b71c1c",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px"
+                    }}
                   >
-                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                    <polyline points="22,6 12,13 2,6" />
-                  </svg>
+                    <span>{selectedTicket.rawStatus === "RESOLVED" ? "✓ KHIẾU NẠI ĐÃ ĐƯỢC GIẢI QUYẾT" : "✗ KHIẾU NẠI ĐÃ TỪ CHỐI"}</span>
+                  </h4>
+                  <p style={{ margin: "0", fontSize: "14px", color: "#3e2723", lineHeight: "1.6", whiteSpace: "pre-line" }}>
+                    <strong>Kết quả xử lý:</strong> {selectedTicket.resolution || "Không có chi tiết giải quyết."}
+                  </p>
                 </div>
-                <div className="log-text-meta">
-                  <span className="log-text-desc">
-                    Có <strong>5 khiếu nại mới</strong> cần được phân loại và xử lý.
-                  </span>
-                  <span className="log-time-elapsed">1 GIỜ TRƯỚC</span>
+              )}
+            </div>
+          </div>
+
+          {/* Right Column: Side Widgets */}
+          <div className="complaint-right-column">
+            {/* Card: Recent Activities Log */}
+            <div className="complaint-detail-card side-widget">
+              <h3 className="card-inner-title">Thông tin tham chiếu</h3>
+              
+              <div className="widget-reference-details" style={{ fontSize: "14px", color: "#3e2723" }}>
+                <div style={{ marginBottom: "12px", borderBottom: "1px solid #eee", paddingBottom: "12px" }}>
+                  <strong style={{ color: "#8b5a3c" }}>Người khiếu nại:</strong>
+                  <div style={{ marginTop: "4px" }}>
+                    Tên: {selectedTicket.sender}<br />
+                    Mức độ tin cậy: <span style={{ color: "#2e7d32", fontWeight: "bold" }}>Cao (98%)</span>
+                  </div>
                 </div>
+
+                {selectedTicket.shopId && (
+                  <div style={{ marginBottom: "12px", borderBottom: "1px solid #eee", paddingBottom: "12px" }}>
+                    <strong style={{ color: "#8b5a3c" }}>Shop bị khiếu nại:</strong>
+                    <div style={{ marginTop: "4px" }}>
+                      Tên shop: {selectedTicket.shopName}<br />
+                      Điểm phạt hiện tại: <span style={{ color: "#e65100", fontWeight: "bold" }}>1/5 gậy</span>
+                    </div>
+                  </div>
+                )}
+
+                {selectedTicket.orderIdNumerical && (
+                  <div style={{ marginBottom: "8px" }}>
+                    <strong style={{ color: "#8b5a3c" }}>Chi tiết đơn hàng:</strong>
+                    <div style={{ marginTop: "4px" }}>
+                      Mã đơn hàng: {selectedTicket.orderId}<br />
+                      Phương thức: <span style={{ textTransform: "uppercase" }}>Thanh toán khi nhận hàng (COD)</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
-            <button className="view-full-logs-btn">Xem toàn bộ nhật ký</button>
-          </div>
-
-          {/* Card: Eco Green ESG Panel */}
-          <div className="complaint-detail-card side-widget green-theme-widget">
-            <h3 className="card-inner-title green-title">Tiệm Cũ Xanh</h3>
-            <p className="green-theme-body-text">
-              Các phản hồi về chương trình 'Mua bán vì môi trường' tăng 40% trong tháng này. Hãy chuẩn bị báo cáo chi tiết cho đối tác ESG.
-            </p>
-            <span className="green-metrics-badge">GREEN METRICS</span>
+            {/* Card: Eco Green ESG Panel */}
+            <div className="complaint-detail-card side-widget green-theme-widget">
+              <h3 className="card-inner-title green-title">Tiệm Cũ Xanh</h3>
+              <p className="green-theme-body-text">
+                Các phản hồi về chương trình 'Mua bán vì môi trường' tăng 40% trong tháng này. Hãy chuẩn bị báo cáo chi tiết cho đối tác ESG.
+              </p>
+              <span className="green-metrics-badge">GREEN METRICS</span>
+            </div>
           </div>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }

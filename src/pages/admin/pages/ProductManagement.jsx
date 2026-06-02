@@ -1,10 +1,19 @@
 import { useEffect, useState } from "react";
-import { productService } from "@/services/admin";
+import { productService, categoryService } from "@/services/admin";
 import "./ProductManagement.css";
 
 const ITEMS_PER_PAGE = 10;
 const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=300&q=80";
+
+const getConditionLabel = (cond) => {
+  if (cond === "NEW") return "Mới 100%";
+  if (cond === "LIKE_NEW") return "Như mới";
+  if (cond === "GOOD") return "Tốt";
+  if (cond === "FAIR") return "Khá";
+  if (cond === "POOR") return "Cũ";
+  return cond || "Tốt";
+};
 
 const normalizeProduct = (product) => {
   const primaryImage = product?.images?.[0]?.url || product?.image || FALLBACK_IMAGE;
@@ -31,6 +40,7 @@ const normalizeProduct = (product) => {
 
 export function ProductManagement() {
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
@@ -57,7 +67,18 @@ export function ProductManagement() {
 
   useEffect(() => {
     loadProducts();
+    loadCategories();
   }, []);
+
+  const loadCategories = async () => {
+    try {
+      const response = await categoryService.getAll();
+      const rawData = response?.data || response || [];
+      setCategories(rawData);
+    } catch (err) {
+      console.error("Lỗi khi tải danh mục:", err);
+    }
+  };
 
   const loadProducts = async () => {
     try {
@@ -216,6 +237,16 @@ export function ProductManagement() {
     }
   };
 
+  const handleToggleStatus = async (id, isActiveVal) => {
+    try {
+      await productService.toggleActive(id, isActiveVal);
+      alert("Đã cập nhật trạng thái sản phẩm thành công!");
+      loadProducts();
+    } catch (err) {
+      alert("Lỗi khi đổi trạng thái sản phẩm: " + err.message);
+    }
+  };
+
   return (
     <div className="product-management">
       <div className="page-header">
@@ -223,7 +254,7 @@ export function ProductManagement() {
           <h1 className="page-title">Quản trị sản phẩm</h1>
         </div>
         <button className="btn btn-primary btn-create" type="button" onClick={() => handleOpenModal()}>
-          + Tạo Listing Mới
+          + Tạo Sản Phẩm
         </button>
       </div>
 
@@ -246,12 +277,74 @@ export function ProductManagement() {
             }}
           />
         </div>
-        <button className="btn btn-secondary filter-btn" type="button" onClick={() => { setCategoryFilter(categoryFilter === "all" ? "phụ kiện" : "all"); setPage(1); }}>
-          Danh mục
-        </button>
         <button className="btn btn-secondary filter-btn" type="button" onClick={() => { setSortFilter(sortFilter === "newest" ? "price-desc" : "newest"); setPage(1); }}>
           Mới nhất
         </button>
+      </div>
+
+      {/* Horizontal Category Filter Pills */}
+      <div
+        className="category-pills-row"
+        style={{
+          display: "flex",
+          gap: "8px",
+          overflowX: "auto",
+          padding: "6px 0 16px 0",
+          scrollbarWidth: "none",
+          msOverflowStyle: "none",
+          marginBottom: "10px"
+        }}
+      >
+        <style>{`
+          .category-pills-row::-webkit-scrollbar {
+            display: none;
+          }
+        `}</style>
+
+        <button
+          type="button"
+          onClick={() => { setCategoryFilter("all"); setPage(1); }}
+          className={`category-filter-pill ${categoryFilter === "all" ? "active" : ""}`}
+          style={{
+            padding: "8px 16px",
+            borderRadius: "999px",
+            border: "1px solid #efe1cb",
+            background: categoryFilter === "all" ? "#efe9b5" : "#f8f2d4",
+            color: categoryFilter === "all" ? "#b45326" : "#7e6651",
+            fontWeight: "700",
+            fontSize: "13px",
+            cursor: "pointer",
+            transition: "all 0.2s ease",
+            whiteSpace: "nowrap",
+            boxShadow: categoryFilter === "all" ? "0 4px 8px rgba(180, 83, 38, 0.15)" : "none"
+          }}
+        >
+          Tất cả danh mục
+        </button>
+
+        {categories.map((cat) => (
+          <button
+            key={cat.id}
+            type="button"
+            onClick={() => { setCategoryFilter(cat.name); setPage(1); }}
+            className={`category-filter-pill ${categoryFilter === cat.name ? "active" : ""}`}
+            style={{
+              padding: "8px 16px",
+              borderRadius: "999px",
+              border: "1px solid #efe1cb",
+              background: categoryFilter === cat.name ? "#efe9b5" : "#f8f2d4",
+              color: categoryFilter === cat.name ? "#b45326" : "#7e6651",
+              fontWeight: "700",
+              fontSize: "13px",
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+              whiteSpace: "nowrap",
+              boxShadow: categoryFilter === cat.name ? "0 4px 8px rgba(180, 83, 38, 0.15)" : "none"
+            }}
+          >
+            {cat.name}
+          </button>
+        ))}
       </div>
 
       {/* Products Table */}
@@ -267,8 +360,10 @@ export function ProductManagement() {
                 <tr>
                   <th>HÌNH ẢNH</th>
                   <th>Tên sản phẩm</th>
+                  <th>Danh mục</th>
                   <th>Người bán</th>
                   <th>Giá</th>
+                  <th>Kho hàng</th>
                   <th>Trạng thái</th>
                   <th>Hành động</th>
                 </tr>
@@ -282,32 +377,111 @@ export function ProductManagement() {
                     <td>
                       <div className="product-name-cell">
                         <span className="product-name">{product.name}</span>
-                        <span className="product-sku">SKU: {product.sku}</span>
+                        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "4px" }}>
+                          <span className="product-sku">SKU: {product.sku}</span>
+                          {product.brand && (
+                            <span style={{
+                              fontSize: "10px",
+                              backgroundColor: "#efe9b5",
+                              color: "#b45326",
+                              padding: "2px 6px",
+                              borderRadius: "4px",
+                              fontWeight: "700"
+                            }}>
+                              Hiệu: {product.brand}
+                            </span>
+                          )}
+                          {product.condition && (
+                            <span style={{
+                              fontSize: "10px",
+                              backgroundColor: "#f5d1a2",
+                              color: "#b56a1a",
+                              padding: "2px 6px",
+                              borderRadius: "4px",
+                              fontWeight: "700"
+                            }}>
+                              Độ mới: {getConditionLabel(product.condition)}
+                            </span>
+                          )}
+                        </div>
                       </div>
+                    </td>
+                    <td>
+                      <span className="category-badge-pill" style={{
+                        padding: "6px 12px",
+                        borderRadius: "8px",
+                        backgroundColor: "#faf6f0",
+                        border: "1px solid #efe1cb",
+                        color: "#8b5a3c",
+                        fontSize: "12px",
+                        fontWeight: "600",
+                        display: "inline-block"
+                      }}>
+                        {product.category}
+                      </span>
                     </td>
                     <td>
                       <div className="seller-cell">
                         <div className="seller-avatar">{product.sellerName.slice(0, 2).toUpperCase()}</div>
                         <div className="seller-meta">
                           <span className="seller-name">{product.sellerName}</span>
-                          <span className="seller-role">{product.sellerMeta}</span>
+                          <span className="seller-role">Shop ID: {product.shop?.id || product.shopId || 1}</span>
                         </div>
                       </div>
                     </td>
                     <td className="price-cell">{product.price?.toLocaleString("vi-VN")}đ</td>
+                    <td style={{ fontWeight: "600" }}>
+                      {product.stock > 0 ? (
+                        <span style={{ color: "#2e7d32" }}>{product.stock} chiếc</span>
+                      ) : (
+                        <span style={{ 
+                          color: "#c62828", 
+                          backgroundColor: "#ffebee", 
+                          padding: "4px 8px", 
+                          borderRadius: "6px", 
+                          fontSize: "11px", 
+                          fontWeight: "700" 
+                        }}>Hết hàng</span>
+                      )}
+                    </td>
                     <td>
-                      <span className={getStatusClass(product.status)}>{getStatusLabel(product.status)}</span>
+                      <select
+                        value={product.isActive ? "active" : "inactive"}
+                        onChange={(e) => handleToggleStatus(product.id, e.target.value === "active")}
+                        className={`status-select-dropdown ${product.isActive ? "active" : "inactive"}`}
+                        style={{
+                          backgroundColor: product.isActive ? "#e8f5e9" : "#ffebee",
+                          color: product.isActive ? "#2e7d32" : "#c62828",
+                          border: product.isActive ? "1px solid #c8e6c9" : "1px solid #ffcdd2",
+                          padding: "4px 8px",
+                          paddingRight: "20px",
+                          borderRadius: "8px",
+                          fontSize: "12px",
+                          fontWeight: "700",
+                          cursor: "pointer",
+                          outline: "none",
+                          appearance: "none",
+                          backgroundRepeat: "no-repeat",
+                          backgroundPosition: "right 6px center",
+                          backgroundImage: product.isActive
+                            ? `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%232e7d32' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`
+                            : `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23c62828' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`
+                        }}
+                      >
+                        <option value="active">Đang bán</option>
+                        <option value="inactive">Khóa bán</option>
+                      </select>
                     </td>
                     <td className="actions-cell">
                       <div className="actions-wrapper">
                         <button className="btn-icon btn-edit" type="button" onClick={() => handleOpenModal(product)} title="Sửa sản phẩm">
                           <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor">
-                            <path d="M200-200h57l391-391-57-57-391 391v57Zm-80 80v-170l528-527q12-11 26.5-17t30.5-6q16 0 31 6t26 18l55 56q12 11 17.5 26t5.5 30q0 16-5.5 30.5T817-647L290-120H120Zm640-584-56-56 56 56Zm-141 85-28-29 57 57-29-28Z"/>
+                            <path d="M200-200h57l391-391-57-57-391 391v57Zm-80 80v-170l528-527q12-11 26.5-17t30.5-6q16 0 31 6t26 18l55 56q12 11 17.5 26t5.5 30q0 16-5.5 30.5T817-647L290-120H120Zm640-584-56-56 56 56Zm-141 85-28-29 57 57-29-28Z" />
                           </svg>
                         </button>
                         <button className="btn-icon btn-delete" type="button" onClick={() => handleDelete(product.id)} title="Xóa sản phẩm">
                           <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor">
-                            <path d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z"/>
+                            <path d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z" />
                           </svg>
                         </button>
                       </div>
@@ -365,6 +539,28 @@ export function ProductManagement() {
                 <div className="form-group">
                   <label>Xuất xứ</label>
                   <input type="text" name="originCountry" value={formData.originCountry} onChange={handleFormChange} />
+                </div>
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Danh mục sản phẩm *</label>
+                  <select
+                    name="categoryId"
+                    value={formData.categoryId || ""}
+                    onChange={handleFormChange}
+                    required
+                  >
+                    <option value="">-- Chọn danh mục --</option>
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Cửa hàng (Shop ID) *</label>
+                  <input type="number" name="shopId" value={formData.shopId} onChange={handleFormChange} required min="1" />
                 </div>
               </div>
               <div className="form-row">

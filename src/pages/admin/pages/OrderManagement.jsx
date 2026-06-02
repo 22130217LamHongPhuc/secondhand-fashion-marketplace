@@ -280,6 +280,11 @@ export function OrderManagement() {
       {showDetailModal && selectedOrder && (
         <div className="modal-overlay" onClick={() => setShowDetailModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close-btn" onClick={() => setShowDetailModal(false)} title="Đóng">
+              <svg xmlns="http://www.w3.org/2000/svg" height="22" viewBox="0 -960 960 960" width="22" fill="currentColor">
+                <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/>
+              </svg>
+            </button>
             <h2>Chi tiết đơn hàng #{selectedOrder.id}</h2>
 
             <div className="order-detail-body">
@@ -412,9 +417,6 @@ export function OrderManagement() {
                 }}
               >
                 Hủy đơn hàng
-              </button>
-              <button className="btn btn-secondary" onClick={() => setShowDetailModal(false)}>
-                Đóng
               </button>
             </div>
           </div>

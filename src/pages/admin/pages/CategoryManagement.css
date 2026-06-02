@@ -430,13 +430,14 @@
 }
 
 .form-modal-card {
-  background-color: white;
+  background-color: #fffdf8;
   border-radius: 16px;
   width: 100%;
   max-width: 500px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
   animation: scaleInCard 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
   overflow: hidden;
+  color-scheme: light;
 }
 
 @keyframes scaleInCard {
@@ -451,7 +452,7 @@
 }
 
 .form-modal-header {
-  background-color: #faf6eb;
+  background: linear-gradient(180deg, #fffaf0 0%, #f6edd9 100%);
   padding: 16px 24px;
   border-bottom: 1px solid #ebdcb9;
   display: flex;
@@ -484,6 +485,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  background: #fffdf8;
 }
 
 .form-group-item {
@@ -501,6 +503,7 @@
 .form-group-item input[type="text"],
 .form-group-item input[type="number"],
 .form-group-item select {
+  background-color: #ffffff;
   border: 1px solid #ebdcb9;
   border-radius: 8px;
   padding: 10px 12px;
@@ -508,12 +511,26 @@
   color: #3e2723;
   outline: none;
   transition: border-color 0.2s ease;
+  color-scheme: light;
 }
 
 .form-group-item input:focus,
 .form-group-item select:focus {
   border-color: #c85a28;
   box-shadow: 0 0 0 3px rgba(200, 90, 40, 0.08);
+}
+
+.form-group-item input::placeholder {
+  color: #a08f7d;
+}
+
+.form-group-item select {
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, #8b7d6a 50%), linear-gradient(135deg, #8b7d6a 50%, transparent 50%);
+  background-position: calc(100% - 18px) calc(1em + 2px), calc(100% - 12px) calc(1em + 2px);
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+  padding-right: 32px;
 }
 
 .form-group-grid-2 {
@@ -538,7 +555,7 @@
   position: relative;
   width: 42px;
   height: 22px;
-  background-color: #ccc;
+  background-color: #d6c8ad;
   border-radius: 34px;
   transition: .4s;
   display: inline-block;
@@ -578,9 +595,9 @@
 }
 
 .btn-cancel-modal {
-  background-color: #f0e9d6;
-  border: 1px solid #e1d6b9;
-  color: #8b5a3c;
+  background-color: #f7efe2;
+  border: 1px solid #e4d7bf;
+  color: #7a4f32;
   padding: 10px 18px;
   font-size: 13px;
   font-weight: 700;
@@ -594,7 +611,7 @@
 }
 
 .btn-submit-modal {
-  background-color: #c85a28;
+  background-color: #d3632a;
   border: none;
   color: white;
   padding: 10px 18px;
@@ -606,5 +623,5 @@
 }
 
 .btn-submit-modal:hover {
-  background-color: #b54a1a;
+  background-color: #b85420;
 }

@@ -97,6 +97,22 @@ export function UserManagement() {
     }
   };
 
+  const handleUpdateRole = async (userId, newRole) => {
+    try {
+      await userService.updateRole(userId, newRole);
+      alert("Cập nhật vai trò người dùng thành công!");
+      if (selectedUser && selectedUser.id === userId) {
+        setSelectedUser(prev => ({
+          ...prev,
+          role: newRole.toLowerCase().replace("customer", "buyer")
+        }));
+      }
+      loadUsers();
+    } catch (err) {
+      alert("Lỗi cập nhật vai trò: " + err.message);
+    }
+  };
+
   const handleViewDetails = (user) => {
     setSelectedUser(user);
     setShowDetailModal(true);
@@ -264,6 +280,11 @@ export function UserManagement() {
       {showDetailModal && selectedUser && (
         <div className="modal-overlay" onClick={() => setShowDetailModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close-btn" onClick={() => setShowDetailModal(false)} title="Đóng">
+              <svg xmlns="http://www.w3.org/2000/svg" height="22" viewBox="0 -960 960 960" width="22" fill="currentColor">
+                <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/>
+              </svg>
+            </button>
             <div className="user-detail-header">
               <img
                 src={selectedUser.avatar || "https://via.placeholder.com/100"}
@@ -295,6 +316,29 @@ export function UserManagement() {
                   <span className="value">
                     {new Date(selectedUser.createdAt).toLocaleDateString("vi-VN")}
                   </span>
+                </div>
+                <div className="detail-item">
+                  <span className="label">Vai trò:</span>
+                  <select
+                    value={(selectedUser.role || "buyer").toUpperCase().replace("BUYER", "CUSTOMER")}
+                    onChange={(e) => handleUpdateRole(selectedUser.id, e.target.value)}
+                    className="role-select-inline"
+                    style={{
+                      padding: "6px 10px",
+                      borderRadius: "6px",
+                      border: "1px solid #efe1cb",
+                      backgroundColor: "#faf6f0",
+                      color: "#8b5a3c",
+                      fontWeight: "700",
+                      fontSize: "12px",
+                      cursor: "pointer",
+                      outline: "none"
+                    }}
+                  >
+                    <option value="CUSTOMER">Người mua</option>
+                    <option value="SELLER">Người bán</option>
+                    <option value="ADMIN">Quản trị viên</option>
+                  </select>
                 </div>
               </div>
 
@@ -346,9 +390,6 @@ export function UserManagement() {
                 }}
               >
                 Xóa tài khoản
-              </button>
-              <button className="btn btn-secondary" onClick={() => setShowDetailModal(false)}>
-                Đóng
               </button>
             </div>
           </div>
