@@ -51,8 +51,8 @@
   border: 1px solid #e8dfd5;
   border-radius: 999px;
   font-size: 13px;
+  color: #5a4a3a;
   background-color: #f3efcf;
-  color: #8b5a3c;
 }
 
 .search-box.order-search input:focus {
@@ -239,12 +239,12 @@
   color: #9a6c00;
 }
 
-.status-badge.status-shipped {
+.status-badge.status-shipping {
   background-color: #fff1c6;
   color: #b37700;
 }
 
-.status-badge.status-delivered {
+.status-badge.status-done {
   background-color: #dff1bf;
   color: #4f8b1d;
 }
@@ -325,20 +325,22 @@
 .orders-table {
   width: 100%;
   border-collapse: collapse;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .orders-table thead {
-  background-color: #f6f0d4;
+  background-color: #f8f2d4;
 }
 
 .orders-table th {
   padding: 14px 12px;
   text-align: left;
-  font-weight: 700;
+  font-weight: 600;
   color: #8b5a3c;
-  font-size: 13px;
+  font-size: 12px;
   border-bottom: 1px solid #e8dfd5;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .orders-table td {
@@ -400,11 +402,13 @@
 
 .actions-cell {
   white-space: nowrap;
+  text-align: center;
 }
 
 .actions-wrapper {
   display: flex;
-  gap: 8px;
+  gap: 12px;
+  justify-content: center;
   align-items: center;
 }
 
@@ -457,44 +461,25 @@
 }
 
 .table-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-top: 8px;
-}
-
-.table-note {
   color: #8b5a3c;
   font-size: 13px;
+  margin-top: 8px;
 }
 
 .pagination {
   display: flex;
+  justify-content: flex-end;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  margin-top: 6px;
 }
 
-.page-btn,
-.page-number {
-  width: 30px;
-  height: 30px;
-  border-radius: 10px;
-  border: none;
-  background: #e9e1b9;
+.page-info {
   color: #8b5a3c;
-  font-weight: 700;
-}
-
-.page-number {
-  display: inline-grid;
-  place-items: center;
-}
-
-.page-number.active {
-  background: #c85a28;
-  color: white;
+  font-weight: 600;
+  min-width: 100px;
+  text-align: center;
+  font-size: 13px;
 }
 
 .loading,

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { orderService } from "@/services/admin";
+import { OrderDetailView } from "./OrderDetailView";
 import "./OrderManagement.css";
 
 const demoOrders = [
@@ -77,8 +78,8 @@ const demoOrders = [
 const statusLabels = {
   pending: "Chờ giao",
   confirmed: "Đã xác nhận",
-  shipped: "Đang giao",
-  delivered: "Hoàn thành",
+  shipping: "Đang giao",
+  done: "Hoàn thành",
   cancelled: "Đã hủy",
 };
 
@@ -89,7 +90,7 @@ export function OrderManagement() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [statusFilter, setStatusFilter] = useState("all");
-  const [dateFilter, setDateFilter] = useState("today");
+  const [dateFilter, setDateFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -107,7 +108,12 @@ export function OrderManagement() {
       const rawData = response?.data || response || {};
       const apiOrders = rawData.data || rawData.content || rawData.items || (Array.isArray(rawData) ? rawData : []);
       const fallbackOrders = page === 1 && statusFilter === "all" && apiOrders.length === 0 ? demoOrders : [];
-      setOrders(apiOrders.length > 0 ? apiOrders : fallbackOrders);
+      const ordersToSet = apiOrders.length > 0 ? apiOrders : fallbackOrders;
+      const normalizedOrders = ordersToSet.map(order => ({
+        ...order,
+        status: order.status ? order.status.toLowerCase() : order.status
+      }));
+      setOrders(normalizedOrders);
       setTotalPages(rawData.totalPages || rawData.total_pages || 1);
       setError(null);
     } catch (err) {
@@ -169,8 +175,8 @@ export function OrderManagement() {
     { value: "all", label: "Tất cả" },
     { value: "pending", label: "Chờ giao" },
     { value: "confirmed", label: "Đã xác nhận" },
-    { value: "shipped", label: "Đang giao" },
-    { value: "delivered", label: "Hoàn thành" },
+    { value: "shipping", label: "Đang giao" },
+    { value: "done", label: "Hoàn thành" },
     { value: "cancelled", label: "Đã hủy" },
   ];
 
@@ -201,11 +207,24 @@ export function OrderManagement() {
     totalRevenue: filteredOrders.reduce((sum, order) => sum + (order.total || 0), 0),
   };
 
+  if (selectedOrder) {
+    return (
+      <OrderDetailView
+        order={selectedOrder}
+        onBack={() => {
+          setSelectedOrder(null);
+          setShowDetailModal(false);
+        }}
+        onUpdateStatus={handleUpdateStatus}
+        onCancelOrder={handleCancelOrder}
+      />
+    );
+  }
+
   return (
     <div className="order-management">
       <div className="page-header">
         <div>
-          <p className="page-kicker">Quản trị đơn hàng - Admin Panel</p>
           <h1 className="page-title">Quản trị đơn hàng</h1>
         </div>
       </div>
@@ -412,12 +431,12 @@ export function OrderManagement() {
             <table className="orders-table">
               <thead>
                 <tr>
-                  <th>Mã đơn hàng</th>
-                  <th>Khách hàng</th>
-                  <th>Ngày đặt</th>
-                  <th>Tổng tiền</th>
-                  <th>Trạng thái</th>
-                  <th>Thao tác</th>
+                  <th>MÃ ĐƠN HÀNG</th>
+                  <th>KHÁCH HÀNG</th>
+                  <th>NGÀY ĐẶT</th>
+                  <th>TỔNG TIỀN</th>
+                  <th>TRẠNG THÁI</th>
+                  <th>HÀNH ĐỘNG</th>
                 </tr>
               </thead>
               <tbody>
@@ -445,15 +464,19 @@ export function OrderManagement() {
                           onClick={() => handleViewDetails(order)}
                           title="Xem chi tiết"
                         >
-                          👁️
+                          <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor">
+                            <path d="M480-320q75 0 127.5-52.5T660-500q0-75-52.5-127.5T480-680q-75 0-127.5 52.5T300-500q0 75 52.5 127.5T480-320Zm0-72q-45 0-76.5-31.5T372-500q0-45 31.5-76.5T480-608q45 0 76.5 31.5T588-500q0 45-31.5 76.5T480-392Zm0 192q-146 0-266-81.5T40-500q54-137 174-218.5T480-800q146 0 266 81.5T920-500q-54 137-174 218.5T480-200Zm0-300Zm0 220q113 0 207.5-59.5T832-500q-50-101-144.5-160.5T480-720q-113 0-207.5 59.5T128-500q50 101 144.5 160.5T480-280Z"/>
+                          </svg>
                         </button>
-                        {order.status !== "cancelled" && order.status !== "delivered" && (
+                        {order.status !== "cancelled" && order.status !== "done" && (
                           <button
                             className="btn-icon btn-cancel"
                             onClick={() => handleCancelOrder(order.id)}
-                            title="Hủy"
+                            title="Hủy đơn hàng"
                           >
-                            🚫
+                            <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor">
+                              <path d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z"/>
+                            </svg>
                           </button>
                         )}
                       </div>
@@ -463,21 +486,28 @@ export function OrderManagement() {
               </tbody>
             </table>
 
+            {/* Pagination */}
+            <div className="pagination">
+              <button
+                onClick={() => setPage(Math.max(1, page - 1))}
+                disabled={page === 1}
+                className="btn btn-secondary"
+              >
+                Trước
+              </button>
+              <span className="page-info">
+                Trang {page} / {totalPages}
+              </span>
+              <button
+                onClick={() => setPage(Math.min(totalPages, page + 1))}
+                disabled={page === totalPages}
+                className="btn btn-secondary"
+              >
+                Sau
+              </button>
+            </div>
             <div className="table-footer">
-              <div className="table-note">Hiển thị 1-10 của {filteredOrders.length} đơn hàng</div>
-              <div className="pagination">
-                <button
-                  onClick={() => setPage(Math.max(1, page - 1))}
-                  disabled={page === 1}
-                  className="page-btn"
-                >
-                  ‹
-                </button>
-                <span className="page-number active">1</span>
-                <span className="page-number">2</span>
-                <span className="page-number">3</span>
-                <button className="page-btn">›</button>
-              </div>
+              Hiển thị {filteredOrders.length > 0 ? (page - 1) * 10 + 1 : 0} - {(page - 1) * 10 + filteredOrders.length} đơn hàng
             </div>
           </>
         ) : (

@@ -171,3 +171,68 @@ export const dashboardService = {
     return http(`/api/admin/dashboard/sales?period=${period}`);
   },
 };
+
+// Category Management
+export const categoryService = {
+  getAll: async () => {
+    return http("/api/admin/categories");
+  },
+  create: async (data) => {
+    return http("/api/admin/categories", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+  update: async (id, data) => {
+    return http(`/api/admin/categories/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+  },
+  delete: async (id) => {
+    return http(`/api/admin/categories/${id}`, {
+      method: "DELETE",
+    });
+  },
+};
+
+// Shop Management
+export const shopService = {
+  getAll: async () => {
+    return http("/api/admin/shops");
+  },
+  toggleVerify: async (id, verify) => {
+    return http(`/api/admin/shops/${id}/verify?verify=${verify}`, {
+      method: "PUT",
+    });
+  },
+  addStrike: async (id) => {
+    return http(`/api/admin/shops/${id}/strike`, {
+      method: "PUT",
+    });
+  },
+  toggleActive: async (id, active) => {
+    return http(`/api/admin/shops/${id}/active?active=${active}`, {
+      method: "PUT",
+    });
+  },
+  resetStrikes: async (id) => {
+    return http(`/api/admin/shops/${id}/reset-strikes`, {
+      method: "PUT",
+    });
+  },
+};
+
+// Complaint Management
+export const complaintService = {
+  getAll: async () => {
+    return http("/api/admin/complaints");
+  },
+  updateStatus: async (id, status) => {
+    return http(`/api/admin/complaints/${id}/status`, {
+      method: "PUT",
+      body: JSON.stringify({ status }),
+    });
+  },
+};
+

@@ -4,6 +4,9 @@ import {
   ProductManagement,
   UserManagement,
   OrderManagement,
+  ComplaintManagement,
+  CategoryManagement,
+  ShopManagement,
 } from "./pages";
 
 export { AdminLayout };
@@ -38,6 +41,30 @@ export const adminRoutes = [
     element: (
       <AdminLayout>
         <OrderManagement />
+      </AdminLayout>
+    ),
+  },
+  {
+    path: "/admin/complaints",
+    element: (
+      <AdminLayout>
+        <ComplaintManagement />
+      </AdminLayout>
+    ),
+  },
+  {
+    path: "/admin/categories",
+    element: (
+      <AdminLayout>
+        <CategoryManagement />
+      </AdminLayout>
+    ),
+  },
+  {
+    path: "/admin/shops",
+    element: (
+      <AdminLayout>
+        <ShopManagement />
       </AdminLayout>
     ),
   },

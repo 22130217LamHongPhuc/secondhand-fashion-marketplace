@@ -84,6 +84,7 @@
   border: 1px solid #e8dfd5;
   border-radius: 14px;
   font-size: 13px;
+  color: #5a4a3a;
   background-color: #f3efcf;
   transition: border-color 0.3s ease;
 }
@@ -185,6 +186,7 @@
   border: 1px solid #e8dfd5;
   border-radius: 10px;
   font-size: 13px;
+  color: #5a4a3a;
   font-family: inherit;
   background-color: #faf6f0;
   transition: border-color 0.3s ease;

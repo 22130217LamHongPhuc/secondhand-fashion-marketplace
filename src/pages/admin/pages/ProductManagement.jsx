@@ -39,6 +39,22 @@ export function ProductManagement() {
   const [sortFilter, setSortFilter] = useState("newest");
   const [searchTerm, setSearchTerm] = useState("");
 
+  const [showModal, setShowModal] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    brand: "",
+    originCountry: "",
+    condition: "GOOD",
+    basePrice: "",
+    salePrice: "",
+    stockQuantity: "",
+    categoryId: 1,
+    shopId: 1,
+    imageUrls: "",
+  });
+
   useEffect(() => {
     loadProducts();
   }, []);
@@ -116,15 +132,97 @@ export function ProductManagement() {
     return "status-badge status-selling";
   };
 
+  const handleOpenModal = (product = null) => {
+    if (product) {
+      setEditingProduct(product);
+      setFormData({
+        name: product.name || "",
+        description: product.description || "",
+        brand: product.brand || "",
+        originCountry: product.originCountry || "",
+        condition: product.condition || "GOOD",
+        basePrice: product.basePrice || product.price || "",
+        salePrice: product.salePrice || "",
+        stockQuantity: product.stockQuantity || product.stock || "",
+        categoryId: product.category?.id || product.categoryId || 1,
+        shopId: product.shop?.id || product.shopId || 1,
+        imageUrls: product.images?.map(i => i.url).join("\n") || product.image || "",
+      });
+    } else {
+      setEditingProduct(null);
+      setFormData({
+        name: "",
+        description: "",
+        brand: "",
+        originCountry: "",
+        condition: "GOOD",
+        basePrice: "",
+        salePrice: "",
+        stockQuantity: "",
+        categoryId: 1,
+        shopId: 1,
+        imageUrls: "",
+      });
+    }
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setEditingProduct(null);
+  };
+
+  const handleFormChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const payload = {
+        ...formData,
+        basePrice: parseFloat(formData.basePrice) || 0,
+        salePrice: formData.salePrice ? parseFloat(formData.salePrice) : null,
+        stockQuantity: parseInt(formData.stockQuantity) || 0,
+        categoryId: parseInt(formData.categoryId) || null,
+        shopId: parseInt(formData.shopId) || 1,
+        imageUrls: formData.imageUrls.split("\n").filter((url) => url.trim() !== ""),
+      };
+
+      if (editingProduct) {
+        await productService.update(editingProduct.id, payload);
+        alert("Cập nhật sản phẩm thành công!");
+      } else {
+        await productService.create(payload);
+        alert("Tạo sản phẩm thành công!");
+      }
+      handleCloseModal();
+      loadProducts();
+    } catch (err) {
+      alert("Lỗi: " + err.message);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm("Bạn có chắc chắn muốn xóa sản phẩm này?")) {
+      try {
+        await productService.delete(id);
+        alert("Xóa sản phẩm thành công!");
+        loadProducts();
+      } catch (err) {
+        alert("Lỗi: " + err.message);
+      }
+    }
+  };
+
   return (
     <div className="product-management">
       <div className="page-header">
         <div>
-          <p className="page-kicker">Quản trị sản phẩm - Admin Panel</p>
           <h1 className="page-title">Quản trị sản phẩm</h1>
-          <p className="page-note">Dữ liệu đang được lấy trực tiếp từ API backend và đồng bộ từ DB.</p>
         </div>
-        <button className="btn btn-primary btn-create" type="button" disabled title="Chức năng chỉnh sửa đang chờ backend">
+        <button className="btn btn-primary btn-create" type="button" onClick={() => handleOpenModal()}>
           + Tạo Listing Mới
         </button>
       </div>
@@ -202,12 +300,12 @@ export function ProductManagement() {
                     </td>
                     <td className="actions-cell">
                       <div className="actions-wrapper">
-                        <button className="btn-icon btn-edit" type="button" disabled title="Chưa kết nối backend chỉnh sửa">
+                        <button className="btn-icon btn-edit" type="button" onClick={() => handleOpenModal(product)} title="Sửa sản phẩm">
                           <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor">
                             <path d="M200-200h57l391-391-57-57-391 391v57Zm-80 80v-170l528-527q12-11 26.5-17t30.5-6q16 0 31 6t26 18l55 56q12 11 17.5 26t5.5 30q0 16-5.5 30.5T817-647L290-120H120Zm640-584-56-56 56 56Zm-141 85-28-29 57 57-29-28Z"/>
                           </svg>
                         </button>
-                        <button className="btn-icon btn-delete" type="button" disabled title="Chưa kết nối backend xóa">
+                        <button className="btn-icon btn-delete" type="button" onClick={() => handleDelete(product.id)} title="Xóa sản phẩm">
                           <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor">
                             <path d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z"/>
                           </svg>
@@ -245,6 +343,68 @@ export function ProductManagement() {
           <div className="empty-state">Chưa có sản phẩm nào</div>
         )}
       </div>
+
+      {showModal && (
+        <div className="modal-overlay" onClick={handleCloseModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2>{editingProduct ? "Chỉnh sửa Sản phẩm" : "Tạo Sản phẩm mới"}</h2>
+            <form onSubmit={handleSubmit} className="product-form">
+              <div className="form-group">
+                <label>Tên sản phẩm *</label>
+                <input type="text" name="name" value={formData.name} onChange={handleFormChange} required />
+              </div>
+              <div className="form-group">
+                <label>Mô tả</label>
+                <textarea name="description" value={formData.description} onChange={handleFormChange} rows="3" />
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Thương hiệu</label>
+                  <input type="text" name="brand" value={formData.brand} onChange={handleFormChange} />
+                </div>
+                <div className="form-group">
+                  <label>Xuất xứ</label>
+                  <input type="text" name="originCountry" value={formData.originCountry} onChange={handleFormChange} />
+                </div>
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Tình trạng *</label>
+                  <select name="condition" value={formData.condition} onChange={handleFormChange}>
+                    <option value="NEW">Mới</option>
+                    <option value="LIKE_NEW">Như mới</option>
+                    <option value="GOOD">Tốt</option>
+                    <option value="FAIR">Khá</option>
+                    <option value="POOR">Kém</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Số lượng kho *</label>
+                  <input type="number" name="stockQuantity" value={formData.stockQuantity} onChange={handleFormChange} required min="0" />
+                </div>
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Giá gốc *</label>
+                  <input type="number" name="basePrice" value={formData.basePrice} onChange={handleFormChange} required min="0" />
+                </div>
+                <div className="form-group">
+                  <label>Giá bán (Khuyến mãi)</label>
+                  <input type="number" name="salePrice" value={formData.salePrice} onChange={handleFormChange} min="0" />
+                </div>
+              </div>
+              <div className="form-group">
+                <label>Hình ảnh (Mỗi URL một dòng)</label>
+                <textarea name="imageUrls" value={formData.imageUrls} onChange={handleFormChange} rows="3" placeholder="https://example.com/img1.jpg&#10;https://example.com/img2.jpg" />
+              </div>
+              <div className="modal-actions">
+                <button type="button" className="btn btn-secondary" onClick={handleCloseModal}>Hủy</button>
+                <button type="submit" className="btn btn-primary">{editingProduct ? "Cập nhật" : "Tạo mới"}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
