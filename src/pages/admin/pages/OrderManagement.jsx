@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { orderService } from "@/services/admin";
 import { OrderDetailView } from "./OrderDetailView";
 import "./OrderManagement.css";
@@ -16,6 +17,7 @@ const demoOrders = [
     shipping: 20000,
     discount: 0,
     status: "pending",
+    shopName: "Vintage Store",
     createdAt: "2026-05-09T06:30:00.000Z",
     items: [
       { productName: "Áo sơ mi vintage", price: 250000, quantity: 1 },
@@ -34,6 +36,7 @@ const demoOrders = [
     shipping: 30000,
     discount: 0,
     status: "shipped",
+    shopName: "Trendy Closet",
     createdAt: "2026-05-09T01:15:00.000Z",
     items: [
       { productName: "Áo khoác denim", price: 800000, quantity: 1 },
@@ -52,6 +55,7 @@ const demoOrders = [
     shipping: 30000,
     discount: 0,
     status: "delivered",
+    shopName: "Vintage Store",
     createdAt: "2026-05-08T09:45:00.000Z",
     items: [
       { productName: "Váy linen", price: 320000, quantity: 1 },
@@ -70,6 +74,7 @@ const demoOrders = [
     shipping: 0,
     discount: 0,
     status: "cancelled",
+    shopName: "Teen Fashion",
     createdAt: "2026-05-08T03:20:00.000Z",
     items: [{ productName: "Mũ bucket", price: 320000, quantity: 1 }],
   },
@@ -92,12 +97,55 @@ export function OrderManagement() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [shopFilter, setShopFilter] = useState("all");
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [detailError, setDetailError] = useState(null);
+
+  const { orderId } = useParams();
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadOrders();
   }, [page, statusFilter]);
+
+  useEffect(() => {
+    if (orderId) {
+      const fetchOrderDetail = async () => {
+        try {
+          setLoading(true);
+          setDetailError(null);
+          const numericId = parseInt(orderId, 10);
+          
+          const fullOrder = await orderService.getById(numericId);
+          if (fullOrder) {
+            setSelectedOrder({
+              ...fullOrder,
+              status: fullOrder.status ? fullOrder.status.toLowerCase() : fullOrder.status
+            });
+          } else {
+            setDetailError("Không tìm thấy đơn hàng #" + orderId);
+            setSelectedOrder(null);
+          }
+        } catch (err) {
+          console.warn("Failed to fetch order detail via API, trying demo fallback:", err);
+          const demoMatch = demoOrders.find(o => o.id === parseInt(orderId, 10));
+          if (demoMatch) {
+            setSelectedOrder(demoMatch);
+          } else {
+            setDetailError("Không tìm thấy đơn hàng #" + orderId + " trong cơ sở dữ liệu.");
+            setSelectedOrder(null);
+          }
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchOrderDetail();
+    } else {
+      setSelectedOrder(null);
+      setDetailError(null);
+    }
+  }, [orderId]);
 
   const loadOrders = async () => {
     try {
@@ -153,8 +201,7 @@ export function OrderManagement() {
   };
 
   const handleViewDetails = (order) => {
-    setSelectedOrder(order);
-    setShowDetailModal(true);
+    navigate(`/admin/orders/${order.id}`);
   };
 
   const handleExport = async (format) => {
@@ -180,6 +227,16 @@ export function OrderManagement() {
     { value: "cancelled", label: "Đã hủy" },
   ];
 
+  const uniqueShops = useMemo(() => {
+    const shopsSet = new Set();
+    orders.forEach((order) => {
+      if (order.shopName) {
+        shopsSet.add(order.shopName);
+      }
+    });
+    return Array.from(shopsSet);
+  }, [orders]);
+
   const filteredOrders = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
     return orders.filter((order) => {
@@ -187,7 +244,8 @@ export function OrderManagement() {
         !keyword ||
         String(order.id).includes(keyword) ||
         (order.customerName || "").toLowerCase().includes(keyword) ||
-        (order.customerEmail || "").toLowerCase().includes(keyword);
+        (order.customerEmail || "").toLowerCase().includes(keyword) ||
+        (order.shopName || "").toLowerCase().includes(keyword);
 
       const today = new Date();
       const createdAt = new Date(order.createdAt);
@@ -197,9 +255,11 @@ export function OrderManagement() {
         today.getDate() === createdAt.getDate();
       const matchesDate = dateFilter === "all" || (dateFilter === "today" ? sameDay : true);
 
-      return matchesSearch && matchesDate;
+      const matchesShop = shopFilter === "all" || (order.shopName || "Unknown Shop") === shopFilter;
+
+      return matchesSearch && matchesDate && matchesShop;
     });
-  }, [orders, searchTerm, dateFilter]);
+  }, [orders, searchTerm, dateFilter, shopFilter]);
 
   const summary = {
     totalProcessing: filteredOrders.filter((order) => ["pending", "confirmed"].includes(order.status)).length,
@@ -207,18 +267,41 @@ export function OrderManagement() {
     totalRevenue: filteredOrders.reduce((sum, order) => sum + (order.total || 0), 0),
   };
 
-  if (selectedOrder) {
-    return (
-      <OrderDetailView
-        order={selectedOrder}
-        onBack={() => {
-          setSelectedOrder(null);
-          setShowDetailModal(false);
-        }}
-        onUpdateStatus={handleUpdateStatus}
-        onCancelOrder={handleCancelOrder}
-      />
-    );
+  if (orderId) {
+    if (loading && !selectedOrder) {
+      return (
+        <div className="order-detail-loading-container">
+          <div className="loader-spinner"></div>
+          <p>Đang tải chi tiết đơn hàng #{orderId}...</p>
+        </div>
+      );
+    }
+    if (detailError) {
+      return (
+        <div className="order-detail-error-container">
+          <div className="error-card">
+            <div className="error-icon">⚠️</div>
+            <h2>Không tìm thấy đơn hàng</h2>
+            <p className="error-message">{detailError}</p>
+            <button className="back-btn" onClick={() => navigate("/admin/orders")}>
+              Quay lại danh sách đơn hàng
+            </button>
+          </div>
+        </div>
+      );
+    }
+    if (selectedOrder) {
+      return (
+        <OrderDetailView
+          order={selectedOrder}
+          onBack={() => {
+            navigate("/admin/orders");
+          }}
+          onUpdateStatus={handleUpdateStatus}
+          onCancelOrder={handleCancelOrder}
+        />
+      );
+    }
   }
 
   return (
@@ -234,7 +317,7 @@ export function OrderManagement() {
           <div className="search-box order-search">
             <input
               type="text"
-              placeholder="Tìm theo"
+              placeholder="Tìm theo ID, Khách hàng, Tên Shop..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -247,6 +330,20 @@ export function OrderManagement() {
             >
               <option value="today">Hôm nay</option>
               <option value="all">Tất cả ngày</option>
+            </select>
+          </div>
+          <div className="filter-group compact">
+            <select
+              value={shopFilter}
+              onChange={(e) => setShopFilter(e.target.value)}
+              className="toolbar-select"
+            >
+              <option value="all">Tất cả Shop</option>
+              {uniqueShops.map((shopName) => (
+                <option key={shopName} value={shopName}>
+                  {shopName}
+                </option>
+              ))}
             </select>
           </div>
           <div className="filter-group compact">
@@ -265,9 +362,6 @@ export function OrderManagement() {
               ))}
             </select>
           </div>
-          <button className="filter-toggle" type="button" title="Lọc">
-            ☰
-          </button>
         </div>
 
         <div className="summary-card">

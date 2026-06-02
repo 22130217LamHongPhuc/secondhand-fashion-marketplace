@@ -106,6 +106,28 @@
   gap: 12px;
 }
 
+.filter-search-input {
+  background-color: #ffffff !important;
+  color: #3e2723 !important;
+  border: 1px solid #ebdcb9 !important;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  outline: none;
+  min-width: 220px;
+  transition: all 0.2s ease;
+}
+
+.filter-search-input:focus {
+  border-color: #c85a28 !important;
+  box-shadow: 0 0 0 3px rgba(200, 90, 40, 0.08);
+}
+
+.filter-search-input::placeholder {
+  color: #8b7d6a;
+  opacity: 0.7;
+}
+
 .filter-select-item {
   background-color: white;
   border: 1px solid #ebdcb9;
@@ -265,6 +287,11 @@
   gap: 6px;
   font-size: 13px;
   font-weight: 700;
+  background-color: transparent !important;
+  background: none !important;
+  padding: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .status-indicator-dot::before {
@@ -781,4 +808,196 @@
   .complaint-detail-two-cols {
     grid-template-columns: 1fr;
   }
+}
+
+/* Order Details Modal in Complaint Management */
+.highlight-order.clickable {
+  cursor: pointer;
+  color: #c85a28;
+  text-decoration: underline;
+  transition: color 0.2s ease;
+}
+
+.highlight-order.clickable:hover {
+  color: #a04018;
+}
+
+.clickable-order-link {
+  color: #c85a28;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+  transition: color 0.2s ease;
+}
+
+.clickable-order-link:hover {
+  color: #a04018;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  position: relative;
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  max-width: 600px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+  border: 1px solid #ebdcb9;
+  color: #3e2723;
+  animation: modalScaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modalScaleIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #8b7d6a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.modal-close-btn:hover {
+  background-color: #faf6eb;
+  color: #c85a28;
+}
+
+.modal-content h2 {
+  margin: 0 0 20px 0;
+  color: #3e2723;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.order-detail-body {
+  margin-bottom: 20px;
+}
+
+.detail-section {
+  margin-bottom: 20px;
+}
+
+.detail-section h3 {
+  font-size: 13px;
+  font-weight: 700;
+  color: #8b5a3c;
+  margin: 0 0 14px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  font-size: 13px;
+  border-bottom: 1px solid #faf6eb;
+}
+
+.detail-item:last-child {
+  border-bottom: none;
+}
+
+.detail-item .label {
+  color: #8b7d6a;
+  font-weight: 600;
+}
+
+.detail-item .value {
+  color: #3e2723;
+  font-weight: 700;
+}
+
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.status-badge.status-pending {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+.status-badge.status-confirmed {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-badge.status-shipping {
+  background-color: #fff3e0;
+  color: #ef6c00;
+}
+
+.status-badge.status-done {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-badge.status-cancelled {
+  background-color: #eaeaea;
+  color: #666666;
+}
+
+.items-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  font-size: 13px;
+}
+
+.items-table th {
+  text-align: left;
+  padding: 8px;
+  background-color: #faf6eb;
+  color: #8b7d6a;
+  font-weight: 700;
+}
+
+.items-table td {
+  padding: 10px 8px;
+  border-bottom: 1px solid #faf6eb;
+  color: #3e2723;
+}
+
+.items-table td.total {
+  font-weight: 700;
+  color: #c85a28;
 }

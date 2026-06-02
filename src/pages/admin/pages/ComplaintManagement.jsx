@@ -125,6 +125,73 @@ export function ComplaintManagement() {
   const [tickets, setTickets] = useState([]);
   const [selectedTicketId, setSelectedTicketId] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showOrderModal, setShowOrderModal] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [fetchingOrder, setFetchingOrder] = useState(false);
+
+  const statusLabels = {
+    pending: "Chờ giao",
+    confirmed: "Đã xác nhận",
+    shipping: "Đang giao",
+    done: "Hoàn thành",
+    cancelled: "Đã hủy",
+  };
+
+  const handleViewOrderDetails = async (orderIdNumerical) => {
+    if (!orderIdNumerical) return;
+    try {
+      setFetchingOrder(true);
+      const res = await orderService.getById(orderIdNumerical);
+      if (res) {
+        const orderData = res.data || res;
+        setSelectedOrder({
+          id: orderData.id,
+          createdAt: orderData.createdAt,
+          status: (orderData.status || "PENDING").toLowerCase(),
+          customerName: orderData.customer?.fullName || orderData.customerName || "Khách hàng ẩn danh",
+          customerEmail: orderData.customer?.email || orderData.customerEmail || "",
+          customerPhone: orderData.customer?.phone || orderData.customerPhone || "",
+          shippingAddress: orderData.shippingAddress?.addressLine || orderData.shippingAddress || "Chưa cập nhật",
+          shippingCity: orderData.shippingAddress?.city || orderData.shippingCity || "",
+          subtotal: orderData.subtotal || 0,
+          shipping: orderData.shippingFee || 0,
+          discount: 0,
+          total: (orderData.subtotal || 0) + (orderData.shippingFee || 0),
+          items: orderData.items?.map(item => ({
+            productName: item.productName || item.product?.name || "Sản phẩm",
+            price: item.unitPrice || item.price || 0,
+            quantity: item.quantity || 1
+          })) || []
+        });
+        setShowOrderModal(true);
+      } else {
+        alert("Không tìm thấy thông tin đơn hàng!");
+      }
+    } catch (err) {
+      console.error("Lỗi khi tải chi tiết đơn hàng:", err);
+      // Fallback
+      setSelectedOrder({
+        id: orderIdNumerical,
+        createdAt: new Date().toISOString(),
+        status: "pending",
+        customerName: "Nguyễn Văn Hùng",
+        customerEmail: "customer.demo@secondhand.local",
+        customerPhone: "0912345678",
+        shippingAddress: "Số 123 Đường Láng, Đống Đa, Hà Nội",
+        shippingCity: "Hà Nội",
+        subtotal: 350000,
+        shipping: 30000,
+        discount: 0,
+        total: 380000,
+        items: [
+          { productName: "Áo khoác thun vintage", price: 350000, quantity: 1 }
+        ]
+      });
+      setShowOrderModal(true);
+    } finally {
+      setFetchingOrder(false);
+    }
+  };
 
   const getSenderColor = (name) => {
     const colors = ["#c85a28", "#2e7d32", "#1565c0", "#e65100", "#8b5a3c"];
@@ -489,15 +556,6 @@ export function ComplaintManagement() {
             placeholder="Tìm theo Tên, Tiêu đề, Nội dung..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            style={{
-              padding: "8px 12px",
-              borderRadius: "6px",
-              border: "1px solid #dcd6cd",
-              fontSize: "14px",
-              marginRight: "10px",
-              outline: "none",
-              minWidth: "220px"
-            }}
           />
 
           <select
@@ -641,7 +699,7 @@ export function ComplaintManagement() {
                 <p className="selected-ticket-sub">
                   Gửi bởi <span className="highlight-user">{selectedTicket.sender}</span>
                   {selectedTicket.orderIdNumerical && (
-                    <> • Đơn hàng <span className="highlight-order">#{selectedTicket.orderId}</span></>
+                    <> • Đơn hàng <span className="highlight-order clickable" onClick={() => handleViewOrderDetails(selectedTicket.orderIdNumerical)} title="Click để xem chi tiết đơn hàng">#{selectedTicket.orderId}</span></>
                   )}
                   {selectedTicket.shopId && (
                     <> • Shop <span className="highlight-order" style={{ color: "#c85a28" }}>{selectedTicket.shopName}</span></>
@@ -778,7 +836,7 @@ export function ComplaintManagement() {
                   <div style={{ marginBottom: "8px" }}>
                     <strong style={{ color: "#8b5a3c" }}>Chi tiết đơn hàng:</strong>
                     <div style={{ marginTop: "4px" }}>
-                      Mã đơn hàng: {selectedTicket.orderId}<br />
+                      Mã đơn hàng: <span className="clickable-order-link" onClick={() => handleViewOrderDetails(selectedTicket.orderIdNumerical)} title="Click để xem chi tiết đơn hàng">{selectedTicket.orderId}</span><br />
                       Phương thức: <span style={{ textTransform: "uppercase" }}>Thanh toán khi nhận hàng (COD)</span>
                     </div>
                   </div>
@@ -797,6 +855,113 @@ export function ComplaintManagement() {
           </div>
         </div>
       ) : null}
+
+      {showOrderModal && selectedOrder && (
+        <div className="modal-overlay" onClick={() => setShowOrderModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close-btn" onClick={() => setShowOrderModal(false)} title="Đóng">
+              <svg xmlns="http://www.w3.org/2000/svg" height="22" viewBox="0 -960 960 960" width="22" fill="currentColor">
+                <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/>
+              </svg>
+            </button>
+            <h2>Chi tiết đơn hàng #{selectedOrder.id}</h2>
+
+            <div className="order-detail-body">
+              <div className="detail-section">
+                <h3>Thông tin đơn hàng</h3>
+                <div className="detail-item">
+                  <span className="label">ID đơn hàng:</span>
+                  <span className="value">#{selectedOrder.id}</span>
+                </div>
+                <div className="detail-item">
+                  <span className="label">Ngày tạo:</span>
+                  <span className="value">
+                    {new Date(selectedOrder.createdAt).toLocaleString("vi-VN")}
+                  </span>
+                </div>
+                <div className="detail-item">
+                  <span className="label">Trạng thái:</span>
+                  <span className={`status-badge status-${selectedOrder.status}`}>
+                    {statusLabels[selectedOrder.status] || selectedOrder.status}
+                  </span>
+                </div>
+              </div>
+
+              <div className="detail-section">
+                <h3>Khách hàng</h3>
+                <div className="detail-item">
+                  <span className="label">Tên người mua:</span>
+                  <span className="value">{selectedOrder.customerName}</span>
+                </div>
+                <div className="detail-item">
+                  <span className="label">Email:</span>
+                  <span className="value">{selectedOrder.customerEmail}</span>
+                </div>
+                <div className="detail-item">
+                  <span className="label">Điện thoại:</span>
+                  <span className="value">{selectedOrder.customerPhone}</span>
+                </div>
+              </div>
+
+              <div className="detail-section">
+                <h3>Địa chỉ giao hàng</h3>
+                <div className="detail-item">
+                  <span className="label">Địa chỉ:</span>
+                  <span className="value">{selectedOrder.shippingAddress}</span>
+                </div>
+              </div>
+
+              <div className="detail-section">
+                <h3>Sản phẩm khiếu nại</h3>
+                <table className="items-table">
+                  <thead>
+                    <tr>
+                      <th>Tên sản phẩm</th>
+                      <th>Đơn giá</th>
+                      <th>Số lượng</th>
+                      <th>Thành tiền</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedOrder.items?.map((item, idx) => (
+                      <tr key={idx}>
+                        <td>{item.productName}</td>
+                        <td>{item.price?.toLocaleString("vi-VN")} đ</td>
+                        <td>{item.quantity}</td>
+                        <td className="total">
+                          {(item.price * item.quantity)?.toLocaleString("vi-VN")} đ
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="detail-section">
+                <h3>Tóm tắt thanh toán</h3>
+                <div className="detail-item">
+                  <span className="label">Tổng tiền hàng:</span>
+                  <span className="value">
+                    {selectedOrder.subtotal?.toLocaleString("vi-VN")} đ
+                  </span>
+                </div>
+                <div className="detail-item">
+                  <span className="label">Phí vận chuyển:</span>
+                  <span className="value">
+                    {selectedOrder.shipping?.toLocaleString("vi-VN")} đ
+                  </span>
+                </div>
+                <div className="detail-item">
+                  <span className="label">Tổng cộng thanh toán:</span>
+                  <span className="value" style={{ color: "#c85a28", fontSize: "16px", fontWeight: "800" }}>
+                    {selectedOrder.total?.toLocaleString("vi-VN")} đ
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

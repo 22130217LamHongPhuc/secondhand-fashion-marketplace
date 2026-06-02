@@ -88,7 +88,11 @@ export function OrderDetailView({ order, onBack, onUpdateStatus, onCancelOrder }
     <div className="order-detail-view-container">
       {/* Header with back button */}
       <div className="detail-header-row">
-        <button className="back-to-list-btn" onClick={onBack}>
+        <button className="back-to-list-btn" type="button" onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onBack();
+        }}>
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="20"

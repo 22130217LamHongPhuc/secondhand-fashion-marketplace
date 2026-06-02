@@ -45,6 +45,14 @@ export const adminRoutes = [
     ),
   },
   {
+    path: "/admin/orders/:orderId",
+    element: (
+      <AdminLayout>
+        <OrderManagement />
+      </AdminLayout>
+    ),
+  },
+  {
     path: "/admin/complaints",
     element: (
       <AdminLayout>
