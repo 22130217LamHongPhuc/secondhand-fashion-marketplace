@@ -245,12 +245,12 @@ const ProductsPage = () => {
                       >
                         <Pencil size={16} />
                       </button>
-                      <button
+                      {/* <button
                         onClick={() => handleDelete(p.id)}
                         className="flex h-8 w-8 items-center justify-center rounded-lg text-accent-red/60 transition-colors hover:bg-accent-red-light hover:text-accent-red"
                       >
                         <Trash2 size={16} />
-                      </button>
+                      </button> */}
                     </div>
                   </td>
                 </tr>

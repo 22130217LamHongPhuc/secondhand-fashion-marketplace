@@ -25,4 +25,10 @@ export {
 
 export { useSellerCategories } from "./useSellerCategories";
 
+export {
+  useSellerShop,
+  useCreateShop,
+  useUpdateShop,
+} from "./useSellerShop";
+
 export * from "./sellerQueryKeys";
