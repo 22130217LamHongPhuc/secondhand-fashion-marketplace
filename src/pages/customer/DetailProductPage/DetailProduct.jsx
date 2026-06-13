@@ -9,6 +9,7 @@ import { reviewService } from "@/services/reviewService";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { customerProductService } from "@/services/customerProduct";
+import WriteCommentSheet from "./components/WriteCommentSheet";
 
 function formatVnd(value) {
   if (value === null || value === undefined || value === "") return "";
@@ -70,6 +71,8 @@ export default function ProductDetailPage() {
 
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [commentModalOpen, setCommentModalOpen] = useState(false);
+  const [submittingComment, setSubmittingComment] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -222,6 +225,49 @@ export default function ProductDetailPage() {
     }
   };
 
+  const handleSubmitComment = async (payload) => {
+    setSubmittingComment(true);
+
+    try {
+      const response = await customerProductService.createComment(payload);
+      const createdComment = response?.data ?? response;
+
+      setProduct((current) => {
+        if (!current) return current;
+
+        const nextComment = {
+          id: createdComment.id,
+          content: createdComment.content ?? payload.content,
+          commenterId: createdComment.commenterId,
+          commenterName:
+            createdComment.commenterName ??
+            createdComment.userName ??
+            createdComment.fullName ??
+            "NgÆ°á»i dÃ¹ng",
+          commenterAvatarUrl:
+            createdComment.commenterAvatarUrl ??
+            createdComment.userAvatarUrl ??
+            createdComment.avatarUrl ??
+            "",
+          createdAt: createdComment.createdAt ?? new Date().toISOString(),
+          parentId: createdComment.parentId ?? payload.parentId ?? null,
+          replies: createdComment.replies ?? [],
+        };
+
+        return {
+          ...current,
+          latestComments: [nextComment, ...(current.latestComments ?? [])],
+        };
+      });
+
+      setCommentModalOpen(false);
+    } catch (error) {
+      alert(error?.message ?? "KhÃ´ng gá»­i Ä‘Æ°á»£c bÃ¬nh luáº­n");
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+
   const similarProducts = useMemo(() => {
     const items = Array.isArray(product?.relatedProducts)
       ? product.relatedProducts
@@ -279,9 +325,18 @@ export default function ProductDetailPage() {
         reviews={reviews}
         comments={comments}
         onWriteReview={() => setReviewModalOpen(true)}
+        onWriteComment={() => setCommentModalOpen(true)}
       />
 
       <SimilarProducts items={similarProducts} />
+
+      <WriteCommentSheet
+        open={commentModalOpen}
+        product={product}
+        submitting={submittingComment}
+        onClose={() => setCommentModalOpen(false)}
+        onSubmit={handleSubmitComment}
+      />
 
       <WriteReviewModal
         open={reviewModalOpen}
