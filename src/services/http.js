@@ -1,7 +1,10 @@
 import { env } from "@/config/env";
 
 export async function http(path, options = {}) {
-  const url = new URL(path, env.apiBaseUrl || window.location.origin);
+  const baseUrl = env.apiBaseUrl || window.location.origin;
+  // Ensure we don't have double slashes and keep the base path (like /api)
+  const cleanPath = path.startsWith("/") ? path.slice(1) : path;
+  const url = `${baseUrl.endsWith("/") ? baseUrl : baseUrl + "/"}${cleanPath}`;
 
   const isFormData =
     typeof FormData !== "undefined" && options.body instanceof FormData;

@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { orderService } from "@/services/admin";
+import { OrderDetailView } from "./OrderDetailView";
 import "./OrderManagement.css";
 
 const demoOrders = [
@@ -15,6 +17,7 @@ const demoOrders = [
     shipping: 20000,
     discount: 0,
     status: "pending",
+    shopName: "Vintage Store",
     createdAt: "2026-05-09T06:30:00.000Z",
     items: [
       { productName: "Áo sơ mi vintage", price: 250000, quantity: 1 },
@@ -33,6 +36,7 @@ const demoOrders = [
     shipping: 30000,
     discount: 0,
     status: "shipped",
+    shopName: "Trendy Closet",
     createdAt: "2026-05-09T01:15:00.000Z",
     items: [
       { productName: "Áo khoác denim", price: 800000, quantity: 1 },
@@ -51,6 +55,7 @@ const demoOrders = [
     shipping: 30000,
     discount: 0,
     status: "delivered",
+    shopName: "Vintage Store",
     createdAt: "2026-05-08T09:45:00.000Z",
     items: [
       { productName: "Váy linen", price: 320000, quantity: 1 },
@@ -69,6 +74,7 @@ const demoOrders = [
     shipping: 0,
     discount: 0,
     status: "cancelled",
+    shopName: "Teen Fashion",
     createdAt: "2026-05-08T03:20:00.000Z",
     items: [{ productName: "Mũ bucket", price: 320000, quantity: 1 }],
   },
@@ -77,8 +83,8 @@ const demoOrders = [
 const statusLabels = {
   pending: "Chờ giao",
   confirmed: "Đã xác nhận",
-  shipped: "Đang giao",
-  delivered: "Hoàn thành",
+  shipping: "Đang giao",
+  done: "Hoàn thành",
   cancelled: "Đã hủy",
 };
 
@@ -89,24 +95,74 @@ export function OrderManagement() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [statusFilter, setStatusFilter] = useState("all");
-  const [dateFilter, setDateFilter] = useState("today");
+  const [dateFilter, setDateFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [shopFilter, setShopFilter] = useState("all");
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [detailError, setDetailError] = useState(null);
+
+  const { orderId } = useParams();
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadOrders();
   }, [page, statusFilter]);
+
+  useEffect(() => {
+    if (orderId) {
+      const fetchOrderDetail = async () => {
+        try {
+          setLoading(true);
+          setDetailError(null);
+          const numericId = parseInt(orderId, 10);
+          
+          const fullOrder = await orderService.getById(numericId);
+          if (fullOrder) {
+            setSelectedOrder({
+              ...fullOrder,
+              status: fullOrder.status ? fullOrder.status.toLowerCase() : fullOrder.status
+            });
+          } else {
+            setDetailError("Không tìm thấy đơn hàng #" + orderId);
+            setSelectedOrder(null);
+          }
+        } catch (err) {
+          console.warn("Failed to fetch order detail via API, trying demo fallback:", err);
+          const demoMatch = demoOrders.find(o => o.id === parseInt(orderId, 10));
+          if (demoMatch) {
+            setSelectedOrder(demoMatch);
+          } else {
+            setDetailError("Không tìm thấy đơn hàng #" + orderId + " trong cơ sở dữ liệu.");
+            setSelectedOrder(null);
+          }
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchOrderDetail();
+    } else {
+      setSelectedOrder(null);
+      setDetailError(null);
+    }
+  }, [orderId]);
 
   const loadOrders = async () => {
     try {
       setLoading(true);
       const filters = statusFilter !== "all" ? { status: statusFilter } : {};
       const response = await orderService.getAll(page, 10, filters).catch(() => null);
-      const apiOrders = response?.data || [];
-      const fallbackOrders = page === 1 && statusFilter === "all" ? demoOrders : [];
-      setOrders(apiOrders.length > 0 ? apiOrders : fallbackOrders);
-      setTotalPages(response?.totalPages || 1);
+      
+      const rawData = response?.data || response || {};
+      const apiOrders = rawData.data || rawData.content || rawData.items || (Array.isArray(rawData) ? rawData : []);
+      const fallbackOrders = page === 1 && statusFilter === "all" && apiOrders.length === 0 ? demoOrders : [];
+      const ordersToSet = apiOrders.length > 0 ? apiOrders : fallbackOrders;
+      const normalizedOrders = ordersToSet.map(order => ({
+        ...order,
+        status: order.status ? order.status.toLowerCase() : order.status
+      }));
+      setOrders(normalizedOrders);
+      setTotalPages(rawData.totalPages || rawData.total_pages || 1);
       setError(null);
     } catch (err) {
       if (page === 1 && statusFilter === "all") {
@@ -145,8 +201,7 @@ export function OrderManagement() {
   };
 
   const handleViewDetails = (order) => {
-    setSelectedOrder(order);
-    setShowDetailModal(true);
+    navigate(`/admin/orders/${order.id}`);
   };
 
   const handleExport = async (format) => {
@@ -167,10 +222,20 @@ export function OrderManagement() {
     { value: "all", label: "Tất cả" },
     { value: "pending", label: "Chờ giao" },
     { value: "confirmed", label: "Đã xác nhận" },
-    { value: "shipped", label: "Đang giao" },
-    { value: "delivered", label: "Hoàn thành" },
+    { value: "shipping", label: "Đang giao" },
+    { value: "done", label: "Hoàn thành" },
     { value: "cancelled", label: "Đã hủy" },
   ];
+
+  const uniqueShops = useMemo(() => {
+    const shopsSet = new Set();
+    orders.forEach((order) => {
+      if (order.shopName) {
+        shopsSet.add(order.shopName);
+      }
+    });
+    return Array.from(shopsSet);
+  }, [orders]);
 
   const filteredOrders = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
@@ -179,7 +244,8 @@ export function OrderManagement() {
         !keyword ||
         String(order.id).includes(keyword) ||
         (order.customerName || "").toLowerCase().includes(keyword) ||
-        (order.customerEmail || "").toLowerCase().includes(keyword);
+        (order.customerEmail || "").toLowerCase().includes(keyword) ||
+        (order.shopName || "").toLowerCase().includes(keyword);
 
       const today = new Date();
       const createdAt = new Date(order.createdAt);
@@ -189,9 +255,11 @@ export function OrderManagement() {
         today.getDate() === createdAt.getDate();
       const matchesDate = dateFilter === "all" || (dateFilter === "today" ? sameDay : true);
 
-      return matchesSearch && matchesDate;
+      const matchesShop = shopFilter === "all" || (order.shopName || "Unknown Shop") === shopFilter;
+
+      return matchesSearch && matchesDate && matchesShop;
     });
-  }, [orders, searchTerm, dateFilter]);
+  }, [orders, searchTerm, dateFilter, shopFilter]);
 
   const summary = {
     totalProcessing: filteredOrders.filter((order) => ["pending", "confirmed"].includes(order.status)).length,
@@ -199,11 +267,47 @@ export function OrderManagement() {
     totalRevenue: filteredOrders.reduce((sum, order) => sum + (order.total || 0), 0),
   };
 
+  if (orderId) {
+    if (loading && !selectedOrder) {
+      return (
+        <div className="order-detail-loading-container">
+          <div className="loader-spinner"></div>
+          <p>Đang tải chi tiết đơn hàng #{orderId}...</p>
+        </div>
+      );
+    }
+    if (detailError) {
+      return (
+        <div className="order-detail-error-container">
+          <div className="error-card">
+            <div className="error-icon">⚠️</div>
+            <h2>Không tìm thấy đơn hàng</h2>
+            <p className="error-message">{detailError}</p>
+            <button className="back-btn" onClick={() => navigate("/admin/orders")}>
+              Quay lại danh sách đơn hàng
+            </button>
+          </div>
+        </div>
+      );
+    }
+    if (selectedOrder) {
+      return (
+        <OrderDetailView
+          order={selectedOrder}
+          onBack={() => {
+            navigate("/admin/orders");
+          }}
+          onUpdateStatus={handleUpdateStatus}
+          onCancelOrder={handleCancelOrder}
+        />
+      );
+    }
+  }
+
   return (
     <div className="order-management">
       <div className="page-header">
         <div>
-          <p className="page-kicker">Quản trị đơn hàng - Admin Panel</p>
           <h1 className="page-title">Quản trị đơn hàng</h1>
         </div>
       </div>
@@ -213,7 +317,7 @@ export function OrderManagement() {
           <div className="search-box order-search">
             <input
               type="text"
-              placeholder="Tìm theo"
+              placeholder="Tìm theo ID, Khách hàng, Tên Shop..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -226,6 +330,20 @@ export function OrderManagement() {
             >
               <option value="today">Hôm nay</option>
               <option value="all">Tất cả ngày</option>
+            </select>
+          </div>
+          <div className="filter-group compact">
+            <select
+              value={shopFilter}
+              onChange={(e) => setShopFilter(e.target.value)}
+              className="toolbar-select"
+            >
+              <option value="all">Tất cả Shop</option>
+              {uniqueShops.map((shopName) => (
+                <option key={shopName} value={shopName}>
+                  {shopName}
+                </option>
+              ))}
             </select>
           </div>
           <div className="filter-group compact">
@@ -244,9 +362,6 @@ export function OrderManagement() {
               ))}
             </select>
           </div>
-          <button className="filter-toggle" type="button" title="Lọc">
-            ☰
-          </button>
         </div>
 
         <div className="summary-card">
@@ -259,6 +374,11 @@ export function OrderManagement() {
       {showDetailModal && selectedOrder && (
         <div className="modal-overlay" onClick={() => setShowDetailModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close-btn" onClick={() => setShowDetailModal(false)} title="Đóng">
+              <svg xmlns="http://www.w3.org/2000/svg" height="22" viewBox="0 -960 960 960" width="22" fill="currentColor">
+                <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/>
+              </svg>
+            </button>
             <h2>Chi tiết đơn hàng #{selectedOrder.id}</h2>
 
             <div className="order-detail-body">
@@ -392,9 +512,6 @@ export function OrderManagement() {
               >
                 Hủy đơn hàng
               </button>
-              <button className="btn btn-secondary" onClick={() => setShowDetailModal(false)}>
-                Đóng
-              </button>
             </div>
           </div>
         </div>
@@ -410,12 +527,12 @@ export function OrderManagement() {
             <table className="orders-table">
               <thead>
                 <tr>
-                  <th>Mã đơn hàng</th>
-                  <th>Khách hàng</th>
-                  <th>Ngày đặt</th>
-                  <th>Tổng tiền</th>
-                  <th>Trạng thái</th>
-                  <th>Thao tác</th>
+                  <th>MÃ ĐƠN HÀNG</th>
+                  <th>KHÁCH HÀNG</th>
+                  <th>NGÀY ĐẶT</th>
+                  <th>TỔNG TIỀN</th>
+                  <th>TRẠNG THÁI</th>
+                  <th>HÀNH ĐỘNG</th>
                 </tr>
               </thead>
               <tbody>
@@ -437,43 +554,56 @@ export function OrderManagement() {
                       </span>
                     </td>
                     <td className="actions-cell">
-                      <button
-                        className="btn-icon btn-view"
-                        onClick={() => handleViewDetails(order)}
-                        title="Xem chi tiết"
-                      >
-                        👁️
-                      </button>
-                      {order.status !== "cancelled" && order.status !== "delivered" && (
+                      <div className="actions-wrapper">
                         <button
-                          className="btn-icon btn-cancel"
-                          onClick={() => handleCancelOrder(order.id)}
-                          title="Hủy"
+                          className="btn-icon btn-view"
+                          onClick={() => handleViewDetails(order)}
+                          title="Xem chi tiết"
                         >
-                          🚫
+                          <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor">
+                            <path d="M480-320q75 0 127.5-52.5T660-500q0-75-52.5-127.5T480-680q-75 0-127.5 52.5T300-500q0 75 52.5 127.5T480-320Zm0-72q-45 0-76.5-31.5T372-500q0-45 31.5-76.5T480-608q45 0 76.5 31.5T588-500q0 45-31.5 76.5T480-392Zm0 192q-146 0-266-81.5T40-500q54-137 174-218.5T480-800q146 0 266 81.5T920-500q-54 137-174 218.5T480-200Zm0-300Zm0 220q113 0 207.5-59.5T832-500q-50-101-144.5-160.5T480-720q-113 0-207.5 59.5T128-500q50 101 144.5 160.5T480-280Z"/>
+                          </svg>
                         </button>
-                      )}
+                        {order.status !== "cancelled" && order.status !== "done" && (
+                          <button
+                            className="btn-icon btn-cancel"
+                            onClick={() => handleCancelOrder(order.id)}
+                            title="Hủy đơn hàng"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor">
+                              <path d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z"/>
+                            </svg>
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
 
+            {/* Pagination */}
+            <div className="pagination">
+              <button
+                onClick={() => setPage(Math.max(1, page - 1))}
+                disabled={page === 1}
+                className="btn btn-secondary"
+              >
+                Trước
+              </button>
+              <span className="page-info">
+                Trang {page} / {totalPages}
+              </span>
+              <button
+                onClick={() => setPage(Math.min(totalPages, page + 1))}
+                disabled={page === totalPages}
+                className="btn btn-secondary"
+              >
+                Sau
+              </button>
+            </div>
             <div className="table-footer">
-              <div className="table-note">Hiển thị 1-10 của {filteredOrders.length} đơn hàng</div>
-              <div className="pagination">
-                <button
-                  onClick={() => setPage(Math.max(1, page - 1))}
-                  disabled={page === 1}
-                  className="page-btn"
-                >
-                  ‹
-                </button>
-                <span className="page-number active">1</span>
-                <span className="page-number">2</span>
-                <span className="page-number">3</span>
-                <button className="page-btn">›</button>
-              </div>
+              Hiển thị {filteredOrders.length > 0 ? (page - 1) * 10 + 1 : 0} - {(page - 1) * 10 + filteredOrders.length} đơn hàng
             </div>
           </>
         ) : (

@@ -71,11 +71,11 @@
 
 .search-box {
   flex: 1;
-  min-width: 360px;
+  max-width: 300px;
 }
 
 .search-box.large {
-  min-width: 380px;
+  max-width: 300px;
 }
 
 .search-box input {
@@ -84,6 +84,7 @@
   border: 1px solid #e8dfd5;
   border-radius: 14px;
   font-size: 13px;
+  color: #5a4a3a;
   background-color: #f3efcf;
   transition: border-color 0.3s ease;
 }
@@ -185,6 +186,7 @@
   border: 1px solid #e8dfd5;
   border-radius: 10px;
   font-size: 13px;
+  color: #5a4a3a;
   font-family: inherit;
   background-color: #faf6f0;
   transition: border-color 0.3s ease;
@@ -351,9 +353,15 @@
 }
 
 .actions-cell {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.actions-wrapper {
   display: flex;
   gap: 8px;
   justify-content: center;
+  align-items: center;
 }
 
 .btn-icon {

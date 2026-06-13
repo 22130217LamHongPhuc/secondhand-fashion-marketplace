@@ -9,17 +9,17 @@ export const productService = {
       limit,
       ...filters,
     });
-    return http(`/admin/products?${params}`);
+    return http(`/api/admin/products?${params}`);
   },
 
   // Get product by ID
   getById: async (id) => {
-    return http(`/admin/products/${id}`);
+    return http(`/api/admin/products/${id}`);
   },
 
   // Create product
   create: async (data) => {
-    return http("/admin/products", {
+    return http("/api/products", {
       method: "POST",
       body: JSON.stringify(data),
     });
@@ -27,7 +27,7 @@ export const productService = {
 
   // Update product
   update: async (id, data) => {
-    return http(`/admin/products/${id}`, {
+    return http(`/api/admin/products/${id}`, {
       method: "PUT",
       body: JSON.stringify(data),
     });
@@ -35,16 +35,23 @@ export const productService = {
 
   // Delete product
   delete: async (id) => {
-    return http(`/admin/products/${id}`, {
+    return http(`/api/admin/products/${id}`, {
       method: "DELETE",
     });
   },
 
   // Batch delete products
   batchDelete: async (ids) => {
-    return http("/admin/products/batch/delete", {
+    return http("/api/admin/products/batch/delete", {
       method: "POST",
       body: JSON.stringify({ ids }),
+    });
+  },
+
+  // Toggle active status
+  toggleActive: async (id, active) => {
+    return http(`/api/admin/products/${id}/active?active=${active}`, {
+      method: "PUT",
     });
   },
 };
@@ -58,32 +65,39 @@ export const userService = {
       limit,
       ...filters,
     });
-    return http(`/admin/users?${params}`);
+    return http(`/api/admin/users?${params}`);
   },
 
   // Get user by ID
   getById: async (id) => {
-    return http(`/admin/users/${id}`);
+    return http(`/api/admin/users/${id}`);
   },
 
   // Update user
   update: async (id, data) => {
-    return http(`/admin/users/${id}`, {
+    return http(`/api/admin/users/${id}`, {
       method: "PUT",
       body: JSON.stringify(data),
     });
   },
 
+  // Update user role
+  updateRole: async (id, role) => {
+    return http(`/api/admin/users/${id}/role?role=${role}`, {
+      method: "PATCH",
+    });
+  },
+
   // Delete user
   delete: async (id) => {
-    return http(`/admin/users/${id}`, {
+    return http(`/api/admin/users/${id}`, {
       method: "DELETE",
     });
   },
 
   // Ban user
   ban: async (id, reason) => {
-    return http(`/admin/users/${id}/ban`, {
+    return http(`/api/admin/users/${id}/ban`, {
       method: "POST",
       body: JSON.stringify({ reason }),
     });
@@ -91,14 +105,14 @@ export const userService = {
 
   // Unban user
   unban: async (id) => {
-    return http(`/admin/users/${id}/unban`, {
+    return http(`/api/admin/users/${id}/unban`, {
       method: "POST",
     });
   },
 
   // Get user statistics
   getStatistics: async () => {
-    return http("/admin/users/statistics");
+    return http("/api/admin/users/statistics");
   },
 };
 
@@ -111,17 +125,17 @@ export const orderService = {
       limit,
       ...filters,
     });
-    return http(`/admin/orders?${params}`);
+    return http(`/api/admin/orders?${params}`);
   },
 
   // Get order by ID
   getById: async (id) => {
-    return http(`/admin/orders/${id}`);
+    return http(`/api/admin/orders/${id}`);
   },
 
   // Update order status
   updateStatus: async (id, status) => {
-    return http(`/admin/orders/${id}/status`, {
+    return http(`/api/admin/orders/${id}/status`, {
       method: "PUT",
       body: JSON.stringify({ status }),
     });
@@ -129,7 +143,7 @@ export const orderService = {
 
   // Cancel order
   cancel: async (id, reason) => {
-    return http(`/admin/orders/${id}/cancel`, {
+    return http(`/api/admin/orders/${id}/cancel`, {
       method: "POST",
       body: JSON.stringify({ reason }),
     });
@@ -137,13 +151,13 @@ export const orderService = {
 
   // Get order statistics
   getStatistics: async () => {
-    return http("/admin/orders/statistics");
+    return http("/api/admin/orders/statistics");
   },
 
   // Export orders
   export: async (format = "csv") => {
     const response = await fetch(
-      `${window.location.origin}/admin/orders/export?format=${format}`,
+      `${window.location.origin}/api/admin/orders/export?format=${format}`,
       {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -158,16 +172,81 @@ export const orderService = {
 export const dashboardService = {
   // Get dashboard statistics
   getStatistics: async () => {
-    return http("/admin/dashboard/statistics");
+    return http("/api/admin/dashboard/statistics");
   },
 
   // Get recent activities
   getRecentActivities: async (limit = 10) => {
-    return http(`/admin/dashboard/activities?limit=${limit}`);
+    return http(`/api/admin/dashboard/activities?limit=${limit}`);
   },
 
   // Get sales chart data
   getSalesData: async (period = "month") => {
-    return http(`/admin/dashboard/sales?period=${period}`);
+    return http(`/api/admin/dashboard/sales?period=${period}`);
   },
 };
+
+// Category Management
+export const categoryService = {
+  getAll: async () => {
+    return http("/api/admin/categories");
+  },
+  create: async (data) => {
+    return http("/api/admin/categories", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+  update: async (id, data) => {
+    return http(`/api/admin/categories/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+  },
+  delete: async (id) => {
+    return http(`/api/admin/categories/${id}`, {
+      method: "DELETE",
+    });
+  },
+};
+
+// Shop Management
+export const shopService = {
+  getAll: async () => {
+    return http("/api/admin/shops");
+  },
+  toggleVerify: async (id, verify) => {
+    return http(`/api/admin/shops/${id}/verify?verify=${verify}`, {
+      method: "PUT",
+    });
+  },
+  addStrike: async (id) => {
+    return http(`/api/admin/shops/${id}/strike`, {
+      method: "PUT",
+    });
+  },
+  toggleActive: async (id, active) => {
+    return http(`/api/admin/shops/${id}/active?active=${active}`, {
+      method: "PUT",
+    });
+  },
+  resetStrikes: async (id) => {
+    return http(`/api/admin/shops/${id}/reset-strikes`, {
+      method: "PUT",
+    });
+  },
+};
+
+// Complaint Management
+export const complaintService = {
+  getAll: async () => {
+    return http("/api/admin/complaints");
+  },
+  updateStatus: async (id, status, resolution) => {
+    return http(`/api/admin/complaints/${id}/status`, {
+      method: "PUT",
+      body: JSON.stringify({ status, resolution }),
+    });
+  },
+};
+
