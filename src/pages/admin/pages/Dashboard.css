@@ -50,7 +50,6 @@
 }
 
 .stat-icon {
-  font-size: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -58,6 +57,7 @@
   height: 60px;
   background-color: #f5e6d3;
   border-radius: 6px;
+  color: #a0522d;
 }
 
 .stat-content h3 {

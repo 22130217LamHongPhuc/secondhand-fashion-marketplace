@@ -1,0 +1,476 @@
+.order-detail-view-container {
+  animation: fadeIn 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  color: #3e2723;
+  padding-bottom: 40px;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Header Row */
+.detail-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.back-to-list-btn {
+  background: none;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #3e2723;
+  font-size: 22px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.back-to-list-btn:hover {
+  transform: translateX(-4px);
+  color: #c85a28;
+}
+
+.back-to-list-btn svg {
+  transition: transform 0.2s ease;
+}
+
+/* Status Banner */
+.status-banner-card {
+  background-color: #fffaf0;
+  border: 1px solid #f3ebd8;
+  border-radius: 16px;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4px 16px rgba(139, 90, 60, 0.04);
+}
+
+.banner-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.banner-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #8b7d6a;
+  letter-spacing: 0.08em;
+}
+
+.banner-status-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.banner-status-badge.status-pending {
+  background-color: #fdf2d7;
+  color: #b35900;
+  border: 1px solid #f6dfaf;
+}
+
+.banner-status-badge.status-confirmed {
+  background-color: #e2f4df;
+  color: #276f27;
+  border: 1px solid #c1e7bd;
+}
+
+.banner-status-badge.status-shipping {
+  background-color: #e3f2fd;
+  color: #0d47a1;
+  border: 1px solid #bbdefb;
+}
+
+.banner-status-badge.status-delivered {
+  background-color: #efebe9;
+  color: #4e342e;
+  border: 1px solid #d7ccc8;
+}
+
+.banner-status-badge.status-cancelled {
+  background-color: #ffebee;
+  color: #c62828;
+  border: 1px solid #ffcdd2;
+}
+
+.badge-icon {
+  font-size: 14px;
+}
+
+.banner-right {
+  display: flex;
+  gap: 12px;
+}
+
+/* Action Buttons */
+.action-btn-primary {
+  background: #c85a28;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 10px rgba(200, 90, 40, 0.15);
+}
+
+.action-btn-primary:hover {
+  background: #b54a1a;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(200, 90, 40, 0.25);
+}
+
+.action-btn-primary:active {
+  transform: scale(0.97);
+}
+
+.action-btn-secondary {
+  background: #f0e9d6;
+  color: #8b5a3c;
+  border: 1px solid #e1d6b9;
+  border-radius: 12px;
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.action-btn-secondary:hover {
+  background: #e6ddc4;
+  color: #704324;
+}
+
+.action-btn-secondary:active {
+  transform: scale(0.97);
+}
+
+/* Grid Layout */
+.detail-layout-grid {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 20px;
+}
+
+.detail-section-card {
+  background: #fffaf0;
+  border: 1px solid #f3ebd8;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 16px rgba(139, 90, 60, 0.04);
+  margin-bottom: 20px;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #3e2723;
+  margin: 0 0 20px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-title-icon {
+  color: #c85a28;
+}
+
+/* Left Column Specifics */
+.products-list-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.product-item-row {
+  background: white;
+  border: 1px solid #f3ebd8;
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 2px 8px rgba(139, 90, 60, 0.02);
+}
+
+.product-thumbnail {
+  width: 72px;
+  height: 72px;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 1px solid #f0e5cb;
+}
+
+.product-info-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.product-title-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #3e2723;
+}
+
+.product-meta-desc {
+  font-size: 12px;
+  color: #8b7d6a;
+}
+
+.verified-product-badge {
+  background: #e2f4df;
+  color: #2e7d32;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  border: 1px solid #c8e6c9;
+}
+
+.product-pricing-details {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.product-price {
+  font-size: 16px;
+  font-weight: 700;
+  color: #c85a28;
+}
+
+.product-qty {
+  font-size: 12px;
+  color: #8b7d6a;
+}
+
+/* Billing Calculations Card */
+.billing-calculations-card {
+  background: #f3edd8;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.calc-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: #5d4037;
+  font-weight: 500;
+}
+
+.calc-value {
+  font-weight: 600;
+  color: #3e2723;
+}
+
+.discount-text {
+  color: #c62828 !important;
+}
+
+.calc-divider {
+  height: 1px;
+  background-color: #e5dcb7;
+  margin: 4px 0;
+}
+
+.total-row {
+  font-size: 16px;
+  color: #3e2723;
+}
+
+.total-label {
+  font-weight: 700;
+}
+
+.total-value {
+  font-size: 18px;
+  font-weight: 800;
+  color: #c85a28;
+}
+
+/* Customer details right column */
+.customer-info-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cust-primary-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #3e2723;
+  margin-bottom: 4px;
+}
+
+.cust-detail-text {
+  font-size: 13px;
+  color: #8b7d6a;
+}
+
+.address-section-header,
+.note-section-header {
+  font-size: 11px;
+  font-weight: 700;
+  color: #8b7d6a;
+  letter-spacing: 0.08em;
+  margin-top: 16px;
+  margin-bottom: 6px;
+}
+
+.cust-address-text {
+  font-size: 13px;
+  color: #3e2723;
+  line-height: 1.5;
+}
+
+.cust-note-box {
+  background-color: #faf7ee;
+  border-left: 4px solid #c85a28;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 13px;
+  font-style: italic;
+  color: #5d4037;
+  line-height: 1.4;
+}
+
+/* Timeline */
+.timeline-flow-wrapper {
+  display: flex;
+  flex-direction: column;
+  padding-left: 8px;
+  margin-top: 10px;
+}
+
+.timeline-step-node {
+  position: relative;
+  display: flex;
+  gap: 16px;
+  padding-bottom: 24px;
+}
+
+.timeline-step-node:last-child {
+  padding-bottom: 0;
+}
+
+.node-marker-bullet {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #d7ccc8;
+  z-index: 2;
+  margin-top: 4px;
+  box-shadow: 0 0 0 2px #fffaf0;
+  transition: all 0.3s ease;
+}
+
+.current-node .node-marker-bullet {
+  background-color: #c85a28;
+  box-shadow: 0 0 0 3px rgba(200, 90, 40, 0.25);
+  transform: scale(1.2);
+}
+
+.danger-node .node-marker-bullet {
+  background-color: #c62828;
+  box-shadow: 0 0 0 3px rgba(198, 40, 40, 0.25);
+}
+
+.node-connector-line {
+  position: absolute;
+  left: 4.5px;
+  top: 14px;
+  bottom: 0;
+  width: 1px;
+  background-color: #d7ccc8;
+  z-index: 1;
+}
+
+.node-content-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.node-event-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #8b7d6a;
+}
+
+.current-node .node-event-title {
+  color: #3e2723;
+  font-weight: 700;
+}
+
+.danger-node .node-event-title {
+  color: #c62828;
+  font-weight: 700;
+}
+
+.node-event-time {
+  font-size: 11px;
+  color: #8b7d6a;
+}
+
+/* Responsive grid breakdown */
+@media (max-width: 1024px) {
+  .detail-layout-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .status-banner-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .banner-right {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}

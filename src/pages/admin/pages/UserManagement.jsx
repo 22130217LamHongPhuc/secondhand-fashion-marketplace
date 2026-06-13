@@ -2,42 +2,6 @@ import { useEffect, useState } from "react";
 import { userService } from "@/services/admin";
 import "./UserManagement.css";
 
-const demoUsers = [
-  {
-    id: 101,
-    name: "Nguyen Linh",
-    email: "linh.nguyen@email.com",
-    phone: "0912345678",
-    role: "buyer",
-    status: "active",
-    createdAt: "2023-05-12T00:00:00.000Z",
-    totalOrders: 12,
-    totalSpent: 4200000,
-  },
-  {
-    id: 102,
-    name: "Tran Nam",
-    email: "nam.tran99@email.com",
-    phone: "0987654321",
-    role: "seller",
-    status: "active",
-    createdAt: "2023-08-05T00:00:00.000Z",
-    totalOrders: 8,
-    totalSpent: 1850000,
-  },
-  {
-    id: 103,
-    name: "Hoang Mai",
-    email: "mai.hoang.shop@email.com",
-    phone: "0901122334",
-    role: "seller",
-    status: "banned",
-    createdAt: "2024-01-22T00:00:00.000Z",
-    totalOrders: 3,
-    totalSpent: 680000,
-  },
-];
-
 export function UserManagement() {
   const [users, setUsers] = useState([]);
   const [stats, setStats] = useState({});
@@ -63,24 +27,21 @@ export function UserManagement() {
         userService.getAll(page, 10, filters),
         userService.getStatistics().catch(() => null),
       ]);
-      const apiUsers = response.data || [];
-      const fallbackUsers = searchTerm ? [] : demoUsers;
-      setUsers(apiUsers.length > 0 ? apiUsers : fallbackUsers);
-      setTotalPages(response.totalPages || 1);
-      setStats(statistics || response.statistics || {});
+      // Xử lý đa dạng cấu trúc JSON trả về (Axios wraps in response.data)
+      const rawData = response?.data || response;
+      
+      let apiUsers = [];
+      if (Array.isArray(rawData)) apiUsers = rawData;
+      else if (Array.isArray(rawData?.data)) apiUsers = rawData.data; // Theo định dạng chuẩn API_REQUIREMENTS.md
+      else if (Array.isArray(rawData?.content)) apiUsers = rawData.content; // Theo Spring Boot Page mặc định
+      else if (Array.isArray(rawData?.items)) apiUsers = rawData.items;
+
+      setUsers(apiUsers);
+      setTotalPages(rawData?.totalPages || rawData?.total_pages || 1);
+      setStats(statistics || response?.statistics || {});
     } catch (err) {
-      if (!searchTerm) {
-        setUsers(demoUsers);
-        setTotalPages(1);
-        setStats({
-          totalUsers: demoUsers.length,
-          newSellers: 2,
-          lockedUsers: 1,
-        });
-      } else {
-        setError(err.message);
-        console.error(err);
-      }
+      setError(err.message);
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -136,23 +97,51 @@ export function UserManagement() {
     }
   };
 
+  const handleUpdateRole = async (userId, newRole) => {
+    try {
+      await userService.updateRole(userId, newRole);
+      alert("Cập nhật vai trò người dùng thành công!");
+      if (selectedUser && selectedUser.id === userId) {
+        setSelectedUser(prev => ({
+          ...prev,
+          role: newRole.toLowerCase().replace("customer", "buyer")
+        }));
+      }
+      loadUsers();
+    } catch (err) {
+      alert("Lỗi cập nhật vai trò: " + err.message);
+    }
+  };
+
   const handleViewDetails = (user) => {
     setSelectedUser(user);
     setShowDetailModal(true);
   };
 
-  const filteredUsers = users.filter((user) => {
+  const normalizeUser = (user) => ({
+    ...user,
+    name: user.name || user.fullName || user.full_name || "Unknown",
+    email: user.email || "Chưa cập nhật",
+    phone: user.phone || "Chưa cập nhật",
+    status: user.status || (user.isActive === false || user.isActive === 0 || user.is_active === false || user.is_active === 0 || user.active === false ? "banned" : "active"),
+    role: (user.role || "CUSTOMER").toLowerCase().replace("customer", "buyer"),
+    avatar: user.avatar || user.avatarUrl || user.avatar_url || null,
+    createdAt: user.createdAt || user.created_at || new Date().toISOString(),
+  });
+
+  const normalizedUsers = users.map(normalizeUser);
+
+  const filteredUsersNormalized = normalizedUsers.filter((user) => {
     if (roleFilter === "all") return true;
-    const userRole = (user.role || "buyer").toLowerCase();
-    return userRole === roleFilter;
+    return user.role === roleFilter;
   });
 
   const totalUsersCount = stats.totalUsers ?? stats.total ?? users.length;
   const newSellerCount =
     stats.newSellers ??
     stats.newUsers ??
-    users.filter((user) => (user.role || "buyer").toLowerCase() === "seller").length;
-  const lockedCount = stats.lockedUsers ?? users.filter((user) => user.status !== "active").length;
+    normalizedUsers.filter((user) => user.role === "seller").length;
+  const lockedCount = stats.lockedUsers ?? normalizedUsers.filter((user) => user.status === "banned").length;
 
   const formatRole = (role) => {
     if (!role) return "Người mua";
@@ -173,7 +162,6 @@ export function UserManagement() {
     <div className="user-management">
       <div className="page-header">
         <div>
-          <p className="page-kicker">Quản trị người dùng - Admin Panel</p>
           <h1 className="page-title">Quản trị người dùng</h1>
         </div>
         <div className="header-actions">
@@ -217,7 +205,24 @@ export function UserManagement() {
           <div className="stat-label">TỔNG NGƯỜI DÙNG</div>
           <div className="stat-row">
             <div className="stat-number">{totalUsersCount.toLocaleString("vi-VN")}</div>
-            <div className="stat-icon">👥</div>
+            <div className="stat-icon">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+            </div>
           </div>
           <div className="stat-trend">↑12% so với tháng trước</div>
         </div>
@@ -226,7 +231,22 @@ export function UserManagement() {
           <div className="stat-label">NGƯỜI BÁN MỚI</div>
           <div className="stat-row">
             <div className="stat-number">{newSellerCount.toLocaleString("vi-VN")}</div>
-            <div className="stat-icon">🏪</div>
+            <div className="stat-icon">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                <polyline points="9 22 9 12 15 12 15 22" />
+              </svg>
+            </div>
           </div>
           <div className="stat-trend">↑5% so với tháng trước</div>
         </div>
@@ -235,7 +255,22 @@ export function UserManagement() {
           <div className="stat-label">TÀI KHOẢN BỊ KHÓA</div>
           <div className="stat-row">
             <div className="stat-number">{lockedCount.toLocaleString("vi-VN")}</div>
-            <div className="stat-icon danger">🔒</div>
+            <div className="stat-icon danger">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+            </div>
           </div>
           <div className="stat-trend danger">↓2% so với tháng trước</div>
         </div>
@@ -245,6 +280,11 @@ export function UserManagement() {
       {showDetailModal && selectedUser && (
         <div className="modal-overlay" onClick={() => setShowDetailModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close-btn" onClick={() => setShowDetailModal(false)} title="Đóng">
+              <svg xmlns="http://www.w3.org/2000/svg" height="22" viewBox="0 -960 960 960" width="22" fill="currentColor">
+                <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/>
+              </svg>
+            </button>
             <div className="user-detail-header">
               <img
                 src={selectedUser.avatar || "https://via.placeholder.com/100"}
@@ -276,6 +316,29 @@ export function UserManagement() {
                   <span className="value">
                     {new Date(selectedUser.createdAt).toLocaleDateString("vi-VN")}
                   </span>
+                </div>
+                <div className="detail-item">
+                  <span className="label">Vai trò:</span>
+                  <select
+                    value={(selectedUser.role || "buyer").toUpperCase().replace("BUYER", "CUSTOMER")}
+                    onChange={(e) => handleUpdateRole(selectedUser.id, e.target.value)}
+                    className="role-select-inline"
+                    style={{
+                      padding: "6px 10px",
+                      borderRadius: "6px",
+                      border: "1px solid #efe1cb",
+                      backgroundColor: "#faf6f0",
+                      color: "#8b5a3c",
+                      fontWeight: "700",
+                      fontSize: "12px",
+                      cursor: "pointer",
+                      outline: "none"
+                    }}
+                  >
+                    <option value="CUSTOMER">Người mua</option>
+                    <option value="SELLER">Người bán</option>
+                    <option value="ADMIN">Quản trị viên</option>
+                  </select>
                 </div>
               </div>
 
@@ -328,9 +391,6 @@ export function UserManagement() {
               >
                 Xóa tài khoản
               </button>
-              <button className="btn btn-secondary" onClick={() => setShowDetailModal(false)}>
-                Đóng
-              </button>
             </div>
           </div>
         </div>
@@ -342,7 +402,7 @@ export function UserManagement() {
           <div className="loading">Đang tải dữ liệu...</div>
         ) : error ? (
           <div className="error">Lỗi: {error}</div>
-        ) : filteredUsers.length > 0 ? (
+        ) : filteredUsersNormalized.length > 0 ? (
           <>
             <table className="users-table">
               <thead>
@@ -355,7 +415,7 @@ export function UserManagement() {
                 </tr>
               </thead>
               <tbody>
-                {filteredUsers.map((user) => (
+                {filteredUsersNormalized.map((user) => (
                   <tr key={user.id} className={selectedUsers.has(user.id) ? "selected" : ""}>
                     <td className="user-name-cell">
                       <div className="user-avatar-fallback">
@@ -382,40 +442,95 @@ export function UserManagement() {
                       </span>
                     </td>
                     <td className="actions-cell">
-                      <button
-                        className="btn-icon btn-view"
-                        onClick={() => handleViewDetails(user)}
-                        title="Xem chi tiết"
-                      >
-                        👁️
-                      </button>
-                      {user.status === "active" ? (
+                      <div className="actions-wrapper">
                         <button
-                          className="btn-icon btn-ban"
-                          onClick={() => {
-                            const reason = window.prompt("Nhập lý do cấm:");
-                            if (reason) handleBanUser(user.id, reason);
-                          }}
-                          title="Cấm"
+                          className="btn-icon btn-view"
+                          onClick={() => handleViewDetails(user)}
+                          title="Xem chi tiết"
                         >
-                          🚫
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                            <circle cx="12" cy="12" r="3" />
+                          </svg>
                         </button>
-                      ) : (
+                        {user.status === "active" ? (
+                          <button
+                            className="btn-icon btn-ban"
+                            onClick={() => {
+                              const reason = window.prompt("Nhập lý do cấm:");
+                              if (reason) handleBanUser(user.id, reason);
+                            }}
+                            title="Cấm"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="16"
+                              height="16"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2.2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <circle cx="12" cy="12" r="10" />
+                              <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                            </svg>
+                          </button>
+                        ) : (
+                          <button
+                            className="btn-icon btn-unban"
+                            onClick={() => handleUnbanUser(user.id)}
+                            title="Gỡ cấm"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="16"
+                              height="16"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2.2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                          </button>
+                        )}
                         <button
-                          className="btn-icon btn-unban"
-                          onClick={() => handleUnbanUser(user.id)}
-                          title="Gỡ cấm"
+                          className="btn-icon btn-delete"
+                          onClick={() => handleDeleteUser(user.id)}
+                          title="Xóa"
                         >
-                          ✅
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                            <line x1="10" y1="11" x2="10" y2="17" />
+                            <line x1="14" y1="11" x2="14" y2="17" />
+                          </svg>
                         </button>
-                      )}
-                      <button
-                        className="btn-icon btn-delete"
-                        onClick={() => handleDeleteUser(user.id)}
-                        title="Xóa"
-                      >
-                        🗑️
-                      </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
