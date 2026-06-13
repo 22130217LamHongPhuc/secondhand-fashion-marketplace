@@ -4,6 +4,8 @@ import ShopPage from "./ShopPage/ShopPage";
 import ShopsPage from "./ShopsPage/ShopsPage";
 import HomePage from "./HomePage/HomePage";
 import ImageSearchPage from "./ImageSearchPage/ImageSearchPage";
+import OrderDetailPage from "./OrderHistoryPage/OrderDetailPage";
+import OrderHistoryPage from "./OrderHistoryPage/OrderHistoryPage";
 export const customerRoutes = [
   {
     index: true,
@@ -16,6 +18,14 @@ export const customerRoutes = [
   {
     path: "image-search",
     element: <ImageSearchPage />,
+  },
+  {
+    path: "orders",
+    element: <OrderHistoryPage />,
+  },
+  {
+    path: "orders/:orderId",
+    element: <OrderDetailPage />,
   },
   {
     path: "products",

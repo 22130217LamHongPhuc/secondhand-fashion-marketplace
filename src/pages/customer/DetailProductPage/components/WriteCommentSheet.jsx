@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export default function WriteCommentSheet({
   open,
@@ -10,17 +10,7 @@ export default function WriteCommentSheet({
 }) {
   const [content, setContent] = useState("");
 
-  useEffect(() => {
-    if (!open) return;
-    setContent("");
-  }, [open]);
-
   if (!open) return null;
-
-  const handleBackdropMouseDown = (event) => {
-    if (event.target !== event.currentTarget) return;
-    onClose?.();
-  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -33,20 +23,19 @@ export default function WriteCommentSheet({
       content: trimmed,
       parentId: null,
     });
+
+    setContent("");
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end bg-black/40"
-      onMouseDown={handleBackdropMouseDown}
-    >
-      <div className="w-full overflow-hidden rounded-t-3xl bg-[#fffaf0] shadow-2xl">
-        <div className="flex items-start justify-between border-b border-[#eadfca] px-5 py-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-2">
+      <div className="my-8 max-h-[90vh] w-full max-w-2xl overflow-hidden overflow-y-auto rounded-3xl bg-[#fffaf0] shadow-2xl hidden-scrollbar">
+        <div className="flex items-start justify-between border-b border-[#eadfca] p-5">
           <div>
             <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#b84a25]">
               Bình luận
             </p>
-            <h2 className="mt-1 text-lg font-extrabold text-[#3d3a2c]">
+            <h2 className="mt-1 text-xl font-extrabold text-[#3d3a2c]">
               Viết bình luận của bạn
             </h2>
           </div>
@@ -61,12 +50,9 @@ export default function WriteCommentSheet({
           </button>
         </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="max-h-[80vh] space-y-4 overflow-y-auto p-5 hidden-scrollbar"
-        >
+        <form onSubmit={handleSubmit} className="space-y-6 p-5">
           <div className="flex gap-4 rounded-2xl bg-white/80 p-4">
-            <div className="h-16 w-14 shrink-0 overflow-hidden rounded-xl bg-[#eadfca]">
+            <div className="h-20 w-16 shrink-0 overflow-hidden rounded-xl bg-[#eadfca]">
               <img
                 src={product?.thumbnailUrl || product?.images?.[0]?.url}
                 alt={product?.name || ""}
@@ -78,8 +64,8 @@ export default function WriteCommentSheet({
               <h3 className="line-clamp-2 font-extrabold text-[#3d3a2c]">
                 {product?.name}
               </h3>
-              <p className="mt-1 text-xs font-semibold text-[#7c7565]">
-                Hãy hỏi thêm về sản phẩm hoặc chia sẻ ý kiến.
+              <p className="mt-1 text-sm font-semibold text-[#7c7565]">
+                Hỏi thêm về sản phẩm hoặc chia sẻ ý kiến của bạn.
               </p>
             </div>
           </div>
@@ -92,18 +78,19 @@ export default function WriteCommentSheet({
             <textarea
               value={content}
               onChange={(event) => setContent(event.target.value)}
-              rows={4}
+              rows={5}
               maxLength={500}
               placeholder="Ví dụ: Shop ơi, size này còn không ạ?"
               className="w-full resize-none rounded-2xl border border-[#eadfca] bg-white px-4 py-3 text-sm text-[#3d3a2c] outline-none transition placeholder:text-[#b8ad99] focus:border-[#f26a3d] focus:ring-4 focus:ring-[#f26a3d]/10"
             />
 
-            <div className="mt-1 flex justify-end text-xs font-semibold text-[#8b8372]">
+            <div className="mt-1 flex justify-between gap-3 text-xs font-semibold text-[#8b8372]">
+              <span>Tối thiểu nên viết 10 ký tự để bình luận rõ hơn.</span>
               <span>{content.length}/500</span>
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 border-t border-[#eadfca] pt-4">
+          <div className="flex justify-end gap-3 border-t border-[#eadfca] pt-5">
             <button
               type="button"
               onClick={onClose}
