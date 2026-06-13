@@ -47,42 +47,25 @@ const sellerProductApi = {
    * @param {Array}  tags        — array of strings
    */
   create: ({ productData = {}, images = [], attributes = [], tags = [] }) => {
-    const formData = new FormData();
+    const payload = {
+      ...productData,
+      categoryId: productData.categoryId ? Number(productData.categoryId) : null,
+      basePrice: productData.basePrice ? Number(productData.basePrice) : null,
+      salePrice: productData.salePrice ? Number(productData.salePrice) : null,
+      stockQuantity: productData.stockQuantity !== "" ? Number(productData.stockQuantity) : 0,
+      images: images.map((img, idx) => ({
+        imageUrl: img.imageUrl,
+        sortOrder: img.sortOrder !== undefined ? img.sortOrder : idx,
+        isPrimary: img.isPrimary || false,
+      })),
+      attributes: attributes.map((attr) => ({
+        attrKey: attr.attrKey,
+        attrValue: attr.attrValue,
+      })),
+      tags: tags,
+    };
 
-    // Append scalar fields
-    Object.entries(productData).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        formData.append(key, value);
-      }
-    });
-
-    // Append images
-    images.forEach((img, idx) => {
-      if (img.file) {
-        formData.append(`images[${idx}].file`, img.file);
-      }
-      if (img.sortOrder !== undefined) {
-        formData.append(`images[${idx}].sortOrder`, img.sortOrder);
-      }
-      if (img.isPrimary !== undefined) {
-        formData.append(`images[${idx}].isPrimary`, img.isPrimary);
-      }
-    });
-
-    // Append attributes
-    attributes.forEach((attr, idx) => {
-      formData.append(`attributes[${idx}].attrKey`, attr.attrKey);
-      formData.append(`attributes[${idx}].attrValue`, attr.attrValue);
-    });
-
-    // Append tags
-    tags.forEach((tag, idx) => {
-      formData.append(`tags[${idx}]`, tag);
-    });
-
-    return axiosInstance.post(BASE, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    return axiosInstance.post(BASE, payload);
   },
 
   /**

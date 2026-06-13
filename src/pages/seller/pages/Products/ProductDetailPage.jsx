@@ -8,6 +8,8 @@ import {
   Trash2,
   Tag,
   Star,
+  Loader2,
+  RefreshCw,
 } from "lucide-react";
 import {
   useSellerProductDetail,
@@ -15,6 +17,7 @@ import {
   useUpdateProduct,
   useSellerCategories,
 } from "../../hooks";
+import { imageApi } from "../../api";
 import { toastService } from "@/services/toastService";
 import ErrorState from "../../components/common/ErrorState";
 import ToggleSwitch from "../../components/common/ToggleSwitch";
@@ -112,14 +115,43 @@ const ProductDetailPage = () => {
       return;
     }
 
-    const newImages = files.map((file, idx) => ({
-      file,
-      isPrimary: images.length === 0 && idx === 0,
-    }));
+    const startIdx = images.length;
+    const newImages = files.map((file, idx) => {
+      const localUrl = URL.createObjectURL(file);
+      return {
+        id: Math.random().toString(36).substring(2, 9) + Date.now(),
+        file,
+        previewUrl: localUrl,
+        imageUrl: null,
+        status: "uploading",
+        isPrimary: startIdx === 0 && idx === 0,
+      };
+    });
+
     setImages((prev) => [...prev, ...newImages]);
 
-    const newUrls = files.map((file) => URL.createObjectURL(file));
-    setPreviewUrls((prev) => [...prev, ...newUrls]);
+    // Start uploading sequentially
+    const uploadSequentially = async (items) => {
+      for (const item of items) {
+        try {
+          const url = await imageApi.upload(item.file);
+          setImages((prev) =>
+            prev.map((img) =>
+              img.id === item.id ? { ...img, status: "done", imageUrl: url } : img
+            )
+          );
+        } catch (err) {
+          toastService.error(`Tải ảnh thất bại: ${err?.message || err}`);
+          setImages((prev) =>
+            prev.map((img) =>
+              img.id === item.id ? { ...img, status: "error" } : img
+            )
+          );
+        }
+      }
+    };
+
+    uploadSequentially(newImages);
   };
 
   const handleSetPrimary = (idx) => {
@@ -131,22 +163,46 @@ const ProductDetailPage = () => {
     );
   };
 
-  const handleRemoveImage = (idx) => {
-    if (previewUrls[idx] && previewUrls[idx].startsWith("blob:")) {
-      URL.revokeObjectURL(previewUrls[idx]);
-    }
-    setImages((prev) => prev.filter((_, i) => i !== idx));
-    setPreviewUrls((prev) => prev.filter((_, i) => i !== idx));
+  const handleRetryImage = async (idx) => {
+    const targetImage = images[idx];
+    if (!targetImage || targetImage.status !== "error") return;
 
-    setImages((prev) => {
-      if (prev.length > 0 && !prev.some((img) => img.isPrimary)) {
-        return prev.map((img, i) => ({
-          ...img,
-          isPrimary: i === 0,
-        }));
-      }
-      return prev;
-    });
+    setImages((prev) =>
+      prev.map((img, i) =>
+        i === idx ? { ...img, status: "uploading" } : img
+      )
+    );
+
+    try {
+      const url = await imageApi.upload(targetImage.file);
+      setImages((prev) =>
+        prev.map((img) =>
+          img.id === targetImage.id ? { ...img, status: "done", imageUrl: url } : img
+        )
+      );
+    } catch (err) {
+      toastService.error(`Tải lại ảnh thất bại: ${err?.message || err}`);
+      setImages((prev) =>
+        prev.map((img) =>
+          img.id === targetImage.id ? { ...img, status: "error" } : img
+        )
+      );
+    }
+  };
+
+  const handleRemoveImage = (idx) => {
+    const targetImage = images[idx];
+    if (targetImage && targetImage.previewUrl && targetImage.previewUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(targetImage.previewUrl);
+    }
+
+    const updatedImages = images.filter((_, i) => i !== idx);
+
+    if (updatedImages.length > 0 && !updatedImages.some((img) => img.isPrimary)) {
+      updatedImages[0].isPrimary = true;
+    }
+
+    setImages(updatedImages);
   };
 
   const handleDragStart = (e, index) => {
@@ -166,11 +222,6 @@ const ProductDetailPage = () => {
     const [removed] = reorderedImages.splice(sourceIndex, 1);
     reorderedImages.splice(targetIndex, 0, removed);
     setImages(reorderedImages);
-
-    const reorderedUrls = [...previewUrls];
-    const [removedUrl] = reorderedUrls.splice(sourceIndex, 1);
-    reorderedUrls.splice(targetIndex, 0, removedUrl);
-    setPreviewUrls(reorderedUrls);
   };
 
   const handleAddAttribute = () => {
@@ -331,6 +382,10 @@ const ProductDetailPage = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  const isUploading = images.some((img) => img.status === "uploading");
+  const hasUploadError = images.some((img) => img.status === "error");
+  const isSubmitDisabled = !isEdit && (isUploading || hasUploadError);
+
   const handleSubmit = async () => {
     if (!validateForm()) {
       toastService.error("Vui lòng sửa các lỗi nhập liệu trước khi tiếp tục.");
@@ -369,15 +424,27 @@ const ProductDetailPage = () => {
         toastService.success("Cập nhật thành công!");
         navigate("/seller/products");
       } else {
-        const imagesWithSort = images.map((img, idx) => ({
-          ...img,
-          sortOrder: idx,
-        }));
+        const imagesPayload = images
+          .filter((img) => img.status === "done" && img.imageUrl)
+          .map((img, idx) => ({
+            imageUrl: img.imageUrl,
+            sortOrder: idx,
+            isPrimary: img.isPrimary || false,
+          }));
+
+        if (imagesPayload.length === 0) {
+          toastService.error("Vui lòng thêm và chờ tải lên ít nhất một hình ảnh cho sản phẩm.");
+          return;
+        }
+
+        if (!imagesPayload.some((img) => img.isPrimary)) {
+          imagesPayload[0].isPrimary = true;
+        }
 
         const { ...createFormData } = formData;
         await createProduct({
           productData: createFormData,
-          images: imagesWithSort,
+          images: imagesPayload,
           attributes: attributes.filter(
             (a) => a.attrKey.trim() && a.attrValue.trim(),
           ),
@@ -440,60 +507,109 @@ const ProductDetailPage = () => {
                 </label>
               )}
 
-              {previewUrls.map((url, idx) => {
-                const isPrimary = images[idx]?.isPrimary || false;
-                return (
-                  <div
-                    key={idx}
-                    draggable={!isEdit}
-                    onDragStart={(e) => !isEdit && handleDragStart(e, idx)}
-                    onDragOver={(e) => !isEdit && handleDragOver(e)}
-                    onDrop={(e) => !isEdit && handleDrop(e, idx)}
-                    className={`group relative h-32 w-32 overflow-hidden rounded-xl border transition-all ${
-                      !isEdit ? "cursor-grab active:cursor-grabbing" : ""
-                    } ${
-                      isPrimary
-                        ? "border-brand-primary ring-2 ring-brand-primary/20"
-                        : "border-neutral-200 hover:border-brand-primary/40"
-                    }`}
-                  >
-                    <img
-                      src={url}
-                      alt={`Preview ${idx + 1}`}
-                      className="h-full w-full object-cover"
-                    />
-
-                    {isPrimary && (
-                      <span className="absolute top-2 left-2 flex items-center gap-1 rounded bg-brand-primary px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm">
-                        <Star size={8} fill="white" />
-                        Chính
-                      </span>
-                    )}
-
-                    {!isEdit && (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
-                        {!isPrimary && (
-                          <button
-                            type="button"
-                            onClick={() => handleSetPrimary(idx)}
-                            className="rounded bg-white/90 px-2 py-1 text-[10px] font-bold text-neutral-800 shadow transition hover:bg-white"
-                          >
-                            Làm ảnh chính
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveImage(idx)}
-                          className="rounded bg-red-500/90 p-1.5 text-white shadow transition hover:bg-red-500"
-                          title="Xóa ảnh"
-                        >
-                          <Trash2 size={12} />
-                        </button>
+              {isEdit
+                ? previewUrls.map((url, idx) => {
+                    return (
+                      <div
+                        key={idx}
+                        className="group relative h-32 w-32 overflow-hidden rounded-xl border border-neutral-200"
+                      >
+                        <img
+                          src={url}
+                          alt={`Preview ${idx + 1}`}
+                          className="h-full w-full object-cover"
+                        />
                       </div>
-                    )}
-                  </div>
-                );
-              })}
+                    );
+                  })
+                : images.map((img, idx) => {
+                    const isPrimary = img.isPrimary || false;
+                    const isUploading = img.status === "uploading";
+                    const isError = img.status === "error";
+
+                    return (
+                      <div
+                        key={img.id || idx}
+                        draggable={!isUploading}
+                        onDragStart={(e) => handleDragStart(e, idx)}
+                        onDragOver={handleDragOver}
+                        onDrop={(e) => handleDrop(e, idx)}
+                        className={`group relative h-32 w-32 overflow-hidden rounded-xl border transition-all ${
+                          isUploading ? "cursor-not-allowed opacity-60" : "cursor-grab active:cursor-grabbing"
+                        } ${
+                          isPrimary
+                            ? "border-brand-primary ring-2 ring-brand-primary/20"
+                            : isError
+                            ? "border-red-500 ring-2 ring-red-200"
+                            : "border-neutral-200 hover:border-brand-primary/40"
+                        }`}
+                      >
+                        <img
+                          src={img.previewUrl}
+                          alt={`Preview ${idx + 1}`}
+                          className="h-full w-full object-cover"
+                        />
+
+                        {isPrimary && (
+                          <span className="absolute top-2 left-2 flex items-center gap-1 rounded bg-brand-primary px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm">
+                            <Star size={8} fill="white" />
+                            Chính
+                          </span>
+                        )}
+
+                        {isUploading && (
+                          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40">
+                            <Loader2 className="h-6 w-6 animate-spin text-white" />
+                            <span className="mt-1 text-[10px] font-semibold text-white">Đang tải...</span>
+                          </div>
+                        )}
+
+                        {isError && (
+                          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleRetryImage(idx)}
+                              className="rounded bg-white/95 p-1.5 text-neutral-800 shadow transition hover:bg-white flex items-center gap-1 text-[10px] font-bold"
+                              title="Tải lại"
+                            >
+                              <RefreshCw size={12} className="text-brand-primary" />
+                              Thử lại
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveImage(idx)}
+                              className="rounded bg-red-500/90 p-1.5 text-white shadow transition hover:bg-red-500"
+                              title="Xóa ảnh"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        )}
+
+                        {!isUploading && !isError && (
+                          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+                            {!isPrimary && (
+                              <button
+                                type="button"
+                                onClick={() => handleSetPrimary(idx)}
+                                className="rounded bg-white/90 px-2 py-1 text-[10px] font-bold text-neutral-800 shadow transition hover:bg-white"
+                              >
+                                Làm ảnh chính
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveImage(idx)}
+                              className="rounded bg-red-500/90 p-1.5 text-white shadow transition hover:bg-red-500"
+                              title="Xóa ảnh"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
             </div>
           </div>
 
@@ -853,14 +969,25 @@ const ProductDetailPage = () => {
           </div>
 
           <div className="flex items-center justify-center gap-4 pt-2 pb-4">
-            <div className="px-8 py-3 border border-neutral-300 rounded-lg bg-white shadow-sm text-sm font-bold text-neutral-600 transition-colors hover:text-neutral-800">
-              <button onClick={() => navigate("/seller/products")}>Hủy</button>
-            </div>
-            <div className="rounded-xl bg-brand-primary px-12 py-3 text-sm font-semibold text-white shadow-md transition-all hover:bg-brand-dark hover:shadow-lg active:scale-[0.98]">
-              <button onClick={handleSubmit}>
-                {isEdit ? "Lưu thay đổi" : "Đăng sản phẩm"}
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => navigate("/seller/products")}
+              className="px-8 py-3 border border-neutral-300 rounded-lg bg-white shadow-sm text-sm font-bold text-neutral-600 transition-colors hover:text-neutral-800 hover:bg-neutral-50"
+            >
+              Hủy
+            </button>
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={isSubmitDisabled}
+              className={`rounded-xl px-12 py-3 text-sm font-semibold text-white shadow-md transition-all ${
+                isSubmitDisabled
+                  ? "bg-neutral-300 cursor-not-allowed opacity-60"
+                  : "bg-brand-primary hover:bg-brand-dark hover:shadow-lg active:scale-[0.98]"
+              }`}
+            >
+              {isEdit ? "Lưu thay đổi" : "Đăng sản phẩm"}
+            </button>
           </div>
         </div>
 
@@ -874,7 +1001,7 @@ const ProductDetailPage = () => {
               <div className="relative">
                 <img
                   src={
-                    previewUrls[0] ||
+                    (isEdit ? previewUrls[0] : images[0]?.previewUrl) ||
                     "https://images.unsplash.com/photo-1551028719-00167b16eac5?w=400&h=400&fit=crop"
                   }
                   alt="Preview"
