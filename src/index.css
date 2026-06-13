@@ -1,9 +1,11 @@
-@import "tailwindcss";
-font-family: 'Inter', sans-serif;
-/* ===========================================================
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+@import "tailwindcss"; /* ===========================================================
    SELLER — Design Tokens
    =========================================================== */
 @theme {
+  --font-sans:
+    "Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
+    "Segoe UI Emoji";
   /* Brand Colors */
   --color-brand-primary: #c75c2e;
   --color-brand-secondary: #d4724a;
@@ -214,4 +216,8 @@ font-family: 'Inter', sans-serif;
   #social .button-icon {
     filter: invert(1) brightness(2);
   }
+}
+
+body {
+  font-family: "Inter", sans-serif;
 }

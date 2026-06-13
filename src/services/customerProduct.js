@@ -56,6 +56,19 @@ export const customerProductService = {
     return unwrapData(response);
   },
 
+  createComment: async ({ productId, content, parentId = null }) => {
+    const response = await http("/api/customer/comments", {
+      method: "POST",
+      body: JSON.stringify({
+        productId,
+        content,
+        parentId,
+      }),
+    });
+
+    return unwrapData(response);
+  },
+
   filterAndSortProducts: async ({
     keyword = null,
     categoryIds = null,
