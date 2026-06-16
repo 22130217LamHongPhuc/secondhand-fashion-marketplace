@@ -9,7 +9,6 @@ export {
 export {
   useSellerOrdersByStatus,
   useSellerOrderDetail,
-  useSellerCurrentMonthOrders,
   useConfirmOrder,
   useStartDelivery,
   useCompleteOrder,
@@ -24,5 +23,11 @@ export {
 } from "./useSellerStatistics";
 
 export { useSellerCategories } from "./useSellerCategories";
+
+export {
+  useSellerShop,
+  useCreateShop,
+  useUpdateShop,
+} from "./useSellerShop";
 
 export * from "./sellerQueryKeys";

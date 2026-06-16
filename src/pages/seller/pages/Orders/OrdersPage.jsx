@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Eye,
   Truck,
@@ -7,6 +8,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Check,
+  Search,
 } from "lucide-react";
 import {
   useSellerOrdersByStatus,
@@ -22,6 +24,7 @@ import ErrorState from "../../components/common/ErrorState";
 import EmptyState from "../../components/common/EmptyState";
 
 const statusTabs = [
+  { label: "Tất cả", id: "ALL", icon: null },
   { label: "Chờ xác nhận", id: "PENDING", icon: null },
   { label: "Đã xác nhận", id: "CONFIRMED", icon: Check },
   { label: "Đang giao", id: "SHIPPING", icon: Truck },
@@ -58,19 +61,63 @@ const getInitialsColor = (id) => {
 };
 
 const OrdersPage = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(0);
   const [currentPage, setCurrentPage] = useState(0);
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedOrderCode, setDebouncedOrderCode] = useState("");
+
+  // Debounce search input
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedOrderCode(searchInput.trim());
+      setCurrentPage(0); // Reset page khi tìm kiếm thay đổi
+    }, 400);
+
+    return () => clearTimeout(handler);
+  }, [searchInput]);
+
+  const queryParams = {
+    page: currentPage,
+  };
+  const activeStatus = statusTabs[activeTab].id;
+  if (activeStatus !== "ALL") {
+    queryParams.status = activeStatus;
+  }
+  if (debouncedOrderCode) {
+    queryParams.orderCode = debouncedOrderCode;
+  }
 
   const {
     data,
     isLoading: loading,
     error,
-  } = useSellerOrdersByStatus({
-    status: statusTabs[activeTab].id,
-    page: currentPage,
-  });
+  } = useSellerOrdersByStatus(queryParams);
   const orders = data?.orders ?? [];
   const pagination = data?.pagination ?? Pagination.empty();
+
+  const getPages = () => {
+    const total = pagination.totalPages;
+    if (total <= 5) {
+      return Array.from({ length: total }, (_, i) => i);
+    }
+    
+    let start = 0;
+    if (currentPage <= 1) {
+      start = 0;
+    } else if (currentPage >= total - 3) {
+      start = total - 3;
+    } else {
+      start = currentPage;
+    }
+    
+    const pages = [start, start + 1, start + 2];
+    if (start + 2 < total - 1) {
+      pages.push("...");
+      pages.push(total - 1);
+    }
+    return pages;
+  };
 
   const { mutateAsync: confirmOrder } = useConfirmOrder();
   const { mutateAsync: startDelivery } = useStartDelivery();
@@ -109,27 +156,44 @@ const OrdersPage = () => {
         Quản lý đơn hàng
       </h1>
 
-      {/* Status Tabs */}
-      <div className="flex items-center gap-3">
-        {statusTabs.map((tab, i) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === i;
+      {/* Search + Filter Tabs */}
+      <div className="flex items-center gap-4">
+        {/* Search */}
+        <div className="relative w-full max-w-70">
+          <Search
+            size={16}
+            className="absolute left-3.5 top-6.5 -translate-y-1/2 text-neutral-400"
+          />
+          <input
+            type="text"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Tìm kiếm mã đơn hàng..."
+            className="w-full rounded-full border border-neutral-200 bg-white py-2.5 pl-10 pr-4 text-sm outline-none transition-all focus:border-brand-primary/40 focus:ring-2 focus:ring-brand-primary/10"
+          />
+        </div>
 
-          return (
-            <div
-              key={tab.label}
-              onClick={() => handleTabChange(i)}
-              className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all ${
-                isActive
+        {/* Tabs */}
+        <div className="flex gap-1">
+          {statusTabs.map((tab, i) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === i;
+
+            return (
+              <div
+                key={tab.label}
+                onClick={() => handleTabChange(i)}
+                className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium cursor-pointer transition-all ${isActive
                   ? "bg-accent-yellow text-gray-600 shadow-md"
                   : "text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700"
-              }`}
-            >
-              {Icon && <Icon size={15} strokeWidth={1.8} />}
-              <span>{tab.label}</span>
-            </div>
-          );
-        })}
+                  }`}
+              >
+                {Icon && <Icon size={15} strokeWidth={1.8} />}
+                <span>{tab.label}</span>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Data Area */}
@@ -211,7 +275,10 @@ const OrdersPage = () => {
                     </td>
                     <td className="px-6 py-6">
                       <div className="flex items-center justify-center gap-2">
-                        <button className="flex h-9 w-9 items-center justify-center rounded-lg text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600">
+                        <button
+                          onClick={() => navigate(`/seller/orders/${o.id}`)}
+                          className="flex h-9 w-9 items-center justify-center rounded-lg text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600"
+                        >
                           <Eye size={18} />
                         </button>
 
@@ -249,34 +316,69 @@ const OrdersPage = () => {
                 Hiển thị {pagination.startItem}-{pagination.endItem} trong số{" "}
                 {pagination.totalElements} đơn hàng
               </p>
-              <div className="flex items-center gap-2">
-                <button
-                  disabled={!pagination.hasPrevious}
-                  onClick={() => setCurrentPage((prev) => prev - 1)}
-                  className="flex h-9 w-9 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100 disabled:opacity-50 disabled:hover:bg-transparent"
-                >
-                  <ChevronLeft size={18} />
-                </button>
-                {pagination.pageNumbers.map((n) => (
-                  <div
-                    key={n}
-                    onClick={() => setCurrentPage(n)}
-                    className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold transition-colors hover:bg-neutral-100 text-neutral-500 ${
-                      currentPage === n
-                        ? "bg-accent-yellow shadow-lg"
-                        : "bg-transparent"
-                    }`}
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <button
+                    disabled={!pagination.hasPrevious}
+                    onClick={() => setCurrentPage((prev) => prev - 1)}
+                    className="flex h-9 w-9 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100 disabled:opacity-50 disabled:hover:bg-transparent"
                   >
-                    {n + 1}
-                  </div>
-                ))}
-                <button
-                  disabled={!pagination.hasNext}
-                  onClick={() => setCurrentPage((prev) => prev + 1)}
-                  className="flex h-9 w-9 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100 disabled:opacity-50 disabled:hover:bg-transparent"
-                >
-                  <ChevronRight size={18} />
-                </button>
+                    <ChevronLeft size={18} />
+                  </button>
+                  {getPages().map((n, idx) => {
+                    if (n === '...') {
+                      return (
+                        <div
+                          key={`ellipsis-${idx}`}
+                          className="flex h-9 w-9 items-center justify-center text-sm font-semibold text-neutral-400 select-none cursor-default"
+                        >
+                          ...
+                        </div>
+                      );
+                    }
+                    return (
+                      <div
+                        key={n}
+                        onClick={() => setCurrentPage(n)}
+                        className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold transition-colors hover:bg-neutral-150 cursor-pointer ${
+                          currentPage === n
+                            ? "bg-accent-yellow shadow-lg text-gray-700 font-bold"
+                            : "text-neutral-500 hover:bg-neutral-100"
+                        }`}
+                      >
+                        {n + 1}
+                      </div>
+                    );
+                  })}
+                  <button
+                    disabled={!pagination.hasNext}
+                    onClick={() => setCurrentPage((prev) => prev + 1)}
+                    className="flex h-9 w-9 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100 disabled:opacity-50 disabled:hover:bg-transparent"
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+                </div>
+
+                {/* Page Jump Input */}
+                <div className="flex items-center gap-2 border-l border-neutral-200 pl-4">
+                  <span className="text-sm text-neutral-400">Đi đến trang:</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={pagination.totalPages}
+                    placeholder={`1-${pagination.totalPages}`}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        const val = parseInt(e.target.value, 10);
+                        if (val >= 1 && val <= pagination.totalPages) {
+                          setCurrentPage(val - 1);
+                          e.target.value = "";
+                        }
+                      }
+                    }}
+                    className="w-16 rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-center text-sm outline-none transition-all focus:border-brand-primary/40 focus:ring-2 focus:ring-brand-primary/10 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                </div>
               </div>
             </div>
           )}

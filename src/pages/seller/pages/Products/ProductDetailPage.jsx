@@ -10,6 +10,7 @@ import {
   Star,
   Loader2,
   RefreshCw,
+  Image,
 } from "lucide-react";
 import {
   useSellerProductDetail,
@@ -71,15 +72,15 @@ const ProductDetailPage = () => {
   useEffect(() => {
     if (isEdit && productData && !originalDataRef.current) {
       const formValues = {
-        name: productData.name || "",
         categoryId: productData.categoryId || "",
+        name: productData.name || "",
+        description: productData.description || "",
+        brand: productData.brand || "",
+        originCountry: productData.originCountry || "",
+        condition: productData.condition || "GOOD",
         basePrice: productData.basePrice || "",
         salePrice: productData.salePrice || "",
-        brand: productData.brand || "",
-        condition: productData.condition || "GOOD",
-        description: productData.description || "",
         stockQuantity: productData.stockQuantity || 1,
-        originCountry: productData.originCountry || "",
         isActive: productData.isActive ?? true,
       };
       originalDataRef.current = formValues;
@@ -509,107 +510,105 @@ const ProductDetailPage = () => {
 
               {isEdit
                 ? previewUrls.map((url, idx) => {
-                    return (
-                      <div
-                        key={idx}
-                        className="group relative h-32 w-32 overflow-hidden rounded-xl border border-neutral-200"
-                      >
-                        <img
-                          src={url}
-                          alt={`Preview ${idx + 1}`}
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                    );
-                  })
+                  return (
+                    <div
+                      key={idx}
+                      className="group relative h-32 w-32 overflow-hidden rounded-xl border border-neutral-200"
+                    >
+                      <img
+                        src={url}
+                        alt={`Preview ${idx + 1}`}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  );
+                })
                 : images.map((img, idx) => {
-                    const isPrimary = img.isPrimary || false;
-                    const isUploading = img.status === "uploading";
-                    const isError = img.status === "error";
+                  const isPrimary = img.isPrimary || false;
+                  const isUploading = img.status === "uploading";
+                  const isError = img.status === "error";
 
-                    return (
-                      <div
-                        key={img.id || idx}
-                        draggable={!isUploading}
-                        onDragStart={(e) => handleDragStart(e, idx)}
-                        onDragOver={handleDragOver}
-                        onDrop={(e) => handleDrop(e, idx)}
-                        className={`group relative h-32 w-32 overflow-hidden rounded-xl border transition-all ${
-                          isUploading ? "cursor-not-allowed opacity-60" : "cursor-grab active:cursor-grabbing"
-                        } ${
-                          isPrimary
-                            ? "border-brand-primary ring-2 ring-brand-primary/20"
-                            : isError
+                  return (
+                    <div
+                      key={img.id || idx}
+                      draggable={!isUploading}
+                      onDragStart={(e) => handleDragStart(e, idx)}
+                      onDragOver={handleDragOver}
+                      onDrop={(e) => handleDrop(e, idx)}
+                      className={`group relative h-32 w-32 overflow-hidden rounded-xl border transition-all ${isUploading ? "cursor-not-allowed opacity-60" : "cursor-grab active:cursor-grabbing"
+                        } ${isPrimary
+                          ? "border-brand-primary ring-2 ring-brand-primary/20"
+                          : isError
                             ? "border-red-500 ring-2 ring-red-200"
                             : "border-neutral-200 hover:border-brand-primary/40"
                         }`}
-                      >
-                        <img
-                          src={img.previewUrl}
-                          alt={`Preview ${idx + 1}`}
-                          className="h-full w-full object-cover"
-                        />
+                    >
+                      <img
+                        src={img.previewUrl}
+                        alt={`Preview ${idx + 1}`}
+                        className="h-full w-full object-cover"
+                      />
 
-                        {isPrimary && (
-                          <span className="absolute top-2 left-2 flex items-center gap-1 rounded bg-brand-primary px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm">
-                            <Star size={8} fill="white" />
-                            Chính
-                          </span>
-                        )}
+                      {isPrimary && (
+                        <span className="absolute top-2 left-2 flex items-center gap-1 rounded bg-brand-primary px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm">
+                          <Star size={8} fill="white" />
+                          Chính
+                        </span>
+                      )}
 
-                        {isUploading && (
-                          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40">
-                            <Loader2 className="h-6 w-6 animate-spin text-white" />
-                            <span className="mt-1 text-[10px] font-semibold text-white">Đang tải...</span>
-                          </div>
-                        )}
+                      {isUploading && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40">
+                          <Loader2 className="h-6 w-6 animate-spin text-white" />
+                          <span className="mt-1 text-[10px] font-semibold text-white">Đang tải...</span>
+                        </div>
+                      )}
 
-                        {isError && (
-                          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 gap-1.5">
+                      {isError && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleRetryImage(idx)}
+                            className="rounded bg-white/95 p-1.5 text-neutral-800 shadow transition hover:bg-white flex items-center gap-1 text-[10px] font-bold"
+                            title="Tải lại"
+                          >
+                            <RefreshCw size={12} className="text-brand-primary" />
+                            Thử lại
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveImage(idx)}
+                            className="rounded bg-red-500/90 p-1.5 text-white shadow transition hover:bg-red-500"
+                            title="Xóa ảnh"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      )}
+
+                      {!isUploading && !isError && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+                          {!isPrimary && (
                             <button
                               type="button"
-                              onClick={() => handleRetryImage(idx)}
-                              className="rounded bg-white/95 p-1.5 text-neutral-800 shadow transition hover:bg-white flex items-center gap-1 text-[10px] font-bold"
-                              title="Tải lại"
+                              onClick={() => handleSetPrimary(idx)}
+                              className="rounded bg-white/90 px-2 py-1 text-[10px] font-bold text-neutral-800 shadow transition hover:bg-white"
                             >
-                              <RefreshCw size={12} className="text-brand-primary" />
-                              Thử lại
+                              Làm ảnh chính
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveImage(idx)}
-                              className="rounded bg-red-500/90 p-1.5 text-white shadow transition hover:bg-red-500"
-                              title="Xóa ảnh"
-                            >
-                              <Trash2 size={12} />
-                            </button>
-                          </div>
-                        )}
-
-                        {!isUploading && !isError && (
-                          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
-                            {!isPrimary && (
-                              <button
-                                type="button"
-                                onClick={() => handleSetPrimary(idx)}
-                                className="rounded bg-white/90 px-2 py-1 text-[10px] font-bold text-neutral-800 shadow transition hover:bg-white"
-                              >
-                                Làm ảnh chính
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveImage(idx)}
-                              className="rounded bg-red-500/90 p-1.5 text-white shadow transition hover:bg-red-500"
-                              title="Xóa ảnh"
-                            >
-                              <Trash2 size={12} />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveImage(idx)}
+                            className="rounded bg-red-500/90 p-1.5 text-white shadow transition hover:bg-red-500"
+                            title="Xóa ảnh"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
             </div>
           </div>
 
@@ -630,11 +629,10 @@ const ProductDetailPage = () => {
                   value={formData.name}
                   onChange={handleChange}
                   placeholder="Ví dụ: Áo khoác Jean"
-                  className={`mt-1.5 w-full rounded-xl border bg-neutral-50 px-4 py-3 text-sm text-neutral-700 outline-none focus:border-brand-primary/40 focus:bg-white focus:ring-2 focus:ring-brand-primary/10 ${
-                    errors.name
-                      ? "border-red-500 focus:ring-red-200"
-                      : "border-neutral-200"
-                  }`}
+                  className={`mt-1.5 w-full rounded-xl border bg-neutral-50 px-4 py-3 text-sm text-neutral-700 outline-none focus:border-brand-primary/40 focus:bg-white focus:ring-2 focus:ring-brand-primary/10 ${errors.name
+                    ? "border-red-500 focus:ring-red-200"
+                    : "border-neutral-200"
+                    }`}
                 />
                 {errors.name && (
                   <p className="mt-1 text-xs text-red-500 font-medium">
@@ -676,11 +674,10 @@ const ProductDetailPage = () => {
                     name="basePrice"
                     value={formData.basePrice}
                     onChange={handleChange}
-                    className={`mt-1.5 w-full rounded-xl border bg-neutral-50 px-4 py-3 text-sm text-neutral-700 outline-none focus:border-brand-primary/40 focus:bg-white focus:ring-2 focus:ring-brand-primary/10 ${
-                      errors.basePrice
-                        ? "border-red-500 focus:ring-red-200"
-                        : "border-neutral-200"
-                    }`}
+                    className={`mt-1.5 w-full rounded-xl border bg-neutral-50 px-4 py-3 text-sm text-neutral-700 outline-none focus:border-brand-primary/40 focus:bg-white focus:ring-2 focus:ring-brand-primary/10 ${errors.basePrice
+                      ? "border-red-500 focus:ring-red-200"
+                      : "border-neutral-200"
+                      }`}
                   />
                   {errors.basePrice && (
                     <p className="mt-1 text-xs text-red-500 font-medium">
@@ -697,11 +694,10 @@ const ProductDetailPage = () => {
                     name="salePrice"
                     value={formData.salePrice}
                     onChange={handleChange}
-                    className={`mt-1.5 w-full rounded-xl border bg-neutral-50 px-4 py-3 text-sm text-neutral-700 outline-none focus:border-brand-primary/40 focus:bg-white focus:ring-2 focus:ring-brand-primary/10 ${
-                      errors.salePrice
-                        ? "border-red-500 focus:ring-red-200"
-                        : "border-neutral-200"
-                    }`}
+                    className={`mt-1.5 w-full rounded-xl border bg-neutral-50 px-4 py-3 text-sm text-neutral-700 outline-none focus:border-brand-primary/40 focus:bg-white focus:ring-2 focus:ring-brand-primary/10 ${errors.salePrice
+                      ? "border-red-500 focus:ring-red-200"
+                      : "border-neutral-200"
+                      }`}
                   />
                   {errors.salePrice && (
                     <p className="mt-1 text-xs text-red-500 font-medium">
@@ -721,11 +717,10 @@ const ProductDetailPage = () => {
                     name="stockQuantity"
                     value={formData.stockQuantity}
                     onChange={handleChange}
-                    className={`mt-1.5 w-full rounded-xl border bg-neutral-50 px-4 py-3 text-sm text-neutral-700 outline-none focus:border-brand-primary/40 focus:bg-white focus:ring-2 focus:ring-brand-primary/10 ${
-                      errors.stockQuantity
-                        ? "border-red-500 focus:ring-red-200"
-                        : "border-neutral-200"
-                    }`}
+                    className={`mt-1.5 w-full rounded-xl border bg-neutral-50 px-4 py-3 text-sm text-neutral-700 outline-none focus:border-brand-primary/40 focus:bg-white focus:ring-2 focus:ring-brand-primary/10 ${errors.stockQuantity
+                      ? "border-red-500 focus:ring-red-200"
+                      : "border-neutral-200"
+                      }`}
                   />
                   {errors.stockQuantity && (
                     <p className="mt-1 text-xs text-red-500 font-medium">
@@ -743,11 +738,10 @@ const ProductDetailPage = () => {
                     value={formData.brand}
                     onChange={handleChange}
                     placeholder="Nhập thương hiệu"
-                    className={`mt-1.5 w-full rounded-xl border bg-neutral-50 px-4 py-3 text-sm text-neutral-700 outline-none focus:border-brand-primary/40 focus:bg-white focus:ring-2 focus:ring-brand-primary/10 ${
-                      errors.brand
-                        ? "border-red-500 focus:ring-red-200"
-                        : "border-neutral-200"
-                    }`}
+                    className={`mt-1.5 w-full rounded-xl border bg-neutral-50 px-4 py-3 text-sm text-neutral-700 outline-none focus:border-brand-primary/40 focus:bg-white focus:ring-2 focus:ring-brand-primary/10 ${errors.brand
+                      ? "border-red-500 focus:ring-red-200"
+                      : "border-neutral-200"
+                      }`}
                   />
                   {errors.brand && (
                     <p className="mt-1 text-xs text-red-500 font-medium">
@@ -785,11 +779,10 @@ const ProductDetailPage = () => {
                     value={formData.originCountry}
                     onChange={handleChange}
                     placeholder="Ví dụ: Việt Nam"
-                    className={`mt-1.5 w-full rounded-xl border bg-neutral-50 px-4 py-3 text-sm text-neutral-700 outline-none focus:border-brand-primary/40 focus:bg-white focus:ring-2 focus:ring-brand-primary/10 ${
-                      errors.originCountry
-                        ? "border-red-500 focus:ring-red-200"
-                        : "border-neutral-200"
-                    }`}
+                    className={`mt-1.5 w-full rounded-xl border bg-neutral-50 px-4 py-3 text-sm text-neutral-700 outline-none focus:border-brand-primary/40 focus:bg-white focus:ring-2 focus:ring-brand-primary/10 ${errors.originCountry
+                      ? "border-red-500 focus:ring-red-200"
+                      : "border-neutral-200"
+                      }`}
                   />
                   {errors.originCountry && (
                     <p className="mt-1 text-xs text-red-500 font-medium">
@@ -826,11 +819,10 @@ const ProductDetailPage = () => {
                   name="description"
                   value={formData.description}
                   onChange={handleChange}
-                  className={`mt-1.5 w-full resize-none rounded-xl border bg-neutral-50 px-4 py-3 text-sm leading-relaxed text-neutral-700 outline-none focus:border-brand-primary/40 focus:bg-white focus:ring-2 focus:ring-brand-primary/10 ${
-                    errors.description
-                      ? "border-red-500 focus:ring-red-200"
-                      : "border-neutral-200"
-                  }`}
+                  className={`mt-1.5 w-full resize-none rounded-xl border bg-neutral-50 px-4 py-3 text-sm leading-relaxed text-neutral-700 outline-none focus:border-brand-primary/40 focus:bg-white focus:ring-2 focus:ring-brand-primary/10 ${errors.description
+                    ? "border-red-500 focus:ring-red-200"
+                    : "border-neutral-200"
+                    }`}
                 />
                 {errors.description && (
                   <p className="mt-1 text-xs text-red-500 font-medium">
@@ -876,11 +868,10 @@ const ProductDetailPage = () => {
                         onChange={(e) =>
                           handleAttributeChange(idx, "attrKey", e.target.value)
                         }
-                        className={`w-full rounded-xl border bg-neutral-50 px-4 py-2.5 text-sm text-neutral-700 outline-none focus:border-brand-primary/40 focus:bg-white focus:ring-2 focus:ring-brand-primary/10 ${
-                          errors[`attribute_${idx}_attrKey`]
-                            ? "border-red-500 focus:ring-red-200"
-                            : "border-neutral-200"
-                        }`}
+                        className={`w-full rounded-xl border bg-neutral-50 px-4 py-2.5 text-sm text-neutral-700 outline-none focus:border-brand-primary/40 focus:bg-white focus:ring-2 focus:ring-brand-primary/10 ${errors[`attribute_${idx}_attrKey`]
+                          ? "border-red-500 focus:ring-red-200"
+                          : "border-neutral-200"
+                          }`}
                       />
                       {errors[`attribute_${idx}_attrKey`] && (
                         <p className="mt-0.5 text-[11px] text-red-500 font-medium">
@@ -900,11 +891,10 @@ const ProductDetailPage = () => {
                             e.target.value,
                           )
                         }
-                        className={`w-full rounded-xl border bg-neutral-50 px-4 py-2.5 text-sm text-neutral-700 outline-none focus:border-brand-primary/40 focus:bg-white focus:ring-2 focus:ring-brand-primary/10 ${
-                          errors[`attribute_${idx}_attrValue`]
-                            ? "border-red-500 focus:ring-red-200"
-                            : "border-neutral-200"
-                        }`}
+                        className={`w-full rounded-xl border bg-neutral-50 px-4 py-2.5 text-sm text-neutral-700 outline-none focus:border-brand-primary/40 focus:bg-white focus:ring-2 focus:ring-brand-primary/10 ${errors[`attribute_${idx}_attrValue`]
+                          ? "border-red-500 focus:ring-red-200"
+                          : "border-neutral-200"
+                          }`}
                       />
                       {errors[`attribute_${idx}_attrValue`] && (
                         <p className="mt-0.5 text-[11px] text-red-500 font-medium">
@@ -969,25 +959,29 @@ const ProductDetailPage = () => {
           </div>
 
           <div className="flex items-center justify-center gap-4 pt-2 pb-4">
-            <button
-              type="button"
-              onClick={() => navigate("/seller/products")}
-              className="px-8 py-3 border border-neutral-300 rounded-lg bg-white shadow-sm text-sm font-bold text-neutral-600 transition-colors hover:text-neutral-800 hover:bg-neutral-50"
+            <div className="px-8 py-3 border border-neutral-300 rounded-lg bg-white shadow-sm text-sm font-bold text-neutral-600 transition-colors hover:text-neutral-800 hover:bg-neutral-50">
+              <button
+                type="button"
+                onClick={() => navigate("/seller/products")}>
+                Hủy
+              </button>
+            </div>
+            <div
+              className={`rounded-xl px-12 py-3 text-sm font-semibold text-white shadow-md transition-all ${isSubmitDisabled
+                ? "bg-neutral-300 cursor-not-allowed opacity-60"
+                : "bg-brand-primary hover:bg-brand-dark hover:shadow-lg active:scale-[0.98]"
+                }`}
             >
-              Hủy
-            </button>
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={isSubmitDisabled}
-              className={`rounded-xl px-12 py-3 text-sm font-semibold text-white shadow-md transition-all ${
-                isSubmitDisabled
-                  ? "bg-neutral-300 cursor-not-allowed opacity-60"
-                  : "bg-brand-primary hover:bg-brand-dark hover:shadow-lg active:scale-[0.98]"
-              }`}
-            >
-              {isEdit ? "Lưu thay đổi" : "Đăng sản phẩm"}
-            </button>
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={isSubmitDisabled}
+
+              >
+                {isEdit ? "Lưu thay đổi" : "Đăng sản phẩm"}
+              </button>
+            </div>
+
           </div>
         </div>
 
@@ -999,14 +993,18 @@ const ProductDetailPage = () => {
             </p>
             <div className="mt-3 overflow-hidden rounded-xl border border-neutral-100">
               <div className="relative">
-                <img
-                  src={
-                    (isEdit ? previewUrls[0] : images[0]?.previewUrl) ||
-                    "https://images.unsplash.com/photo-1551028719-00167b16eac5?w=400&h=400&fit=crop"
-                  }
-                  alt="Preview"
-                  className="h-72 w-full object-cover"
-                />
+                {(isEdit ? previewUrls[0] : images[0]?.previewUrl) ? (
+                  <img
+                    src={isEdit ? previewUrls[0] : images[0]?.previewUrl}
+                    alt="Preview"
+                    className="h-72 w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-72 w-full flex-col items-center justify-center bg-neutral-50 border border-neutral-100 text-neutral-400">
+                    <Image size={40} strokeWidth={1.5} />
+                    <span className="mt-2 text-xs">Chưa có hình ảnh sản phẩm</span>
+                  </div>
+                )}
                 {!formData.isActive && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/40">
                     <span className="rounded bg-black/70 px-3 py-1 text-sm font-bold text-white">

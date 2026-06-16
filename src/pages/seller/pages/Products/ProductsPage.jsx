@@ -91,6 +91,29 @@ const ProductsPage = () => {
   const products = data?.products || [];
   const pagination = data?.pagination || Pagination.empty();
 
+  const getPages = () => {
+    const total = pagination.totalPages;
+    if (total <= 5) {
+      return Array.from({ length: total }, (_, i) => i);
+    }
+    
+    let start = 0;
+    if (currentPage <= 1) {
+      start = 0;
+    } else if (currentPage >= total - 3) {
+      start = total - 3;
+    } else {
+      start = currentPage;
+    }
+    
+    const pages = [start, start + 1, start + 2];
+    if (start + 2 < total - 1) {
+      pages.push("...");
+      pages.push(total - 1);
+    }
+    return pages;
+  };
+
   const { mutateAsync: deleteProduct } = useDeleteProduct();
 
   const handleTabChange = (index) => {
@@ -245,12 +268,12 @@ const ProductsPage = () => {
                       >
                         <Pencil size={16} />
                       </button>
-                      <button
+                      {/* <button
                         onClick={() => handleDelete(p.id)}
                         className="flex h-8 w-8 items-center justify-center rounded-lg text-accent-red/60 transition-colors hover:bg-accent-red-light hover:text-accent-red"
                       >
                         <Trash2 size={16} />
-                      </button>
+                      </button> */}
                     </div>
                   </td>
                 </tr>
@@ -265,46 +288,69 @@ const ProductsPage = () => {
                 Hiển thị {pagination.startItem}-{pagination.endItem} của{" "}
                 {pagination.totalElements} sản phẩm
               </p>
-              <div className="flex items-center gap-2">
-                <button
-                  disabled={!pagination.hasPrevious}
-                  onClick={() => setCurrentPage((prev) => prev - 1)}
-                  className="flex h-9 w-9 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100 disabled:opacity-50 disabled:hover:bg-transparent"
-                >
-                  <ChevronLeft size={18} />
-                </button>
-                {pagination.getVisiblePages().map((n, idx) => {
-                  if (n === '...') {
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <button
+                    disabled={!pagination.hasPrevious}
+                    onClick={() => setCurrentPage((prev) => prev - 1)}
+                    className="flex h-9 w-9 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100 disabled:opacity-50 disabled:hover:bg-transparent"
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+                  {getPages().map((n, idx) => {
+                    if (n === '...') {
+                      return (
+                        <div
+                          key={`ellipsis-${idx}`}
+                          className="flex h-9 w-9 items-center justify-center text-sm font-semibold text-neutral-400 select-none cursor-default"
+                        >
+                          ...
+                        </div>
+                      );
+                    }
                     return (
                       <div
-                        key={`ellipsis-${idx}`}
-                        className="flex h-9 w-9 items-center justify-center text-sm font-semibold text-neutral-400 select-none cursor-default"
+                        key={n}
+                        onClick={() => setCurrentPage(n)}
+                        className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold transition-colors hover:bg-neutral-150 cursor-pointer ${
+                          currentPage === n
+                            ? "bg-accent-yellow shadow-lg text-gray-700 font-bold"
+                            : "text-neutral-500 hover:bg-neutral-100"
+                        }`}
                       >
-                        ...
+                        {n + 1}
                       </div>
                     );
-                  }
-                  return (
-                    <div
-                      key={n}
-                      onClick={() => setCurrentPage(n)}
-                      className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold transition-colors hover:bg-neutral-100 text-neutral-500 cursor-pointer ${
-                        currentPage === n
-                          ? "bg-accent-yellow shadow-lg text-gray-700 font-bold"
-                          : "bg-transparent"
-                      }`}
-                    >
-                      {n + 1}
-                    </div>
-                  );
-                })}
-                <button
-                  disabled={!pagination.hasNext}
-                  onClick={() => setCurrentPage((prev) => prev + 1)}
-                  className="flex h-9 w-9 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100 disabled:opacity-50 disabled:hover:bg-transparent"
-                >
-                  <ChevronRight size={18} />
-                </button>
+                  })}
+                  <button
+                    disabled={!pagination.hasNext}
+                    onClick={() => setCurrentPage((prev) => prev + 1)}
+                    className="flex h-9 w-9 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100 disabled:opacity-50 disabled:hover:bg-transparent"
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+                </div>
+
+                {/* Page Jump Input */}
+                <div className="flex items-center gap-2 border-l border-neutral-200 pl-4">
+                  <span className="text-sm text-neutral-400">Đi đến trang:</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={pagination.totalPages}
+                    placeholder={`1-${pagination.totalPages}`}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        const val = parseInt(e.target.value, 10);
+                        if (val >= 1 && val <= pagination.totalPages) {
+                          setCurrentPage(val - 1);
+                          e.target.value = "";
+                        }
+                      }
+                    }}
+                    className="w-16 rounded-lg border border-neutral-200 bg-white px-2 py-1.5 text-center text-sm outline-none transition-all focus:border-brand-primary/40 focus:ring-2 focus:ring-brand-primary/10 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                </div>
               </div>
             </div>
           )}
