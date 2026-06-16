@@ -37,24 +37,6 @@ export const useSellerOrderDetail = (id, options = {}) => {
   });
 };
 
-/* ── 3. Danh sach don hang thang hien tai ── */
-export const useSellerCurrentMonthOrders = (params = {}, options = {}) => {
-  return useQuery({
-    queryKey: sellerOrderKeys.currentMonth(params),
-    queryFn: async () => {
-      const res = await sellerOrderApi.getCurrentMonth(params);
-      const { data } = res.data;
-      return {
-        orders: Order.fromApiList(data.content),
-        pagination: Pagination.fromApi(data),
-      };
-    },
-    staleTime: 60 * 1000, // 1 minute
-    gcTime: 5 * 60 * 1000, // 5 minutes
-    ...options,
-  });
-};
-
 /* ── 4. Xac nhan don hang ── */
 export const useConfirmOrder = () => {
   const queryClient = useQueryClient();

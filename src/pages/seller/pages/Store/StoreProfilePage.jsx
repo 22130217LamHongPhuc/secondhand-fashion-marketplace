@@ -447,11 +447,6 @@ const StoreProfilePage = () => {
                   <h3 className="text-base font-bold text-neutral-800 truncate max-w-[70%]">
                     {name.trim() || "Tên cửa hàng"}
                   </h3>
-                  {!isRegistration && (
-                    <span className="rounded bg-brand-primary px-2 py-0.5 text-[9px] font-bold uppercase text-white shrink-0">
-                      Top Seller
-                    </span>
-                  )}
                 </div>
                 <p className="mt-1 flex items-center gap-1 text-[11px] text-neutral-400">
                   <Globe size={11} />
@@ -467,7 +462,7 @@ const StoreProfilePage = () => {
                       Sản phẩm
                     </p>
                     <p className="mt-0.5 text-lg font-bold text-neutral-800">
-                      {isRegistration ? "0" : "12"}
+                      0
                     </p>
                   </div>
                   <div className="border-x border-neutral-100 text-center">
@@ -475,7 +470,7 @@ const StoreProfilePage = () => {
                       Đánh giá
                     </p>
                     <p className="mt-0.5 text-lg font-bold text-neutral-800">
-                      {shop?.ratingAvg && shop.ratingAvg > 0 ? `${shop.ratingAvg}/5` : "5.0/5"}
+                      5.0/5
                     </p>
                   </div>
                   <div className="text-center">
@@ -483,7 +478,7 @@ const StoreProfilePage = () => {
                       Lượt đánh giá
                     </p>
                     <p className="mt-0.5 text-lg font-bold text-neutral-800">
-                      {shop?.totalReviews && shop.totalReviews > 0 ? shop.totalReviews : "0"}
+                      0
                     </p>
                   </div>
                 </div>
@@ -495,19 +490,27 @@ const StoreProfilePage = () => {
 
                 {/* Gallery */}
                 <div className="mt-3 grid grid-cols-2 gap-2">
-                  <div className="h-24 overflow-hidden rounded-xl bg-neutral-50">
-                    <img
-                      src={avatarPreview || "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=200&h=120&fit=crop"}
-                      alt=""
-                      className="h-full w-full object-cover"
-                    />
+                  <div className="h-24 overflow-hidden rounded-xl bg-neutral-50 flex items-center justify-center">
+                    {avatarPreview ? (
+                      <img
+                        src={avatarPreview}
+                        alt="Avatar Preview"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-[10px] text-neutral-400 font-medium">Chưa có avatar</span>
+                    )}
                   </div>
-                  <div className="h-24 overflow-hidden rounded-xl bg-neutral-50">
-                    <img
-                      src={bannerPreview || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200&h=120&fit=crop"}
-                      alt=""
-                      className="h-full w-full object-cover"
-                    />
+                  <div className="h-24 overflow-hidden rounded-xl bg-neutral-50 flex items-center justify-center">
+                    {bannerPreview ? (
+                      <img
+                        src={bannerPreview}
+                        alt="Banner Preview"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-[10px] text-neutral-400 font-medium">Chưa có ảnh bìa</span>
+                    )}
                   </div>
                 </div>
               </div>

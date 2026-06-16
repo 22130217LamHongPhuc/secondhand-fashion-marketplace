@@ -10,6 +10,7 @@ import {
   Star,
   Loader2,
   RefreshCw,
+  Image,
 } from "lucide-react";
 import {
   useSellerProductDetail,
@@ -992,14 +993,18 @@ const ProductDetailPage = () => {
             </p>
             <div className="mt-3 overflow-hidden rounded-xl border border-neutral-100">
               <div className="relative">
-                <img
-                  src={
-                    (isEdit ? previewUrls[0] : images[0]?.previewUrl) ||
-                    "https://images.unsplash.com/photo-1551028719-00167b16eac5?w=400&h=400&fit=crop"
-                  }
-                  alt="Preview"
-                  className="h-72 w-full object-cover"
-                />
+                {(isEdit ? previewUrls[0] : images[0]?.previewUrl) ? (
+                  <img
+                    src={isEdit ? previewUrls[0] : images[0]?.previewUrl}
+                    alt="Preview"
+                    className="h-72 w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-72 w-full flex-col items-center justify-center bg-neutral-50 border border-neutral-100 text-neutral-400">
+                    <Image size={40} strokeWidth={1.5} />
+                    <span className="mt-2 text-xs">Chưa có hình ảnh sản phẩm</span>
+                  </div>
+                )}
                 {!formData.isActive && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/40">
                     <span className="rounded bg-black/70 px-3 py-1 text-sm font-bold text-white">

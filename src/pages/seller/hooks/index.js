@@ -9,7 +9,6 @@ export {
 export {
   useSellerOrdersByStatus,
   useSellerOrderDetail,
-  useSellerCurrentMonthOrders,
   useConfirmOrder,
   useStartDelivery,
   useCompleteOrder,

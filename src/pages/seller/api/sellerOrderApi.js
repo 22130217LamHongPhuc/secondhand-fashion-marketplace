@@ -7,14 +7,6 @@ const BASE = "/api/seller/orders";
  * Maps to SellerOrderController endpoints.
  */
 const sellerOrderApi = {
-  /**
-   * 1. Lay danh sach don hang
-   * GET /api/seller/orders?lastId=0&page=0
-   */
-  getAll: (params = {}) => {
-    const { page = 0 } = params;
-    return axiosInstance.get(BASE, { params: { page } });
-  },
 
   /**
    * 2. Lay chi tiet don hang
@@ -26,11 +18,21 @@ const sellerOrderApi = {
 
   /**
    * 3. Lay danh sach don hang theo trang thai
-   * GET /api/seller/orders/status?status=PENDING&page=0
+   * GET /api/seller/orders?status=PENDING&page=0&orderCode=ABC
    */
   getByStatus: (params = {}) => {
-    const { status, page = 0 } = params;
-    return axiosInstance.get(`${BASE}/status`, { params: { status, page } });
+    const { status, orderCode, page = 0 } = params;
+    const queryParams = { page };
+    if ((!status || status === "ALL") && !orderCode) {
+      return axiosInstance.get(`${BASE}/all`, { params: queryParams });
+    }
+    if (status && status !== "ALL") {
+      queryParams.status = status;
+    }
+    if (orderCode) {
+      queryParams.orderCode = orderCode;
+    }
+    return axiosInstance.get(`${BASE}`, { params: queryParams });
   },
 
   /**

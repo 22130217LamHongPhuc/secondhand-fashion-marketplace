@@ -1,6 +1,9 @@
-import { Search, Bell } from "lucide-react";
+import { Search, Bell, User } from "lucide-react";
+import { useSellerShop } from "../../hooks";
 
 const Header = () => {
+  const { data: shop } = useSellerShop();
+
   return (
     <header className="flex items-center justify-between border-b border-neutral-200 bg-white/60 px-8 py-3 backdrop-blur-sm">
       {/* Search Bar */}
@@ -25,12 +28,16 @@ const Header = () => {
         </button>
 
         {/* User Avatar */}
-        <button className="h-9 w-9 overflow-hidden rounded-full bg-brand-light ring-2 ring-brand-primary/20 transition-all hover:ring-brand-primary/40">
-          <img
-            src="https://i.pravatar.cc/36?img=47"
-            alt="Avatar"
-            className="h-full w-full object-cover"
-          />
+        <button className="h-9 w-9 overflow-hidden rounded-full bg-brand-light ring-2 ring-brand-primary/20 transition-all hover:ring-brand-primary/40 flex items-center justify-center">
+          {shop?.avatarUrl ? (
+            <img
+              src={shop.avatarUrl}
+              alt="Avatar"
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <User size={18} className="text-neutral-500" />
+          )}
         </button>
       </div>
     </header>
