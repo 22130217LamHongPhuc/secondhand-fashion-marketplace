@@ -132,12 +132,29 @@
   background-color: white;
   border: 1px solid #ebdcb9;
   border-radius: 10px;
-  padding: 8px 12px;
+  padding: 8px 32px 8px 12px;
   font-size: 13px;
   font-weight: 600;
   color: #3e2723;
   cursor: pointer;
   outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%233e2723' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 11px;
+  transition: all 0.25s ease;
+}
+
+.filter-select-item:hover {
+  background-color: #faf8f2;
+  border-color: #c85a28;
+}
+
+.filter-select-item:focus {
+  border-color: #c85a28;
+  box-shadow: 0 0 0 3px rgba(200, 90, 40, 0.08);
 }
 
 .filter-date-input {
