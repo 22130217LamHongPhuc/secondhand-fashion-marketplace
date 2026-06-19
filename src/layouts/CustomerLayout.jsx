@@ -1,4 +1,4 @@
-import { Bell, ImageUp, Search, ShoppingCart } from "lucide-react";
+import { Bell, ImageUp, ReceiptText, Search, ShoppingCart } from "lucide-react";
 import { Outlet, useNavigate } from "react-router-dom";
 
 export default function CustomerLayout() {
@@ -35,12 +35,23 @@ export default function CustomerLayout() {
               Khám Phá
             </button>
 
-            <button type="button" className="hover:text-[#b84a25]">
+            <button
+              type="button"
+              onClick={() => navigate("/shops")}
+              className="hover:text-[#b84a25]"
+            >
               Cửa Hàng
             </button>
 
             <button type="button" className="hover:text-[#b84a25]">
               Xu Hướng
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate("/orders")}
+              className="hover:text-[#b84a25]"
+            >
+              Đơn hàng
             </button>
           </nav>
 
@@ -60,6 +71,15 @@ export default function CustomerLayout() {
 
             <button type="button">
               <Bell size={18} />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigate("/orders")}
+              aria-label="Lịch sử đơn hàng"
+              title="Lịch sử đơn hàng"
+            >
+              <ReceiptText size={18} />
             </button>
 
             <button type="button">

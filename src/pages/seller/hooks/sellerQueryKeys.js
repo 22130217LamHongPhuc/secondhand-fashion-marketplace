@@ -22,3 +22,8 @@ export const sellerStatisticKeys = {
   dashboard: (params) => [...sellerStatisticKeys.all, 'dashboard', params],
   analytics: (params) => [...sellerStatisticKeys.all, 'analytics', params],
 };
+
+export const sellerShopKeys = {
+  all:     ['seller', 'shop'],
+  profile: () => [...sellerShopKeys.all, 'profile'],
+};

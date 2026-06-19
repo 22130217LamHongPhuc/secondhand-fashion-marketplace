@@ -66,7 +66,6 @@ export const useUpdateProduct = () => {
       // Invalidate specific detail and all lists
       queryClient.invalidateQueries({ queryKey: sellerProductKeys.detail(variables.id) });
       queryClient.invalidateQueries({ queryKey: sellerProductKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: sellerProductKeys.statuses() });
     },
   });
 };

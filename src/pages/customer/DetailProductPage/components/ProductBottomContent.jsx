@@ -204,6 +204,7 @@ export function ProductBottomContent({
   loadingComments,
   onLoadComments,
   onWriteReview,
+  onWriteComment,
 }) {
   const [activeTab, setActiveTab] = useState("reviews");
 
@@ -225,6 +226,15 @@ export function ProductBottomContent({
     if (next === "comments") {
       await onLoadComments?.();
     }
+  };
+
+  const handleWrite = () => {
+    if (activeTab === "comments") {
+      onWriteComment?.();
+      return;
+    }
+
+    onWriteReview?.();
   };
 
   return (
@@ -257,10 +267,10 @@ export function ProductBottomContent({
 
             <button
               type="button"
-              onClick={onWriteReview}
+              onClick={handleWrite}
               className="flex shrink-0 items-center gap-1 rounded-full bg-[#fff3e8] px-4 py-2 text-sm font-extrabold text-[#b84a25] transition hover:bg-[#ffe2cd]"
             >
-              Viết đánh giá
+              {activeTab === "comments" ? "Viết bình luận" : "Viết đánh giá"}
               <Pencil size={14} />
             </button>
           </div>
