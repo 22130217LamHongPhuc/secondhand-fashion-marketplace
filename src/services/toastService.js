@@ -1,4 +1,22 @@
 import toast from 'react-hot-toast';
+import React from 'react';
+
+function createToastContent(message, colorClass, toastId) {
+  return React.createElement(
+    'div',
+    { className: 'flex items-center justify-between w-full gap-3' },
+    React.createElement('span', null, message),
+    React.createElement(
+      'button',
+      {
+        onClick: () => toast.dismiss(toastId),
+        className: `shrink-0 flex items-center justify-center h-5 w-5 rounded-full hover:bg-black/5 ${colorClass} font-black cursor-pointer transition-colors text-base leading-none`,
+        'aria-label': 'Đóng',
+      },
+      '×'
+    )
+  );
+}
 
 /**
  * ═══════════════════════════════════════════════════════════════
@@ -31,7 +49,7 @@ const globalConfig = {
 
 // ─── Styling phù hợp design system (Inter font, brand colors) ──
 const baseStyle = {
-  fontFamily: "'Inter', sans-serif",
+  fontFamily: "Arial, sans-serif",
   fontSize: '14px',
   fontWeight: 500,
   borderRadius: '12px',
@@ -47,10 +65,7 @@ const typeStyles = {
       color: '#166534',
       border: '1px solid #bbf7d0',
     },
-    iconTheme: {
-      primary: '#4caf50',
-      secondary: '#fff',
-    },
+    icon: null,
   },
   error: {
     style: {
@@ -59,13 +74,10 @@ const typeStyles = {
       color: '#991b1b',
       border: '1px solid #fecaca',
     },
-    iconTheme: {
-      primary: '#e53935',
-      secondary: '#fff',
-    },
+    icon: null,
   },
   // react-hot-toast không có toast.warning() / toast.info() native,
-  // nên ta dùng toast() + custom icon + style riêng.
+  // nên ta dùng toast() + style riêng.
   warning: {
     style: {
       ...baseStyle,
@@ -73,7 +85,7 @@ const typeStyles = {
       color: '#92400e',
       border: '1px solid #fde68a',
     },
-    icon: '⚠️',
+    icon: null,
   },
   info: {
     style: {
@@ -82,7 +94,7 @@ const typeStyles = {
       color: '#1e40af',
       border: '1px solid #bfdbfe',
     },
-    icon: 'ℹ️',
+    icon: null,
   },
 };
 
@@ -103,12 +115,15 @@ export const toastService = {
    * @param {Object} [options] - Override config (duration, position, style, ...)
    */
   success(message, options = {}) {
-    return toast.success(message, {
-      duration: globalConfig.duration,
-      position: globalConfig.position,
-      ...typeStyles.success,
-      ...options,
-    });
+    return toast.success(
+      (t) => createToastContent(message, 'text-[#166534]', t.id),
+      {
+        duration: globalConfig.duration,
+        position: globalConfig.position,
+        ...typeStyles.success,
+        ...options,
+      }
+    );
   },
 
   /**
@@ -117,12 +132,15 @@ export const toastService = {
    * @param {Object} [options] - Override config
    */
   error(message, options = {}) {
-    return toast.error(message, {
-      duration: globalConfig.duration,
-      position: globalConfig.position,
-      ...typeStyles.error,
-      ...options,
-    });
+    return toast.error(
+      (t) => createToastContent(message, 'text-[#991b1b]', t.id),
+      {
+        duration: globalConfig.duration,
+        position: globalConfig.position,
+        ...typeStyles.error,
+        ...options,
+      }
+    );
   },
 
   /**
@@ -131,12 +149,15 @@ export const toastService = {
    * @param {Object} [options] - Override config
    */
   warning(message, options = {}) {
-    return toast(message, {
-      duration: globalConfig.duration,
-      position: globalConfig.position,
-      ...typeStyles.warning,
-      ...options,
-    });
+    return toast(
+      (t) => createToastContent(message, 'text-[#92400e]', t.id),
+      {
+        duration: globalConfig.duration,
+        position: globalConfig.position,
+        ...typeStyles.warning,
+        ...options,
+      }
+    );
   },
 
   /**
@@ -145,12 +166,15 @@ export const toastService = {
    * @param {Object} [options] - Override config
    */
   info(message, options = {}) {
-    return toast(message, {
-      duration: globalConfig.duration,
-      position: globalConfig.position,
-      ...typeStyles.info,
-      ...options,
-    });
+    return toast(
+      (t) => createToastContent(message, 'text-[#1e40af]', t.id),
+      {
+        duration: globalConfig.duration,
+        position: globalConfig.position,
+        ...typeStyles.info,
+        ...options,
+      }
+    );
   },
 
   /**

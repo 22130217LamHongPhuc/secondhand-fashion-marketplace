@@ -10,6 +10,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { customerProductService } from "@/services/customerProduct";
 import WriteCommentSheet from "./components/WriteCommentSheet";
+import { useSseSubscription } from "@/hooks";
+import { toastService } from "@/services/toastService";
 
 function formatVnd(value) {
   if (value === null || value === undefined || value === "") return "";
@@ -62,6 +64,15 @@ function mapConditionLabel(condition) {
   }
 }
 
+const getSseClientId = () => {
+  let clientId = sessionStorage.getItem("sse_client_id");
+  if (!clientId) {
+    clientId = "client-" + Math.random().toString(36).substring(2, 11);
+    sessionStorage.setItem("sse_client_id", clientId);
+  }
+  return clientId;
+};
+
 export default function ProductDetailPage() {
   const { id } = useParams();
 
@@ -73,6 +84,25 @@ export default function ProductDetailPage() {
   const [submittingReview, setSubmittingReview] = useState(false);
   const [commentModalOpen, setCommentModalOpen] = useState(false);
   const [submittingComment, setSubmittingComment] = useState(false);
+
+  const sseClientId = useMemo(() => getSseClientId(), []);
+
+  useSseSubscription("product-stock", sseClientId, {
+    "stock-updated": (data) => {
+      if (data && Number(data.productId) === Number(id)) {
+        console.log("[SSE Product Detail] Received stock update for product", id, data);
+        setProduct((prevProduct) => {
+          if (!prevProduct) return null;
+          return {
+            ...prevProduct,
+            stockQuantity: data.stockQuantity,
+            isActive: data.isActive,
+          };
+        });
+        toastService.info("Số lượng sản phẩm trong kho vừa được cập nhật (ai đó vừa mua hàng)!");
+      }
+    }
+  });
 
   useEffect(() => {
     let isMounted = true;
@@ -141,6 +171,12 @@ export default function ProductDetailPage() {
     const conditionLabel = mapConditionLabel(product.condition);
 
     return {
+      id: product?.id,
+      stockQuantity: product?.stockQuantity,
+      imageUrl: product?.thumbnailUrl,
+      images: product?.images,
+      basePrice: product?.basePrice,
+      salePrice: product?.salePrice,
       category: product?.category?.name ?? "",
       condition: conditionLabel ? `Tình trạng: ${conditionLabel}` : "",
       title: product?.name ?? "",

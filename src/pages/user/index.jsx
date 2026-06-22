@@ -1,4 +1,4 @@
-import { Login, Profile, Register } from "./pages";
+import { Login, Register } from "./pages";
 
 export const userRoutes = [
   {
@@ -8,9 +8,5 @@ export const userRoutes = [
   {
     path: "/register",
     element: <Register />,
-  },
-  {
-    path: "/profile",
-    element: <Profile />,
   },
 ];

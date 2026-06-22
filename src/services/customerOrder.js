@@ -89,9 +89,11 @@ function normalizeOrderDetail(order) {
 }
 
 export const customerOrderService = {
-  getHistory: async ({ customerId, status = null, page = 0, size = 10 }) => {
+  getHistory: async ({ customerId = null, status = null, page = 0, size = 10 } = {}) => {
     const params = new URLSearchParams();
-    params.set("customerId", String(customerId));
+    if (customerId) {
+      params.set("customerId", String(customerId));
+    }
     params.set("page", String(page));
     params.set("size", String(size));
 
@@ -99,8 +101,13 @@ export const customerOrderService = {
       params.set("status", String(status));
     }
 
-    const response = await http(`/api/customer/orders?${params.toString()}`);
+    const url = `/api/customer/orders?${params.toString()}`;
+    console.log("[customerOrderService.getHistory] Calling URL:", url, "| customerId:", customerId);
+
+    const response = await http(url);
+    console.log("[customerOrderService.getHistory] Raw response:", response);
     const data = unwrapData(response) || {};
+    console.log("[customerOrderService.getHistory] Unwrapped data:", data);
     const orders = Array.isArray(data.orders) ? data.orders : [];
 
     return {
@@ -114,9 +121,11 @@ export const customerOrderService = {
     };
   },
 
-  getDetail: async ({ customerId, orderId }) => {
+  getDetail: async ({ customerId = null, orderId }) => {
     const params = new URLSearchParams();
-    params.set("customerId", String(customerId));
+    if (customerId) {
+      params.set("customerId", String(customerId));
+    }
 
     const response = await http(
       `/api/customer/orders/${orderId}?${params.toString()}`,
@@ -126,9 +135,11 @@ export const customerOrderService = {
     return normalizeOrderDetail(data);
   },
 
-  cancel: async ({ customerId, orderId, reason = "" }) => {
+  cancel: async ({ customerId = null, orderId, reason = "" }) => {
     const params = new URLSearchParams();
-    params.set("customerId", String(customerId));
+    if (customerId) {
+      params.set("customerId", String(customerId));
+    }
 
     const response = await http(
       `/api/customer/orders/${orderId}/cancel?${params.toString()}`,
@@ -140,5 +151,20 @@ export const customerOrderService = {
     const data = unwrapData(response);
 
     return normalizeOrderDetail(data);
+  },
+
+  checkout: async ({ customerId, shippingAddressId, paymentMethod, items }) => {
+    const response = await http(`/api/customer/orders/checkout`, {
+      method: "POST",
+      body: JSON.stringify({
+        customerId,
+        shippingAddressId,
+        paymentMethod,
+        items,
+      }),
+    });
+    const data = unwrapData(response);
+
+    return Array.isArray(data) ? data.map(normalizeOrderDetail) : data;
   },
 };

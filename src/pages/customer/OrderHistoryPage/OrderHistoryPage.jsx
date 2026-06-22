@@ -3,12 +3,12 @@ import { customerOrderService } from "@/services/customerOrder";
 import { Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { toastService } from "@/services/toastService";
 import CancelOrderModal from "./components/CancelOrderModal";
 import EmptyOrders from "./components/EmptyOrders";
 import OrderCard from "./components/OrderCard";
 import OrderSkeleton from "./components/OrderSkeleton";
 import { ORDER_STATUS_OPTIONS } from "./constants";
-import { getStoredCustomerId } from "./utils";
 
 function toListOrderFromDetail(order) {
   const firstItem = order.items?.[0];
@@ -35,15 +35,37 @@ function toListOrderFromDetail(order) {
 
 export default function OrderHistoryPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const status = searchParams.get("status") || "";
-  const pageRaw = Number(searchParams.get("page"));
-  const sizeRaw = Number(searchParams.get("size"));
-  const customerIdRaw = Number(searchParams.get("customerId"));
+  const [status, setStatus] = useState("");
+  const [page, setPage] = useState(0);
+  const [size, setSize] = useState(10);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => Boolean(localStorage.getItem("token")));
 
-  const page = Number.isFinite(pageRaw) && pageRaw >= 0 ? pageRaw : 0;
-  const size = Number.isFinite(sizeRaw) && sizeRaw > 0 ? sizeRaw : 10;
-  const customerId = 501 
+  // Handle VNPay payment status redirects
+  useEffect(() => {
+    const paymentStatus = searchParams.get("paymentStatus");
+    if (paymentStatus) {
+      if (paymentStatus === "success") {
+        toastService.success("Thanh toán đơn hàng qua VNPay thành công!");
+      } else if (paymentStatus === "failed" || paymentStatus === "error") {
+        const msg = searchParams.get("message") || "";
+        const code = searchParams.get("responseCode") || "";
+        toastService.error(`Thanh toán thất bại! ${msg ? `Lỗi: ${msg}` : ""}${code ? ` (Mã lỗi: ${code})` : ""}`);
+      }
+      // Clean up payment query parameters
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("paymentStatus");
+        next.delete("message");
+        next.delete("responseCode");
+        return next;
+      }, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    setIsLoggedIn(Boolean(token));
+  }, []);
 
   const [orders, setOrders] = useState([]);
   const [totalElements, setTotalElements] = useState(0);
@@ -60,32 +82,21 @@ export default function OrderHistoryPage() {
       : "";
   }, [status]);
 
-  const updateQueryParams = (updates) => {
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-
-      Object.entries(updates).forEach(([key, value]) => {
-        if (value === null || value === undefined || value === "") {
-          next.delete(key);
-        } else {
-          next.set(key, String(value));
-        }
-      });
-
-      return next;
-    });
-  };
-
   useEffect(() => {
     let isMounted = true;
 
     const loadOrders = async () => {
+      if (!isLoggedIn) {
+        setError("Vui lòng đăng nhập để xem lịch sử đơn hàng.");
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       setError("");
 
       try {
         const result = await customerOrderService.getHistory({
-          customerId,
           status: activeStatus || null,
           page,
           size,
@@ -114,10 +125,11 @@ export default function OrderHistoryPage() {
     return () => {
       isMounted = false;
     };
-  }, [activeStatus, customerId, page, size]);
+  }, [activeStatus, isLoggedIn, page, size]);
 
   const handleStatusChange = (nextStatus) => {
-    updateQueryParams({ status: nextStatus || null, page: 0 });
+    setStatus(nextStatus || "");
+    setPage(0);
   };
 
   const handleCancelOrder = async (reason) => {
@@ -128,7 +140,6 @@ export default function OrderHistoryPage() {
 
     try {
       const updatedOrder = await customerOrderService.cancel({
-        customerId,
         orderId: cancelTarget.id,
         reason,
       });
@@ -224,9 +235,10 @@ export default function OrderHistoryPage() {
           </p>
           <select
             value={size}
-            onChange={(event) =>
-              updateQueryParams({ size: Number(event.target.value), page: 0 })
-            }
+            onChange={(event) => {
+              setSize(Number(event.target.value));
+              setPage(0);
+            }}
             className="rounded-xl border border-[#e7dfbd] bg-white px-3 py-2 text-sm font-bold text-[#3d3a2c] outline-none focus:border-[#b84a25]"
           >
             <option value={5}>5 / trang</option>
@@ -265,7 +277,7 @@ export default function OrderHistoryPage() {
         <Pagination
           page={page}
           totalPages={totalPages}
-          onPageChange={(nextPage) => updateQueryParams({ page: nextPage })}
+          onPageChange={(nextPage) => setPage(nextPage)}
         />
       </section>
 
