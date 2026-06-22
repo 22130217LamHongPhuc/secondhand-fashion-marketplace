@@ -8,11 +8,8 @@ import OrderDetailSkeleton from "./components/OrderDetailSkeleton";
 import OrderDetailSummary from "./components/OrderDetailSummary";
 import OrderShippingAddress from "./components/OrderShippingAddress";
 import OrderTimeline from "./components/OrderTimeline";
-import { getStoredCustomerId } from "./utils";
-
 export default function OrderDetailPage() {
   const { orderId } = useParams();
-  const customerId = 501;
 
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -30,7 +27,6 @@ export default function OrderDetailPage() {
 
       try {
         const result = await customerOrderService.getDetail({
-          customerId,
           orderId,
         });
 
@@ -53,7 +49,7 @@ export default function OrderDetailPage() {
     return () => {
       isMounted = false;
     };
-  }, [customerId, orderId]);
+  }, [orderId]);
 
   const handleCancelOrder = async (reason) => {
     if (!order || order.status !== "PENDING") return;
@@ -63,7 +59,6 @@ export default function OrderDetailPage() {
 
     try {
       const updatedOrder = await customerOrderService.cancel({
-        customerId,
         orderId: order.id,
         reason,
       });

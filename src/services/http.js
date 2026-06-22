@@ -9,9 +9,14 @@ export async function http(path, options = {}) {
   const isFormData =
     typeof FormData !== "undefined" && options.body instanceof FormData;
 
+  const token = localStorage.getItem("token");
   const headers = {
     ...(options.headers ?? {}),
   };
+
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
 
   if (!isFormData && !hasHeader(headers, "Content-Type")) {
     headers["Content-Type"] = "application/json";
@@ -24,7 +29,16 @@ export async function http(path, options = {}) {
 
   if (!response.ok) {
     const text = await response.text().catch(() => "");
-    throw new Error(`HTTP ${response.status}: ${text || response.statusText}`);
+    let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+    try {
+      const parsed = JSON.parse(text);
+      if (parsed && typeof parsed === "object" && parsed.message) {
+        errorMessage = parsed.message;
+      }
+    } catch (e) {
+      if (text) errorMessage = text;
+    }
+    throw new Error(errorMessage);
   }
 
   const contentType = response.headers.get("content-type") || "";
