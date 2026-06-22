@@ -116,7 +116,7 @@ export function OrderManagement() {
           setLoading(true);
           setDetailError(null);
           const numericId = parseInt(orderId, 10);
-          
+
           const fullOrder = await orderService.getById(numericId);
           if (fullOrder) {
             setSelectedOrder({
@@ -152,7 +152,7 @@ export function OrderManagement() {
       setLoading(true);
       const filters = statusFilter !== "all" ? { status: statusFilter } : {};
       const response = await orderService.getAll(page, 10, filters).catch(() => null);
-      
+
       const rawData = response?.data || response || {};
       const apiOrders = rawData.data || rawData.content || rawData.items || (Array.isArray(rawData) ? rawData : []);
       const fallbackOrders = page === 1 && statusFilter === "all" && apiOrders.length === 0 ? demoOrders : [];
@@ -181,6 +181,9 @@ export function OrderManagement() {
     try {
       await orderService.updateStatus(orderId, newStatus);
       alert("Cập nhật trạng thái đơn hàng thành công!");
+      if (selectedOrder && selectedOrder.id === orderId) {
+        setSelectedOrder(prev => prev ? { ...prev, status: newStatus.toLowerCase() } : null);
+      }
       loadOrders();
     } catch (err) {
       alert("Lỗi: " + err.message);
@@ -193,6 +196,9 @@ export function OrderManagement() {
       try {
         await orderService.cancel(orderId, reason);
         alert("Hủy đơn hàng thành công!");
+        if (selectedOrder && selectedOrder.id === orderId) {
+          setSelectedOrder(prev => prev ? { ...prev, status: "cancelled" } : null);
+        }
         loadOrders();
       } catch (err) {
         alert("Lỗi: " + err.message);
@@ -376,7 +382,7 @@ export function OrderManagement() {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <button className="modal-close-btn" onClick={() => setShowDetailModal(false)} title="Đóng">
               <svg xmlns="http://www.w3.org/2000/svg" height="22" viewBox="0 -960 960 960" width="22" fill="currentColor">
-                <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/>
+                <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z" />
               </svg>
             </button>
             <h2>Chi tiết đơn hàng #{selectedOrder.id}</h2>
@@ -561,7 +567,7 @@ export function OrderManagement() {
                           title="Xem chi tiết"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor">
-                            <path d="M480-320q75 0 127.5-52.5T660-500q0-75-52.5-127.5T480-680q-75 0-127.5 52.5T300-500q0 75 52.5 127.5T480-320Zm0-72q-45 0-76.5-31.5T372-500q0-45 31.5-76.5T480-608q45 0 76.5 31.5T588-500q0 45-31.5 76.5T480-392Zm0 192q-146 0-266-81.5T40-500q54-137 174-218.5T480-800q146 0 266 81.5T920-500q-54 137-174 218.5T480-200Zm0-300Zm0 220q113 0 207.5-59.5T832-500q-50-101-144.5-160.5T480-720q-113 0-207.5 59.5T128-500q50 101 144.5 160.5T480-280Z"/>
+                            <path d="M480-320q75 0 127.5-52.5T660-500q0-75-52.5-127.5T480-680q-75 0-127.5 52.5T300-500q0 75 52.5 127.5T480-320Zm0-72q-45 0-76.5-31.5T372-500q0-45 31.5-76.5T480-608q45 0 76.5 31.5T588-500q0 45-31.5 76.5T480-392Zm0 192q-146 0-266-81.5T40-500q54-137 174-218.5T480-800q146 0 266 81.5T920-500q-54 137-174 218.5T480-200Zm0-300Zm0 220q113 0 207.5-59.5T832-500q-50-101-144.5-160.5T480-720q-113 0-207.5 59.5T128-500q50 101 144.5 160.5T480-280Z" />
                           </svg>
                         </button>
                         {order.status !== "cancelled" && order.status !== "done" && (
@@ -571,7 +577,7 @@ export function OrderManagement() {
                             title="Hủy đơn hàng"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 -960 960 960" width="20" fill="currentColor">
-                              <path d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z"/>
+                              <path d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z" />
                             </svg>
                           </button>
                         )}

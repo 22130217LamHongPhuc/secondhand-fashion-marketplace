@@ -27,6 +27,62 @@ export function OrderDetailView({ order, onBack, onUpdateStatus, onCancelOrder }
 
   // Dynamic timelines based on current status
   const getTimeline = () => {
+    const formatLogTime = (dateStr) => {
+      if (!dateStr) return "";
+      const d = new Date(dateStr);
+      const today = new Date();
+      const isToday = d.getDate() === today.getDate() &&
+                      d.getMonth() === today.getMonth() &&
+                      d.getFullYear() === today.getFullYear();
+      
+      const timeStr = d.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+      if (isToday) {
+        return `Hôm nay, ${timeStr}`;
+      }
+      return `${d.toLocaleDateString("vi-VN")}, ${timeStr}`;
+    };
+
+    if (order.statusLogs && order.statusLogs.length > 0) {
+      // Sort status logs descending by createdAt
+      const sortedLogs = [...order.statusLogs].sort(
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+      );
+
+      return sortedLogs.map((log, idx) => {
+        let title = "Cập nhật trạng thái";
+        const st = (log.status || "pending").toLowerCase();
+        switch (st) {
+          case "pending":
+            title = "Khách đặt hàng";
+            break;
+          case "confirmed":
+            title = "Đã xác nhận";
+            break;
+          case "shipping":
+          case "shipped":
+            title = "Đang giao hàng";
+            break;
+          case "done":
+          case "delivered":
+            title = "Hoàn thành";
+            break;
+          case "cancelled":
+            title = "Đã hủy đơn";
+            break;
+          default:
+            title = log.status;
+        }
+
+        return {
+          title,
+          time: formatLogTime(log.createdAt),
+          active: true,
+          current: idx === 0,
+          danger: st === "cancelled"
+        };
+      });
+    }
+
     const s = (order.status || "pending").toLowerCase();
     const createdTime = order.createdAt
       ? new Date(order.createdAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })
@@ -41,30 +97,30 @@ export function OrderDetailView({ order, onBack, onUpdateStatus, onCancelOrder }
 
     if (s === "pending") {
       return [
-        { title: "Chờ xác nhận", time: "Hôm nay, 14:30", active: true, current: true },
+        { title: "Chờ xác nhận", time: `${createdDate}, ${createdTime}`, active: true, current: true },
         ...baseEvents
       ];
     } else if (s === "confirmed") {
       return [
-        { title: "Đã xác nhận", time: "Hôm nay, 15:00", active: true, current: true },
+        { title: "Đã xác nhận", time: `${createdDate}, ${createdTime}`, active: true, current: true },
         ...baseEvents
       ];
     } else if (s === "shipping" || s === "shipped") {
       return [
-        { title: "Đang giao hàng", time: "Hôm nay, 16:30", active: true, current: true },
-        { title: "Đã xác nhận", time: "Hôm nay, 15:00", active: true },
+        { title: "Đang giao hàng", time: `${createdDate}, ${createdTime}`, active: true, current: true },
+        { title: "Đã xác nhận", time: `${createdDate}, ${createdTime}`, active: true },
         ...baseEvents
       ];
     } else if (s === "done" || s === "delivered") {
       return [
-        { title: "Hoàn thành", time: "Hôm nay, 18:00", active: true, current: true },
-        { title: "Đang giao hàng", time: "Hôm nay, 16:30", active: true },
-        { title: "Đã xác nhận", time: "Hôm nay, 15:00", active: true },
+        { title: "Hoàn thành", time: `${createdDate}, ${createdTime}`, active: true, current: true },
+        { title: "Đang giao hàng", time: `${createdDate}, ${createdTime}`, active: true },
+        { title: "Đã xác nhận", time: `${createdDate}, ${createdTime}`, active: true },
         ...baseEvents
       ];
     } else if (s === "cancelled") {
       return [
-        { title: "Đã hủy đơn", time: "Hôm nay, 15:00", active: true, current: true, danger: true },
+        { title: "Đã hủy đơn", time: `${createdDate}, ${createdTime}`, active: true, current: true, danger: true },
         ...baseEvents
       ];
     }
@@ -121,8 +177,7 @@ export function OrderDetailView({ order, onBack, onUpdateStatus, onCancelOrder }
           </span>
         </div>
         <div className="banner-right">
-          {((order.status || "pending").toLowerCase() === "pending" ||
-            (order.status || "pending").toLowerCase() === "confirmed") && (
+          {(order.status || "pending").toLowerCase() === "pending" && (
             <>
               <button
                 className="action-btn-secondary"
@@ -163,6 +218,54 @@ export function OrderDetailView({ order, onBack, onUpdateStatus, onCancelOrder }
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
                 <span>Xác nhận đơn</span>
+              </button>
+            </>
+          )}
+
+          {(order.status || "pending").toLowerCase() === "confirmed" && (
+            <>
+              <button
+                className="action-btn-secondary"
+                onClick={() => onCancelOrder(order.id)}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="15" y1="9" x2="9" y2="15" />
+                  <line x1="9" y1="9" x2="15" y2="15" />
+                </svg>
+                <span>Hủy đơn</span>
+              </button>
+              <button
+                className="action-btn-primary"
+                onClick={() => onUpdateStatus(order.id, "shipping")}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect x="1" y="3" width="15" height="13" />
+                  <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
+                  <circle cx="5.5" cy="18.5" r="2.5" />
+                  <circle cx="18.5" cy="18.5" r="2.5" />
+                </svg>
+                <span>Giao hàng</span>
               </button>
             </>
           )}

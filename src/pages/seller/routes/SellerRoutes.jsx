@@ -5,6 +5,7 @@ import ProductDetailPage from '../pages/Products/ProductDetailPage';
 import OrdersPage from '../pages/Orders/OrdersPage';
 import AnalyticsPage from '../pages/Analytics/AnalyticsPage';
 import StoreProfilePage from '../pages/Store/StoreProfilePage';
+import PromotionsPage from '../pages/Promotions/PromotionsPage';
 import SellerLayout from '../layout/SellerLayout';
 import OrderDetailPage from '../pages/Orders/OrderDetailPage';
 
@@ -20,10 +21,12 @@ const SellerRoutes = () => {
         <Route path="orders" element={<OrdersPage />} />
         <Route path="orders/:id" element={<OrderDetailPage />} />
         <Route path="analytics" element={<AnalyticsPage />} />
+        <Route path="promotions" element={<PromotionsPage />} />
         <Route path="store-profile" element={<StoreProfilePage />} />
       </Route>
     </Routes>
   );
 };
+
 
 export default SellerRoutes;

@@ -7,6 +7,8 @@ import {
   ComplaintManagement,
   CategoryManagement,
   ShopManagement,
+  CouponManagement,
+  CampaignManagement,
 } from "./pages";
 
 export { AdminLayout };
@@ -76,4 +78,21 @@ export const adminRoutes = [
       </AdminLayout>
     ),
   },
+  {
+    path: "/admin/coupons",
+    element: (
+      <AdminLayout>
+        <CouponManagement />
+      </AdminLayout>
+    ),
+  },
+  {
+    path: "/admin/campaigns",
+    element: (
+      <AdminLayout>
+        <CampaignManagement />
+      </AdminLayout>
+    ),
+  },
 ];
+

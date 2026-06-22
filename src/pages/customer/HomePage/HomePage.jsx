@@ -3,6 +3,7 @@ import CategoryList from "./components/CategoryList";
 import DealSection from "./components/DealSection";
 import NewArrivalSection from "./components/NewArrivalSection";
 import FeaturedShopSection from "./components/FeaturedShopSection";
+import PromotionsSection from "./components/PromotionsSection";
 import { useEffect, useState } from "react";
 import { customerHomeService } from "@/services/customerHome";
 
@@ -11,18 +12,28 @@ export default function HomePage() {
   const [hotDeals, setHotDeals] = useState([]);
   const [newArrivals, setNewArrivals] = useState([]);
   const [featuredShops, setFeaturedShops] = useState([]);
+  const [campaigns, setCampaigns] = useState([]);
+  const [coupons, setCoupons] = useState([]);
 
   useEffect(() => {
     let isMounted = true;
 
     const load = async () => {
-      const [categoriesResult, hotDealsResult, newArrivalsResult, shopsResult] =
-        await Promise.allSettled([
-          customerHomeService.getCategories(),
-          customerHomeService.getHotDeals(),
-          customerHomeService.getNewArrivals(),
-          customerHomeService.getFeaturedShopsWeekly(),
-        ]);
+      const [
+        categoriesResult,
+        hotDealsResult,
+        newArrivalsResult,
+        shopsResult,
+        campaignsResult,
+        couponsResult,
+      ] = await Promise.allSettled([
+        customerHomeService.getCategories(),
+        customerHomeService.getHotDeals(),
+        customerHomeService.getNewArrivals(),
+        customerHomeService.getFeaturedShopsWeekly(),
+        customerHomeService.getCampaigns(),
+        customerHomeService.getCoupons(),
+      ]);
 
       if (!isMounted) return;
 
@@ -53,6 +64,20 @@ export default function HomePage() {
         console.error("Failed to load featured shops", shopsResult.reason);
         setFeaturedShops([]);
       }
+
+      if (campaignsResult.status === "fulfilled") {
+        setCampaigns(campaignsResult.value ?? []);
+      } else {
+        console.error("Failed to load campaigns", campaignsResult.reason);
+        setCampaigns([]);
+      }
+
+      if (couponsResult.status === "fulfilled") {
+        setCoupons(couponsResult.value ?? []);
+      } else {
+        console.error("Failed to load coupons", couponsResult.reason);
+        setCoupons([]);
+      }
     };
 
     load();
@@ -65,6 +90,8 @@ export default function HomePage() {
     <main className="min-h-screen bg-[#fbfae6] px-5 py-5 text-[#3f392f] md:px-10">
       <div className="mx-auto max-w-7xl">
         <HeroBanner />
+
+        <PromotionsSection campaigns={campaigns} coupons={coupons} />
 
         <CategoryList categories={categories} />
 
