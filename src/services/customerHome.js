@@ -150,4 +150,14 @@ export const customerHomeService = {
 
     return data.map(mapApiShopToCard);
   },
+
+  getCoupons: async () => {
+    const response = await http("/api/promotions/coupons/available");
+    return unwrapData(response) ?? [];
+  },
+
+  getCampaigns: async () => {
+    const response = await http("/api/promotions/campaigns/active");
+    return unwrapData(response) ?? [];
+  },
 };
