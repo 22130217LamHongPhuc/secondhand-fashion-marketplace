@@ -312,31 +312,31 @@ export function Profile() {
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
       {/* Header section (matching OrderHistoryPage) */}
-      <section className="rounded-3xl border border-[#e7dfbd] bg-[#fffaf0] p-6 shadow-sm">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+      <section className="rounded-2xl border border-[#e7dfbd] bg-[#fffaf0] p-5 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#b84a25]">
+            <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#b84a25]">
               Tài khoản của tôi
             </p>
-            <h1 className="mt-2 text-3xl font-black text-[#3d3a2c]">
+            <h1 className="mt-1 text-2xl font-black text-[#3d3a2c]">
               Hồ sơ cá nhân
             </h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#766f60]">
+            <p className="mt-1 max-w-2xl text-xs leading-5 text-[#766f60]">
               Cập nhật thông tin cá nhân, hình ảnh đại diện và theo dõi hoạt động mua hàng của bạn.
             </p>
           </div>
 
-          <div className="rounded-2xl bg-white px-5 py-4 shadow-sm flex items-center gap-4 border border-[#e7dfbd]">
-            <div className="h-12 w-12 rounded-full border-2 border-[#b84a25] bg-[#f6f4dd] overflow-hidden flex items-center justify-center font-bold text-[#b84a25] text-lg">
+          <div className="rounded-xl bg-white px-4 py-2.5 shadow-sm flex items-center gap-3 border border-[#e7dfbd]/60">
+            <div className="h-10 w-10 rounded-full border-2 border-[#b84a25] bg-[#f6f4dd] overflow-hidden flex items-center justify-center font-bold text-[#b84a25] text-base shrink-0">
               {profile?.avatarUrl ? (
                 <img src={profile.avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
               ) : (
-                <span className="text-sm font-bold">{getInitials(profile?.fullName)}</span>
+                <span className="text-xs font-bold">{getInitials(profile?.fullName)}</span>
               )}
             </div>
             <div>
-              <p className="text-sm font-black text-[#3d3a2c] leading-tight">{profile?.fullName}</p>
-              <p className="text-xs text-[#9a907a] mt-0.5">{profile?.email}</p>
+              <p className="text-xs font-black text-[#3d3a2c] leading-tight">{profile?.fullName}</p>
+              <p className="text-[10px] text-[#9a907a] mt-0.5">{profile?.email}</p>
             </div>
           </div>
         </div>

@@ -1,10 +1,74 @@
 import { useState, useEffect } from "react";
-import { MapPin, CreditCard, Wallet, ShoppingBag, Check, Home, ShieldCheck, Truck, RotateCcw, ArrowLeft } from "lucide-react";
+import { MapPin, CreditCard, Wallet, ShoppingBag, Check, Home, ShieldCheck, Truck, RotateCcw, ArrowLeft, Loader2 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cartService } from "@/services/cartService";
 import { customerOrderService } from "@/services/customerOrder";
 import { userService } from "@/services/user";
+import { customerShopService } from "@/services/customerShop";
 import { toastService } from "@/services/toastService";
+import { env } from "@/config/env";
+
+const ghnFetch = async (path, options = {}) => {
+  const response = await fetch(`${env.ghnBaseUrl}${path}`, {
+    ...options,
+    headers: {
+      Token: env.ghnToken,
+      "Content-Type": "application/json",
+      ...(options.headers || {}),
+    },
+  });
+
+  const payload = await response.json();
+
+  if (!response.ok || payload.code !== 200) {
+    throw new Error(payload.message || "GHN API error");
+  }
+
+  return payload.data;
+};
+
+let effectiveGhnShopIdPromise;
+
+const getEffectiveGhnShopId = async () => {
+  if (!effectiveGhnShopIdPromise) {
+    effectiveGhnShopIdPromise = ghnFetch("/v2/shop/all", {
+      method: "POST",
+      body: JSON.stringify({
+        offset: 0,
+        limit: 50,
+        client_phone: "",
+      }),
+    }).then((data) => {
+      const shops = data?.shops || [];
+      const configuredShop = shops.find(
+        (shop) => String(shop._id) === String(env.ghnShopId),
+      );
+
+      if (configuredShop) {
+        return String(configuredShop._id);
+      }
+
+      const firstActiveShop = shops.find((shop) => shop.status === 1) || shops[0];
+
+      if (!firstActiveShop?._id) {
+        throw new Error("GHN token không có shop/store hợp lệ.");
+      }
+
+      console.warn(
+        "VITE_GHN_SHOP_ID không nằm trong danh sách shop của token. Tạm dùng GHN shop đầu tiên.",
+        {
+          configuredShopId: env.ghnShopId,
+          effectiveShopId: firstActiveShop._id,
+          shops,
+        },
+      );
+
+      return String(firstActiveShop._id);
+    });
+  }
+
+  return effectiveGhnShopIdPromise;
+};
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
@@ -16,6 +80,11 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState("COD");
   const [walletBalance, setWalletBalance] = useState(0);
   const [loading, setLoading] = useState(false);
+
+  // GHN Address & Dynamic Shipping Fee States
+  const [shippingFee, setShippingFee] = useState(0);
+  const [calculatingShip, setCalculatingShip] = useState(false);
+  const [shopAddresses, setShopAddresses] = useState({});
 
   // Initialize checkout items based on state, or fallback to full cart, or redirect
   useEffect(() => {
@@ -83,6 +152,163 @@ export default function CheckoutPage() {
     }
   };
 
+  // Group items by shop
+  const groupedItems = itemsToBuy.reduce((groups, item) => {
+    const shopId = item.shopId || "unknown";
+    const shopName = item.shopName || "Tiệm Cũ";
+    if (!groups[shopId]) {
+      groups[shopId] = {
+        shopName,
+        items: []
+      };
+    }
+    groups[shopId].items.push(item);
+    return groups;
+  }, {});
+
+  const shopsCount = Object.keys(groupedItems).length;
+
+  // Load shop addresses (province_id, district_id, ward_code) for shipping calculation
+  useEffect(() => {
+    if (itemsToBuy.length === 0) return;
+
+    const fetchShopAddresses = async () => {
+      const uniqueShopIds = [...new Set(itemsToBuy.map(item => item.shopId).filter(Boolean))];
+      const newAddresses = { ...shopAddresses };
+      let updated = false;
+
+      for (const shopId of uniqueShopIds) {
+        if (!newAddresses[shopId]) {
+          try {
+            const shopData = await customerShopService.getById(shopId);
+            const shopInfo = shopData?.shop || shopData;
+            if (shopInfo) {
+              newAddresses[shopId] = {
+                provinceId: shopInfo.provinceId,
+                districtId: shopInfo.districtId,
+                wardCode: shopInfo.wardCode,
+              };
+              updated = true;
+            }
+          } catch (e) {
+            console.error("Error fetching shop address for shop " + shopId, e);
+          }
+        }
+      }
+
+      if (updated) {
+        setShopAddresses(newAddresses);
+      }
+    };
+
+    fetchShopAddresses();
+  }, [itemsToBuy]);
+
+  // Calculate dynamic shipping fee using GHN API
+  useEffect(() => {
+    if (itemsToBuy.length === 0) return;
+
+    if (!shippingAddress) {
+      setShippingFee(shopsCount * 30000); // Fallback
+      return;
+    }
+
+    const calculateTotalShippingFee = async () => {
+      setCalculatingShip(true);
+      try {
+        const toDistrictId = Number(shippingAddress.districtId);
+        const toWardCode = shippingAddress.wardCode ? String(shippingAddress.wardCode) : "";
+
+        if (!toDistrictId || !toWardCode) {
+          console.warn("Thiếu districtId/wardCode của địa chỉ giao hàng, dùng phí fallback.", shippingAddress);
+          setShippingFee(shopsCount * 30000);
+          return;
+        }
+
+        let totalFee = 0;
+        const effectiveGhnShopId = await getEffectiveGhnShopId();
+        
+        for (const [shopId, group] of Object.entries(groupedItems)) {
+          const shopAddr = shopAddresses[shopId];
+          const fromDistrictId = Number(shopAddr?.districtId);
+          const fromWardCode = shopAddr?.wardCode ? String(shopAddr.wardCode) : "";
+
+          if (!fromDistrictId || !fromWardCode) {
+            console.warn("Thiếu districtId/wardCode của shop, dùng phí fallback.", {
+              shopId,
+              shopAddr,
+            });
+            totalFee += 30000;
+            continue;
+          }
+          
+          let totalWeight = 0;
+          let totalHeight = 0;
+          let shopSubtotal = 0;
+
+          group.items.forEach(item => {
+            const qty = item.quantity || 1;
+            totalWeight += (item.weight || 500) * qty;
+            totalHeight += (item.height || 5) * qty;
+            shopSubtotal += item.price * qty;
+          });
+
+          try {
+            const response = await fetch(`${env.ghnBaseUrl}/v2/shipping-order/fee`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Token": env.ghnToken,
+                "ShopId": effectiveGhnShopId
+              },
+              body: JSON.stringify({
+                from_district_id: fromDistrictId,
+                from_ward_code: fromWardCode,
+                service_id: null,
+                service_type_id: 2, // Standard Shipping
+                to_district_id: toDistrictId,
+                to_ward_code: toWardCode,
+                height: totalHeight,
+                length: 20,
+                weight: totalWeight,
+                width: 15,
+                insurance_value: shopSubtotal,
+                cod_failed_amount: 0
+              })
+            });
+
+            const resData = await response.json();
+            if (resData.code === 200 && resData.data?.total) {
+              totalFee += resData.data.total;
+            } else {
+              console.warn("GHN fee API fallback at checkout", {
+                marketplaceShopId: shopId,
+                ghnShopId: effectiveGhnShopId,
+                fromDistrictId,
+                fromWardCode,
+                toDistrictId,
+                toWardCode,
+                resData,
+              });
+              totalFee += 30000; // Fallback per shop
+            }
+          } catch (e) {
+            console.error("Error calling GHN shipping API", e);
+            totalFee += 30000;
+          }
+        }
+        
+        setShippingFee(totalFee);
+      } catch (err) {
+        console.error("Error calculating total shipping fee", err);
+      } finally {
+        setCalculatingShip(false);
+      }
+    };
+
+    calculateTotalShippingFee();
+  }, [shippingAddress, shopAddresses, itemsToBuy]);
+
   const handleCheckout = async () => {
     if (!user) {
       toastService.warning("Vui lòng đăng nhập để tiến hành đặt hàng.");
@@ -110,7 +336,8 @@ export default function CheckoutPage() {
         customerId: user.userId,
         shippingAddressId: shippingAddress.id,
         paymentMethod,
-        items: itemsPayload
+        items: itemsPayload,
+        couponCode: location.state?.couponCode || null,
       };
 
       const result = await customerOrderService.checkout(payload);
@@ -140,30 +367,12 @@ export default function CheckoutPage() {
     }
   };
 
-  // Group items by shop
-  const groupedItems = itemsToBuy.reduce((groups, item) => {
-    const shopId = item.shopId || "unknown";
-    const shopName = item.shopName || "Tiệm Cũ";
-    if (!groups[shopId]) {
-      groups[shopId] = {
-        shopName,
-        items: []
-      };
-    }
-    groups[shopId].items.push(item);
-    return groups;
-  }, {});
-
-  const shopsCount = Object.keys(groupedItems).length;
-  
   // Calculate subtotal
   const subtotal = itemsToBuy.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
   
-  // Phí vận chuyển: 30.000đ per shop
-  const shippingFee = shopsCount * 30000;
-  
   // Total payment
-  const total = subtotal + shippingFee;
+  const discountAmount = Number(location.state?.discountAmount) || 0;
+  const total = Math.max(0, subtotal + shippingFee - discountAmount);
 
   // Format currency
   const formatPrice = (value) => {
@@ -345,12 +554,26 @@ export default function CheckoutPage() {
                   <span>Tạm tính ({itemsToBuy.length} món):</span>
                   <span className="font-semibold text-[#3d3a2c]">{formatPrice(subtotal)}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span>
                     Phí vận chuyển ({shopsCount} Tiệm):
                   </span>
-                  <span className="font-semibold text-[#3d3a2c]">{formatPrice(shippingFee)}</span>
+                  <span className="font-semibold text-[#3d3a2c] flex items-center gap-1">
+                    {calculatingShip ? (
+                      <span className="text-xs text-[#9c927b] flex items-center gap-1.5 font-normal">
+                        <Loader2 className="animate-spin" size={12} /> Đang tính...
+                      </span>
+                    ) : (
+                      formatPrice(shippingFee)
+                    )}
+                  </span>
                 </div>
+                {discountAmount > 0 && (
+                  <div className="flex justify-between text-[#2f7d32]">
+                    <span>Giảm giá ({location.state?.couponCode}):</span>
+                    <span className="font-semibold">-{formatPrice(discountAmount)}</span>
+                  </div>
+                )}
                 
                 <div className="border-t border-[#faf7e7] pt-3 flex justify-between items-end">
                   <span className="font-extrabold text-base text-[#3d3a2c]">Tổng thanh toán:</span>
@@ -365,10 +588,10 @@ export default function CheckoutPage() {
 
               <button
                 onClick={handleCheckout}
-                disabled={loading || itemsToBuy.length === 0 || !shippingAddress}
+                disabled={loading || calculatingShip || itemsToBuy.length === 0 || !shippingAddress}
                 className="w-full flex items-center justify-center gap-2 h-14 rounded-xl bg-[#c04f25] font-extrabold text-white shadow-sm transition hover:bg-[#a9411d] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
-                {loading ? "Đang xử lý đặt hàng..." : "Đặt hàng ngay"}
+                {loading ? "Đang xử lý đặt hàng..." : calculatingShip ? "Đang tính phí vận chuyển..." : "Đặt hàng ngay"}
               </button>
 
               <p className="text-[10px] text-[#9c927b] text-center leading-relaxed">
@@ -388,7 +611,7 @@ export default function CheckoutPage() {
               </div>
               <div className="flex items-center gap-2.5 text-xs text-[#7b705f]">
                 <Truck size={16} className="text-[#b84a25] flex-shrink-0" />
-                <span>Đóng gói & giao hàng cẩn thận toàn quốc</span>
+                <span>Đóng gói &amp; giao hàng cẩn thận toàn quốc</span>
               </div>
             </div>
           </div>

@@ -1,9 +1,131 @@
-import { useState, useEffect } from "react";
-import { Trash2, ShoppingBag, Plus, Minus, Check, MapPin, ChevronDown } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Trash2, ShoppingBag, Plus, Minus, Check, MapPin, ChevronDown, Tag, TicketPercent, Loader2 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cartService } from "@/services/cartService";
 import { toastService } from "@/services/toastService";
 import { userService } from "@/services/user";
+import { couponService } from "@/services/couponService";
+import { customerShopService } from "@/services/customerShop";
+import { env } from "@/config/env";
+
+const areFeeMapsEqual = (current, next) => {
+  const currentKeys = Object.keys(current);
+  const nextKeys = Object.keys(next);
+
+  if (currentKeys.length !== nextKeys.length) {
+    return false;
+  }
+
+  return nextKeys.every((key) => current[key] === next[key]);
+};
+
+const normalizeAddressName = (value = "") =>
+  value
+    .toString()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .toLowerCase()
+    .replace(/\b(tinh|thanh pho|tp|quan|huyen|thi xa|tx|phuong|xa|thi tran|tt)\b/g, "")
+    .replace(/[^a-z0-9]/g, "");
+
+const findByNormalizedName = (items, name, getName) => {
+  const normalizedName = normalizeAddressName(name);
+  return items.find((item) => normalizeAddressName(getName(item)) === normalizedName);
+};
+
+const ghnFetch = async (path, options = {}) => {
+  const response = await fetch(`${env.ghnBaseUrl}${path}`, {
+    ...options,
+    headers: {
+      Token: env.ghnToken,
+      "Content-Type": "application/json",
+      ...(options.headers || {}),
+    },
+  });
+
+  const payload = await response.json();
+
+  if (!response.ok || payload.code !== 200) {
+    throw new Error(payload.message || "GHN API error");
+  }
+
+  return payload.data;
+};
+
+let effectiveGhnShopIdPromise;
+
+const getEffectiveGhnShopId = async () => {
+  if (!effectiveGhnShopIdPromise) {
+    effectiveGhnShopIdPromise = ghnFetch("/v2/shop/all", {
+      method: "POST",
+      body: JSON.stringify({
+        offset: 0,
+        limit: 50,
+        client_phone: "",
+      }),
+    }).then((data) => {
+      const shops = data?.shops || [];
+      const configuredShop = shops.find(
+        (shop) => String(shop._id) === String(env.ghnShopId),
+      );
+
+      if (configuredShop) {
+        return String(configuredShop._id);
+      }
+
+      const firstActiveShop = shops.find((shop) => shop.status === 1) || shops[0];
+
+      if (!firstActiveShop?._id) {
+        throw new Error("GHN token không có shop/store hợp lệ.");
+      }
+
+      console.warn(
+        "VITE_GHN_SHOP_ID không nằm trong danh sách shop của token. Tạm dùng GHN shop đầu tiên.",
+        {
+          configuredShopId: env.ghnShopId,
+          effectiveShopId: firstActiveShop._id,
+          shops,
+        },
+      );
+
+      return String(firstActiveShop._id);
+    });
+  }
+
+  return effectiveGhnShopIdPromise;
+};
+
+const logGhnFeeFallback = (shopId, resData) => {
+  if (resData?.message?.includes("Lỗi lấy thông tin shop")) {
+    console.warn(
+      "GHN fee API không lấy được thông tin shop. Kiểm tra VITE_GHN_SHOP_ID, VITE_GHN_TOKEN và VITE_GHN_BASE_URL có cùng môi trường GHN không.",
+      {
+        marketplaceShopId: shopId,
+        ghnShopId: env.ghnShopId,
+        ghnBaseUrl: env.ghnBaseUrl,
+        resData,
+      },
+    );
+    return;
+  }
+
+  console.warn("GHN fee API fallback for shop " + shopId, resData);
+};
+
+const fetchGhnProvinces = () => ghnFetch("/master-data/province");
+
+const fetchGhnDistricts = (provinceId) =>
+  ghnFetch("/master-data/district", {
+    method: "POST",
+    body: JSON.stringify({ province_id: Number(provinceId) }),
+  });
+
+const fetchGhnWards = (districtId) =>
+  ghnFetch(`/master-data/ward?district_id=${Number(districtId)}`, {
+    method: "GET",
+  });
 
 export default function CartPage() {
   const navigate = useNavigate();
@@ -13,6 +135,11 @@ export default function CartPage() {
   const [user, setUser] = useState(null);
   const [selectedItemIds, setSelectedItemIds] = useState([]);
   const [hasInitializedSelection, setHasInitializedSelection] = useState(false);
+  const [ownedCoupons, setOwnedCoupons] = useState([]);
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [couponLoading, setCouponLoading] = useState(false);
 
   // Address states
   const [addresses, setAddresses] = useState([]);
@@ -22,14 +149,23 @@ export default function CartPage() {
     fullName: "",
     phone: "",
     province: "",
+    provinceId: null,
     district: "",
+    districtId: null,
     ward: "",
+    wardCode: "",
     addressDetail: "",
     isDefault: false
   });
   const [savingAddress, setSavingAddress] = useState(false);
 
-  // vAPI states for dynamic Vietnam provinces/districts/wards selection
+  // GHN Address & Dynamic Shipping Fee States
+  const [shippingFee, setShippingFee] = useState(0);
+  const [calculatingShip, setCalculatingShip] = useState(false);
+  const [shopAddresses, setShopAddresses] = useState({});
+  const [individualShippingFees, setIndividualShippingFees] = useState({});
+
+  // GHN master-data states for dynamic Vietnam provinces/districts/wards selection
   const [provinces, setProvinces] = useState([]);
   const [districts, setDistricts] = useState([]);
   const [wards, setWards] = useState([]);
@@ -62,6 +198,23 @@ export default function CartPage() {
     };
   }, []);
 
+  useEffect(() => {
+    const loadOwnedCoupons = async () => {
+      try {
+        const available = await couponService.getAvailable();
+        const savedCodes = JSON.parse(localStorage.getItem("savedCoupons") || "[]");
+        setOwnedCoupons(
+          available.filter((coupon) =>
+            coupon.isAutoSave || savedCodes.includes(coupon.code),
+          ),
+        );
+      } catch (error) {
+        console.error("Không thể tải ví mã giảm giá", error);
+      }
+    };
+    loadOwnedCoupons();
+  }, []);
+
   // Initialize selected items based on 'Buy Now' navigation state or select all by default
   useEffect(() => {
     if (cart.length > 0 && !hasInitializedSelection) {
@@ -92,11 +245,10 @@ export default function CartPage() {
 
   const fetchProvinces = async () => {
     try {
-      const res = await fetch("https://provinces.open-api.vn/api/p/");
-      const data = await res.json();
+      const data = await fetchGhnProvinces();
       setProvinces(data || []);
     } catch (e) {
-      console.error("Error fetching provinces", e);
+      console.error("Error fetching GHN provinces", e);
     }
   };
 
@@ -107,21 +259,23 @@ export default function CartPage() {
     setDistricts([]);
     setWards([]);
     
-    const prov = provinces.find(p => String(p.code) === String(provinceId));
+    const prov = provinces.find(p => String(p.ProvinceID) === String(provinceId));
     setAddressForm(prev => ({
       ...prev,
-      province: prov ? prov.name : "",
+      province: prov ? prov.ProvinceName : "",
+      provinceId: prov ? prov.ProvinceID : null,
       district: "",
-      ward: ""
+      districtId: null,
+      ward: "",
+      wardCode: "",
     }));
 
     if (provinceId) {
       try {
-        const res = await fetch(`https://provinces.open-api.vn/api/p/${provinceId}?depth=2`);
-        const data = await res.json();
-        setDistricts(data.districts || []);
+        const data = await fetchGhnDistricts(provinceId);
+        setDistricts(data || []);
       } catch (err) {
-        console.error("Error fetching districts", err);
+        console.error("Error fetching GHN districts", err);
       }
     }
   };
@@ -131,30 +285,32 @@ export default function CartPage() {
     setSelectedDistrictId(districtId);
     setWards([]);
 
-    const dist = districts.find(d => String(d.code) === String(districtId));
+    const dist = districts.find(d => String(d.DistrictID) === String(districtId));
     setAddressForm(prev => ({
       ...prev,
-      district: dist ? dist.name : "",
-      ward: ""
+      district: dist ? dist.DistrictName : "",
+      districtId: dist ? dist.DistrictID : null,
+      ward: "",
+      wardCode: "",
     }));
 
     if (districtId) {
       try {
-        const res = await fetch(`https://provinces.open-api.vn/api/d/${districtId}?depth=2`);
-        const data = await res.json();
-        setWards(data.wards || []);
+        const data = await fetchGhnWards(districtId);
+        setWards(data || []);
       } catch (err) {
-        console.error("Error fetching wards", err);
+        console.error("Error fetching GHN wards", err);
       }
     }
   };
 
   const handleWardChange = (e) => {
-    const wardId = e.target.value;
-    const wrd = wards.find(w => String(w.code) === String(wardId));
+    const wardCode = e.target.value;
+    const wrd = wards.find(w => String(w.WardCode) === String(wardCode));
     setAddressForm(prev => ({
       ...prev,
-      ward: wrd ? wrd.name : ""
+      ward: wrd ? wrd.WardName : "",
+      wardCode: wrd ? wrd.WardCode : "",
     }));
   };
 
@@ -170,6 +326,57 @@ export default function CartPage() {
     } catch (e) {
       console.error("Error fetching addresses", e);
     }
+  };
+
+  const resolveGhnAddress = async (address) => {
+    if (address?.districtId && address?.wardCode) {
+      return address;
+    }
+
+    if (!address?.province || !address?.district || !address?.ward) {
+      return address;
+    }
+
+    const provinceList = provinces.length > 0 ? provinces : await fetchGhnProvinces();
+    const province = findByNormalizedName(provinceList, address.province, item => item.ProvinceName);
+
+    if (!province) {
+      return address;
+    }
+
+    const districtList = await fetchGhnDistricts(province.ProvinceID);
+    const district = findByNormalizedName(districtList, address.district, item => item.DistrictName);
+
+    if (!district) {
+      return {
+        ...address,
+        provinceId: province.ProvinceID,
+      };
+    }
+
+    const wardList = await fetchGhnWards(district.DistrictID);
+    const ward = findByNormalizedName(wardList, address.ward, item => item.WardName);
+
+    if (!ward) {
+      return {
+        ...address,
+        provinceId: province.ProvinceID,
+        districtId: district.DistrictID,
+      };
+    }
+
+    const resolvedAddress = {
+      ...address,
+      provinceId: province.ProvinceID,
+      districtId: district.DistrictID,
+      wardCode: ward.WardCode,
+    };
+
+    setAddresses(prev => prev.map(item => (
+      item.id === address.id ? resolvedAddress : item
+    )));
+
+    return resolvedAddress;
   };
 
   const handleAddressInputChange = (e) => {
@@ -209,8 +416,11 @@ export default function CartPage() {
           fullName: "",
           phone: "",
           province: "",
+          provinceId: null,
           district: "",
+          districtId: null,
           ward: "",
+          wardCode: "",
           addressDetail: "",
           isDefault: false
         });
@@ -265,7 +475,7 @@ export default function CartPage() {
   };
 
   // Group items by shop
-  const groupedCart = cart.reduce((groups, item) => {
+  const groupedCart = useMemo(() => cart.reduce((groups, item) => {
     const shopId = item.shopId || "unknown";
     const shopName = item.shopName || "Tiệm Cũ";
     if (!groups[shopId]) {
@@ -276,13 +486,16 @@ export default function CartPage() {
     }
     groups[shopId].items.push(item);
     return groups;
-  }, {});
+  }, {}), [cart]);
 
   // Derive selected items
-  const selectedItems = cart.filter(item => selectedItemIds.includes(item.id));
+  const selectedItems = useMemo(
+    () => cart.filter(item => selectedItemIds.includes(item.id)),
+    [cart, selectedItemIds],
+  );
 
   // Group selected items by shop
-  const groupedSelectedCart = selectedItems.reduce((groups, item) => {
+  const groupedSelectedCart = useMemo(() => selectedItems.reduce((groups, item) => {
     const shopId = item.shopId || "unknown";
     const shopName = item.shopName || "Tiệm Cũ";
     if (!groups[shopId]) {
@@ -293,18 +506,211 @@ export default function CartPage() {
     }
     groups[shopId].items.push(item);
     return groups;
-  }, {});
+  }, {}), [selectedItems]);
 
-  const selectedShopsCount = Object.keys(groupedSelectedCart).length;
+  const selectedShopIds = useMemo(() => Object.keys(groupedSelectedCart), [groupedSelectedCart]);
+  const selectedShopsCount = selectedShopIds.length;
   
+  // Load shop addresses (province_id, district_id, ward_code) for selected items
+  useEffect(() => {
+    if (selectedItems.length === 0) {
+      setShippingFee(0);
+      setIndividualShippingFees({});
+      return;
+    }
+
+    const missingShopIds = selectedShopIds.filter(shopId => shopId !== "unknown" && !shopAddresses[shopId]);
+    if (missingShopIds.length === 0) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const fetchShopAddresses = async () => {
+      const fetchedAddresses = {};
+
+      for (const shopId of missingShopIds) {
+          try {
+            const shopData = await customerShopService.getById(shopId);
+            const shopInfo = shopData?.shop || shopData;
+            if (shopInfo) {
+              fetchedAddresses[shopId] = {
+                provinceId: shopInfo.provinceId,
+                districtId: shopInfo.districtId,
+                wardCode: shopInfo.wardCode,
+              };
+            }
+          } catch (e) {
+            console.error("Error fetching shop address for shop " + shopId, e);
+          }
+      }
+
+      if (!cancelled && Object.keys(fetchedAddresses).length > 0) {
+        setShopAddresses(prev => ({ ...prev, ...fetchedAddresses }));
+      }
+    };
+
+    fetchShopAddresses();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedItems.length, selectedShopIds, shopAddresses]);
+
+  // Calculate dynamic shipping fee using GHN API
+  useEffect(() => {
+    if (selectedItems.length === 0) {
+      setShippingFee(0);
+      setIndividualShippingFees({});
+      return;
+    }
+
+    const currentAddress = addresses.find(addr => addr.id === selectedAddressId);
+    if (!currentAddress) {
+      const fallbackShippingFee = selectedShopsCount * 30000;
+      const fallbackFees = {};
+      selectedShopIds.forEach(shopId => {
+        fallbackFees[shopId] = 30000;
+      });
+      setShippingFee(prev => (prev === fallbackShippingFee ? prev : fallbackShippingFee));
+      setIndividualShippingFees(prev => (areFeeMapsEqual(prev, fallbackFees) ? prev : fallbackFees));
+      return;
+    }
+
+    let cancelled = false;
+
+    const calculateTotalShippingFee = async () => {
+      setCalculatingShip(true);
+      try {
+        const resolvedAddress = await resolveGhnAddress(currentAddress);
+        const toDistrictId = Number(resolvedAddress?.districtId);
+        const toWardCode = resolvedAddress?.wardCode ? String(resolvedAddress.wardCode) : "";
+
+        if (!toDistrictId || !toWardCode) {
+          console.warn("Thiếu mã GHN cho địa chỉ giao hàng, dùng phí fallback.", resolvedAddress);
+          const fallbackShippingFee = selectedShopsCount * 30000;
+          const fallbackFees = {};
+          selectedShopIds.forEach(shopId => {
+            fallbackFees[shopId] = 30000;
+          });
+          setShippingFee(prev => (prev === fallbackShippingFee ? prev : fallbackShippingFee));
+          setIndividualShippingFees(prev => (areFeeMapsEqual(prev, fallbackFees) ? prev : fallbackFees));
+          return;
+        }
+
+        let totalFee = 0;
+        const newIndividualFees = {};
+        const effectiveGhnShopId = await getEffectiveGhnShopId();
+        
+        for (const [shopId, group] of Object.entries(groupedSelectedCart)) {
+          const shopAddr = shopAddresses[shopId];
+          const fromDistrictId = Number(shopAddr?.districtId);
+          const fromWardCode = shopAddr?.wardCode ? String(shopAddr.wardCode) : "";
+
+          if (!fromDistrictId || !fromWardCode) {
+            console.warn("Thiếu mã GHN của shop, bỏ qua tính phí GHN cho shop này.", {
+              shopId,
+              shopAddr,
+            });
+            newIndividualFees[shopId] = 30000;
+            totalFee += 30000;
+            continue;
+          }
+          
+          let totalWeight = 0;
+          let totalHeight = 0;
+          let shopSubtotal = 0;
+
+          group.items.forEach(item => {
+            const qty = item.quantity || 1;
+            totalWeight += (item.weight || 500) * qty;
+            totalHeight += (item.height || 5) * qty;
+            shopSubtotal += item.price * qty;
+          });
+
+          try {
+            const response = await fetch(`${env.ghnBaseUrl}/v2/shipping-order/fee`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Token": env.ghnToken,
+                "ShopId": effectiveGhnShopId,
+              },
+              body: JSON.stringify({
+                from_district_id: fromDistrictId,
+                from_ward_code: fromWardCode,
+                service_id: null,
+                service_type_id: 2, // Standard Shipping
+                to_district_id: toDistrictId,
+                to_ward_code: toWardCode,
+                height: totalHeight,
+                length: 20,
+                weight: totalWeight,
+                width: 15,
+                insurance_value: shopSubtotal,
+                cod_failed_amount: 0
+              })
+            });
+
+            const resData = await response.json();
+            console.debug("GHN fee request/result", {
+              shopId,
+              fromDistrictId,
+              fromWardCode,
+              toDistrictId,
+              toWardCode,
+              ghnShopId: effectiveGhnShopId,
+              resData,
+            });
+
+            if (resData.code === 200 && resData.data?.total) {
+              const fee = resData.data.total;
+              totalFee += fee;
+              newIndividualFees[shopId] = fee;
+            } else {
+              logGhnFeeFallback(shopId, resData);
+              totalFee += 30000;
+              newIndividualFees[shopId] = 30000;
+            }
+          } catch (e) {
+            console.error("Error calling GHN shipping API", e);
+            totalFee += 30000;
+            newIndividualFees[shopId] = 30000;
+          }
+        }
+        
+        if (!cancelled) {
+          setShippingFee(prev => (prev === totalFee ? prev : totalFee));
+          setIndividualShippingFees(prev => (
+            areFeeMapsEqual(prev, newIndividualFees) ? prev : newIndividualFees
+          ));
+        }
+      } catch (err) {
+        console.error("Error calculating total shipping fee", err);
+      } finally {
+        if (!cancelled) {
+          setCalculatingShip(false);
+        }
+      }
+    };
+
+    calculateTotalShippingFee();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedAddressId, addresses, shopAddresses, groupedSelectedCart, selectedItems.length, selectedShopIds, selectedShopsCount]);
+
   // Calculate subtotal for selected items only
   const subtotal = selectedItems.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
   
-  // Phí vận chuyển: 30.000đ per shop that has selected items
-  const shippingFee = selectedShopsCount * 30000;
-  
   // Total payment
-  const total = subtotal + shippingFee;
+  const total = Math.max(0, subtotal + shippingFee - discountAmount);
+
+  useEffect(() => {
+    setAppliedCoupon(null);
+    setDiscountAmount(0);
+  }, [subtotal]);
 
   // Format currency
   const formatPrice = (value) => {
@@ -312,6 +718,48 @@ export default function CartPage() {
       style: "currency",
       currency: "VND"
     }).format(value);
+  };
+
+  const handleApplyCoupon = async (rawCode = couponCode, couponHint = null) => {
+    const normalizedCode = rawCode.trim().toUpperCase();
+    if (!normalizedCode) {
+      toastService.warning("Vui lòng nhập mã giảm giá.");
+      return;
+    }
+    if (subtotal <= 0) {
+      toastService.warning("Vui lòng chọn sản phẩm trước khi áp dụng mã.");
+      return;
+    }
+
+    const coupon = couponHint || ownedCoupons.find((item) => item.code === normalizedCode);
+    const eligibleSubtotal = coupon?.shopId
+      ? selectedItems
+          .filter((item) => String(item.shopId) === String(coupon.shopId))
+          .reduce((sum, item) => sum + item.price * (item.quantity || 1), 0)
+      : subtotal;
+
+    if (coupon?.shopId && eligibleSubtotal <= 0) {
+      toastService.warning("Mã này không áp dụng cho các sản phẩm đã chọn.");
+      return;
+    }
+
+    setCouponLoading(true);
+    try {
+      const validation = await couponService.validate(normalizedCode, eligibleSubtotal);
+      if (!validation?.isValid) {
+        throw new Error(validation?.message || "Mã giảm giá không hợp lệ");
+      }
+      setCouponCode(normalizedCode);
+      setAppliedCoupon(coupon || { code: normalizedCode });
+      setDiscountAmount(Number(validation.discountAmount) || 0);
+      toastService.success(validation.message || "Áp dụng mã giảm giá thành công.");
+    } catch (error) {
+      setAppliedCoupon(null);
+      setDiscountAmount(0);
+      toastService.error(error.message || "Không thể áp dụng mã giảm giá.");
+    } finally {
+      setCouponLoading(false);
+    }
   };
 
   const handleProceedToCheckout = () => {
@@ -332,7 +780,14 @@ export default function CartPage() {
 
     const selectedAddress = addresses.find(addr => addr.id === selectedAddressId);
 
-    navigate("/checkout", { state: { selectedItems, selectedAddress } });
+    navigate("/checkout", {
+      state: {
+        selectedItems,
+        selectedAddress,
+        couponCode: appliedCoupon?.code || null,
+        discountAmount,
+      },
+    });
   };
 
   if (cart.length === 0) {
@@ -406,8 +861,8 @@ export default function CartPage() {
               className="overflow-hidden rounded-2xl border border-[#ebe2c8] bg-white shadow-sm hover:shadow-md transition-shadow duration-300"
             >
               {/* Shop Header */}
-              <div className="bg-[#faf7e7] px-6 py-4 border-b border-[#ebe2c8] flex items-center justify-between">
-                <div className="flex items-center gap-3">
+              <div className="bg-[#faf7e7] px-6 py-4 border-b border-[#ebe2c8] flex items-center justify-between gap-4">
+                <div className="flex min-w-0 items-center gap-3">
                   <div 
                     onClick={() => handleToggleSelectShop(group.items)}
                     className="flex items-center gap-2 cursor-pointer group/shop"
@@ -423,15 +878,26 @@ export default function CartPage() {
                     />
                     <span className="rounded bg-[#ffc28f] px-2 py-0.5 text-xs font-bold text-[#6c331b]">Shop</span>
                   </div>
-                  <h3 className="font-extrabold text-[#3d3a2c] hover:underline cursor-pointer" onClick={(e) => {
+                  <h3 className="truncate font-extrabold text-[#3d3a2c] hover:underline cursor-pointer" onClick={(e) => {
                     e.stopPropagation();
                     navigate(`/shop/${shopId}`);
                   }}>
                     {group.shopName}
                   </h3>
                 </div>
-                <span className="text-xs text-[#7c7565]">
-                  Phí vận chuyển tiệm này: <span className="font-bold text-[#b84a25]">30.000 đ</span>
+                <span className="flex shrink-0 items-center justify-end gap-1 text-right text-xs text-[#7c7565]">
+                  <span>Phí vận chuyển tiệm này:</span>
+                  <span className="inline-flex min-w-[92px] justify-end font-bold text-[#b84a25]">
+                    {calculatingShip && selectedItemIds.some(itemId => group.items.some(item => item.id === itemId)) ? (
+                      <span className="inline-flex items-center gap-1 text-xs font-normal text-[#9c927b]">
+                        <Loader2 className="animate-spin" size={10} /> Đang tính...
+                      </span>
+                    ) : individualShippingFees[shopId] ? (
+                      formatPrice(individualShippingFees[shopId])
+                    ) : (
+                      <span className="text-xs font-normal text-[#9c927b]">Chưa tính</span>
+                    )}
+                  </span>
                 </span>
               </div>
 
@@ -615,8 +1081,8 @@ export default function CartPage() {
                       >
                         <option value="">-- Chọn Tỉnh --</option>
                         {provinces.map(p => (
-                          <option key={p.code} value={p.code}>
-                            {p.name}
+                          <option key={p.ProvinceID} value={p.ProvinceID}>
+                            {p.ProvinceName}
                           </option>
                         ))}
                       </select>
@@ -638,8 +1104,8 @@ export default function CartPage() {
                       >
                         <option value="">-- Chọn Huyện --</option>
                         {districts.map(d => (
-                          <option key={d.code} value={d.code}>
-                            {d.name}
+                          <option key={d.DistrictID} value={d.DistrictID}>
+                            {d.DistrictName}
                           </option>
                         ))}
                       </select>
@@ -653,7 +1119,7 @@ export default function CartPage() {
                     <label className="block text-xs font-bold text-[#7c7565] mb-1">Phường/Xã</label>
                     <div className="relative">
                       <select
-                        value={wards.find(w => w.name === addressForm.ward)?.code || ""}
+                        value={addressForm.wardCode || ""}
                         onChange={handleWardChange}
                         disabled={!selectedDistrictId}
                         required
@@ -661,8 +1127,8 @@ export default function CartPage() {
                       >
                         <option value="">-- Chọn Xã --</option>
                         {wards.map(w => (
-                          <option key={w.code} value={w.code}>
-                            {w.name}
+                          <option key={w.WardCode} value={w.WardCode}>
+                            {w.WardName}
                           </option>
                         ))}
                       </select>
@@ -758,7 +1224,66 @@ export default function CartPage() {
             )}
           </div>
 
-          {/* Section 2: Summary Order */}
+          {/* Section 2: Coupon wallet */}
+          <div className="rounded-2xl border border-[#ebe2c8] bg-white p-5 shadow-sm space-y-4">
+            <div className="flex items-center gap-2 text-[#3d3a2c]">
+              <TicketPercent size={18} className="text-[#b84a25]" />
+              <h3 className="font-bold">Mã giảm giá</h3>
+            </div>
+
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Tag size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9c927b]" />
+                <input
+                  value={couponCode}
+                  onChange={(event) => setCouponCode(event.target.value.toUpperCase())}
+                  onKeyDown={(event) => event.key === "Enter" && handleApplyCoupon()}
+                  placeholder="Nhập mã giảm giá"
+                  className="h-10 w-full rounded-xl border border-[#ded5bd] pl-9 pr-3 text-sm uppercase outline-none focus:border-[#b84a25]"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => handleApplyCoupon()}
+                disabled={couponLoading}
+                className="rounded-xl bg-[#3d3a2c] px-4 text-xs font-bold text-white disabled:opacity-50"
+              >
+                {couponLoading ? "Đang kiểm tra" : "Áp dụng"}
+              </button>
+            </div>
+
+            {ownedCoupons.length > 0 && (
+              <div>
+                <p className="mb-2 text-xs font-semibold text-[#7c7565]">Mã của bạn</p>
+                <div className="max-h-44 space-y-2 overflow-y-auto pr-1">
+                  {ownedCoupons.map((coupon) => (
+                    <button
+                      key={coupon.id}
+                      type="button"
+                      onClick={() => handleApplyCoupon(coupon.code, coupon)}
+                      className={`flex w-full items-center justify-between rounded-xl border p-3 text-left transition ${
+                        appliedCoupon?.code === coupon.code
+                          ? "border-[#b84a25] bg-[#fff7ef]"
+                          : "border-[#eee6d2] hover:border-[#d5b18e]"
+                      }`}
+                    >
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-[#b84a25]">{coupon.code}</p>
+                        <p className="truncate text-xs text-[#7c7565]">{coupon.name}</p>
+                      </div>
+                      <span className="ml-3 shrink-0 text-[11px] font-semibold text-[#3d3a2c]">
+                        {coupon.discountType === "PERCENTAGE"
+                          ? `-${Number(coupon.discountValue)}%`
+                          : `-${formatPrice(coupon.discountValue)}`}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Section 3: Summary Order */}
           <div className="rounded-2xl border border-[#ebe2c8] bg-white p-6 shadow-sm space-y-4">
             <h3 className="text-lg font-bold text-[#3d3a2c] border-b border-[#faf7e7] pb-2">
               Tổng kết đơn hàng
@@ -769,30 +1294,35 @@ export default function CartPage() {
                 <span>Tạm tính:</span>
                 <span className="font-semibold text-[#3d3a2c]">{formatPrice(subtotal)}</span>
               </div>
+              {discountAmount > 0 && (
+                <div className="flex justify-between text-[#2f7d32]">
+                  <span>Giảm giá ({appliedCoupon?.code}):</span>
+                  <span className="font-semibold">-{formatPrice(discountAmount)}</span>
+                </div>
+              )}
+
               <div className="flex justify-between">
-                <span>
-                  Phí vận chuyển ({selectedShopsCount} Tiệm):
+                <span>Phí vận chuyển:</span>
+                <span className="min-w-[92px] text-right font-semibold text-[#3d3a2c]">
+                  {calculatingShip ? "Đang tính..." : formatPrice(shippingFee)}
                 </span>
-                <span className="font-semibold text-[#3d3a2c]">{formatPrice(shippingFee)}</span>
               </div>
-              
-              <div className="border-t border-[#faf7e7] pt-3 flex justify-between items-end">
-                <span className="font-extrabold text-base text-[#3d3a2c]">Tổng cộng:</span>
-                <div className="text-right">
-                  <span className="text-xl font-black text-[#b84a25] block">
-                    {formatPrice(total)}
-                  </span>
-                  <span className="text-[10px] text-[#9c927b] block">(Đã bao gồm VAT và phí ship)</span>
+
+              <div className="border-t border-[#faf7e7] pt-3">
+                <div className="flex items-center justify-between text-base">
+                  <span className="font-bold text-[#3d3a2c]">Tổng thanh toán:</span>
+                  <span className="text-xl font-black text-[#b84a25]">{formatPrice(total)}</span>
                 </div>
               </div>
             </div>
 
             <button
+              type="button"
               onClick={handleProceedToCheckout}
-              disabled={selectedItems.length === 0 || !selectedAddressId}
-              className="w-full flex items-center justify-center gap-2 h-14 rounded-xl bg-[#c04f25] font-extrabold text-white shadow-sm transition hover:bg-[#a9411d] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              disabled={selectedItems.length === 0 || calculatingShip}
+              className="w-full rounded-xl bg-[#b84a25] py-3.5 text-sm font-extrabold text-white shadow-sm transition hover:bg-[#a03e1e] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Thanh toán
+              Thanh toán ({selectedItems.length})
             </button>
           </div>
         </div>

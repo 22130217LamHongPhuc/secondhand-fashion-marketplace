@@ -78,17 +78,28 @@ export default class Pagination {
 
   static fromApi(raw) {
     if (!raw) return new Pagination();
-    const page = raw.page || {};
+
+    // Support both Spring Boot formats:
+    // 1. Flat (Spring Boot 3.x): { content, totalPages, totalElements, number, size, first, last, empty, numberOfElements }
+    // 2. Nested (legacy):        { content, page: { totalPages, totalElements, number, size } }
+    const hasNestedPage = raw.page && typeof raw.page === 'object';
+    const meta = hasNestedPage ? raw.page : raw;
+
     const content = raw.content || [];
+    const totalPages = meta.totalPages ?? 0;
+    const number = meta.number ?? 0;
+
     return new Pagination({
-      totalPages: page.totalPages ?? 0,
-      totalElements: page.totalElements ?? 0,
-      number: page.number ?? 0,
-      size: page.size ?? 5,
-      first: (page.number ?? 0) === 0,
-      last: (page.number ?? 0) >= (page.totalPages ?? 1) - 1,
-      empty: content.length === 0,
-      numberOfElements: content.length,
+      totalPages,
+      totalElements: meta.totalElements ?? 0,
+      number,
+      size: meta.size ?? 5,
+      first: hasNestedPage ? (number === 0) : (meta.first ?? number === 0),
+      last: hasNestedPage
+        ? (number >= totalPages - 1)
+        : (meta.last ?? number >= totalPages - 1),
+      empty: hasNestedPage ? content.length === 0 : (meta.empty ?? content.length === 0),
+      numberOfElements: hasNestedPage ? content.length : (meta.numberOfElements ?? content.length),
     });
   }
 
