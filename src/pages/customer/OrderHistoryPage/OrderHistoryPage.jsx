@@ -173,25 +173,25 @@ export default function OrderHistoryPage() {
 
   return (
     <div className="space-y-7">
-      <section className="rounded-3xl border border-[#e7dfbd] bg-[#fffaf0] p-6 shadow-sm">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+      <section className="rounded-2xl border border-[#e7dfbd] bg-[#fffaf0] p-5 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#b84a25]">
+            <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#b84a25]">
               Tài khoản của tôi
             </p>
-            <h1 className="mt-2 text-3xl font-black text-[#3d3a2c]">
+            <h1 className="mt-1 text-2xl font-black text-[#3d3a2c]">
               Lịch sử đơn hàng
             </h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#766f60]">
+            <p className="mt-1 max-w-2xl text-xs leading-5 text-[#766f60]">
               Theo dõi trạng thái mua hàng, thanh toán và các sản phẩm bạn đã đặt.
             </p>
           </div>
 
-          <div className="rounded-2xl bg-white px-5 py-4 shadow-sm">
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#9a907a]">
+          <div className="rounded-xl bg-white px-4 py-2.5 shadow-sm border border-[#e7dfbd]/60">
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#9a907a]">
               Tổng đơn hàng
             </p>
-            <p className="mt-1 text-2xl font-black text-[#b84a25]">
+            <p className="mt-0.5 text-xl font-black text-[#b84a25]">
               {totalElements.toLocaleString("vi-VN")}
             </p>
           </div>

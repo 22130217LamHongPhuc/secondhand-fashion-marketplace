@@ -9,7 +9,11 @@ function createToastContent(message, colorClass, toastId) {
     React.createElement(
       'button',
       {
-        onClick: () => toast.dismiss(toastId),
+        onClick: (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          toast.dismiss(toastId);
+        },
         className: `shrink-0 flex items-center justify-center h-5 w-5 rounded-full hover:bg-black/5 ${colorClass} font-black cursor-pointer transition-colors text-base leading-none`,
         'aria-label': 'Đóng',
       },

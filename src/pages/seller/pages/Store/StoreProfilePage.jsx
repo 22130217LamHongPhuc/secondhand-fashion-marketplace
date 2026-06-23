@@ -462,7 +462,7 @@ const StoreProfilePage = () => {
                       Sản phẩm
                     </p>
                     <p className="mt-0.5 text-lg font-bold text-neutral-800">
-                      0
+                      {shop?.totalProducts ?? 0}
                     </p>
                   </div>
                   <div className="border-x border-neutral-100 text-center">
@@ -470,7 +470,7 @@ const StoreProfilePage = () => {
                       Đánh giá
                     </p>
                     <p className="mt-0.5 text-lg font-bold text-neutral-800">
-                      5.0/5
+                      {shop?.ratingAvg != null ? `${Number(shop.ratingAvg).toFixed(1)}/5` : "–"}
                     </p>
                   </div>
                   <div className="text-center">
@@ -478,7 +478,7 @@ const StoreProfilePage = () => {
                       Lượt đánh giá
                     </p>
                     <p className="mt-0.5 text-lg font-bold text-neutral-800">
-                      0
+                      {shop?.totalReviews ?? 0}
                     </p>
                   </div>
                 </div>

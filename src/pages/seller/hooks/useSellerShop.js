@@ -15,7 +15,7 @@ export const useSellerShop = (options = {}) => {
         const { data } = res.data;
         return Shop.fromApi(data);
       } catch (error) {
-        if (error.response && error.response.status === 404) {
+        if (error.status === 404 || (error.response && error.response.status === 404)) {
           return null; // Shop not registered yet
         }
         throw error;

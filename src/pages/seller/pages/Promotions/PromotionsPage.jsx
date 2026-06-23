@@ -153,8 +153,9 @@ const PromotionsPage = () => {
     try {
       setLoadingShopProducts(true);
       const res = await sellerProductApi.getAll({ isActive: true });
-      const rawData = res?.data?.products || res?.data || res;
-      setShopProducts(Array.isArray(rawData) ? rawData : []);
+      // sellerProductApi.getAll() trả về Spring Page format: res.data.data.content
+      const content = res?.data?.data?.content;
+      setShopProducts(Array.isArray(content) ? content : []);
     } catch (err) {
       console.error("Lỗi tải sản phẩm của shop:", err);
     } finally {

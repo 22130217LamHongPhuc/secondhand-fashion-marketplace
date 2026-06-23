@@ -153,7 +153,7 @@ export const customerOrderService = {
     return normalizeOrderDetail(data);
   },
 
-  checkout: async ({ customerId, shippingAddressId, paymentMethod, items }) => {
+  checkout: async ({ customerId, shippingAddressId, paymentMethod, items, couponCode }) => {
     const response = await http(`/api/customer/orders/checkout`, {
       method: "POST",
       body: JSON.stringify({
@@ -161,10 +161,26 @@ export const customerOrderService = {
         shippingAddressId,
         paymentMethod,
         items,
+        couponCode,
       }),
     });
     const data = unwrapData(response);
 
     return Array.isArray(data) ? data.map(normalizeOrderDetail) : data;
+  },
+
+  repay: async ({ customerId = null, orderId }) => {
+    const params = new URLSearchParams();
+    if (customerId) {
+      params.set("customerId", String(customerId));
+    }
+
+    const response = await http(
+      `/api/customer/orders/${orderId}/repay?${params.toString()}`,
+      {
+        method: "POST",
+      }
+    );
+    return unwrapData(response);
   },
 };

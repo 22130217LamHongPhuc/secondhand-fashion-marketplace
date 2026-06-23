@@ -4,6 +4,7 @@
   --font-sans:
     "Arial", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
     "Segoe UI Emoji";
+  --font-mono: "Arial", sans-serif;
 
   /* Brand Colors */
   --color-brand-primary: #c75c2e;
@@ -116,9 +117,9 @@
 
     --sans: "Arial", sans-serif;
     --heading: "Arial", sans-serif;
-    --mono: ui-monospace, Consolas, monospace;
+    --mono: "Arial", sans-serif;
 
-    font: 18px/145% var(--sans);
+    font: 16px/1.5 var(--sans);
     letter-spacing: 0.18px;
     color-scheme: light;
     color: var(--text);
@@ -164,13 +165,13 @@
   }
 
   h1 {
-    font-size: 56px;
-    letter-spacing: -1.68px;
-    margin: 32px 0;
+    font-size: 40px;
+    letter-spacing: -1.2px;
+    margin: 24px 0;
   }
 
   h2 {
-    font-size: 24px;
+    font-size: 22px;
     line-height: 118%;
     letter-spacing: -0.24px;
     margin: 0 0 8px;
@@ -194,6 +195,17 @@
     padding: 4px 8px;
     background: var(--code-bg);
   }
+}
+
+/* Keep typography consistent across customer, seller and admin screens. */
+:where(html, body, #root, #root *, #root *::before, #root *::after) {
+  font-family: Arial, sans-serif !important;
+}
+
+/* Arial Black (800/900) has incomplete Vietnamese glyph coverage on some
+   Windows installations, which makes the browser mix in a serif fallback. */
+:where(#root .font-black, #root .font-extrabold) {
+  font-weight: 700 !important;
 }
 
 /* ADMIN — Dark Mode */
