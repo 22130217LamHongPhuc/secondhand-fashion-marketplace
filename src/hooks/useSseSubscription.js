@@ -118,10 +118,10 @@ export const useSseSubscription = (channel, subscriberId, eventHandlers) => {
 
     // --- FALLBACK: Dùng EventSource trực tiếp nếu browser không hỗ trợ SharedWorker ---
     console.log('[SSE Hook] Falling back to direct EventSource subscription for channel:', channel);
-    
+
     const base = env.apiBaseUrl || window.location.origin;
     const sseUrl = `${base}/api/sse/subscribe?channel=${encodeURIComponent(channel)}&subscriberId=${encodeURIComponent(subIdStr)}`;
-    
+
     directEventSource = new EventSource(sseUrl);
 
     // Gắn listeners cho các sự kiện

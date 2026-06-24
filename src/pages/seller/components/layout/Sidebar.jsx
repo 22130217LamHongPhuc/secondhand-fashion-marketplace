@@ -7,12 +7,14 @@ import {
   Store,
   Plus,
   Tag,
+  MessageCircle,
 } from "lucide-react";
 
 const navItems = [
   { to: "/seller/dashboard", label: "Bảng điều khiển", icon: LayoutDashboard },
   { to: "/seller/products", label: "Sản phẩm", icon: Shirt },
   { to: "/seller/orders", label: "Đơn hàng", icon: ShoppingCart },
+  { to: "/seller/messages", label: "Tin nhắn", icon: MessageCircle },
   { to: "/seller/analytics", label: "Phân tích", icon: BarChart3 },
   { to: "/seller/promotions", label: "Khuyến mãi", icon: Tag },
   { to: "/seller/store-profile", label: "Hồ sơ cửa hàng", icon: Store },

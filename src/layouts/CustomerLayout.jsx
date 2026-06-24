@@ -1,10 +1,31 @@
 import { useState, useEffect } from "react";
-import { Bell, ImageUp, ReceiptText, Search, ShoppingCart, User, LogOut } from "lucide-react";
+import { Bell, ImageUp, MessageCircle, ReceiptText, Search, ShoppingCart, User, LogOut, X } from "lucide-react";
 import { Outlet, useNavigate } from "react-router-dom";
 import AuthModal from "./AuthModal";
+import CustomerChatWidget from "./CustomerChatWidget";
 import { toastService } from "@/services/toastService";
 import { cartService } from "@/services/cartService";
 import { userService } from "@/services/user";
+import { chatMockService } from "@/services/chatMockService";
+import { useSseSubscription } from "@/hooks";
+
+function formatChatTime(value) {
+  if (!value) return "";
+  return new Intl.DateTimeFormat("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    day: "2-digit",
+    month: "2-digit",
+  }).format(new Date(value));
+}
+
+function getChatInitials(name) {
+  if (!name) return "SH";
+  const parts = String(name).trim().split(/\s+/).filter(Boolean);
+  const first = parts[0]?.[0] || "";
+  const last = parts.length > 1 ? parts[parts.length - 1]?.[0] || "" : "";
+  return `${first}${last}`.toUpperCase() || "SH";
+}
 
 export default function CustomerLayout() {
   const navigate = useNavigate();
@@ -12,6 +33,22 @@ export default function CustomerLayout() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isChatModalOpen, setIsChatModalOpen] = useState(false);
+  const [chatConversations, setChatConversations] = useState([]);
+
+  const totalUnreadCount = chatConversations.reduce((sum, conv) => sum + (conv.customerUnreadCount || 0), 0);
+
+  // Subscribe to real-time chat updates via SSE
+  useSseSubscription("chat", user?.userId, {
+    "chat-message": (data) => {
+      console.log("[SSE Chat Customer] Received chat-message:", data);
+      window.dispatchEvent(new CustomEvent("secondhand-chat-updated"));
+    },
+    "chat-updated": (data) => {
+      console.log("[SSE Chat Customer] Received chat-updated:", data);
+      window.dispatchEvent(new CustomEvent("secondhand-chat-updated"));
+    }
+  });
 
   useEffect(() => {
     if (!isDropdownOpen) return;
@@ -32,6 +69,26 @@ export default function CustomerLayout() {
     });
 
     return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    chatMockService.getConversations("CUSTOMER")
+      .then((conversations) => {
+        if (isMounted) setChatConversations(conversations);
+      })
+      .catch(() => {
+        if (isMounted) setChatConversations([]);
+      });
+
+    const unsubscribe = chatMockService.subscribe((conversations) => {
+      setChatConversations(conversations);
+    }, "CUSTOMER");
+
+    return () => {
+      isMounted = false;
       unsubscribe();
     };
   }, []);
@@ -94,6 +151,24 @@ export default function CustomerLayout() {
     setUser(null);
     toastService.info("Đã đăng xuất tài khoản.");
     navigate("/");
+  };
+
+  const handleOpenChatList = async () => {
+    if (!user) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+    setChatConversations(await chatMockService.getConversations("CUSTOMER"));
+    setIsChatModalOpen(true);
+  };
+
+  const handleSelectConversation = (conversationId) => {
+    window.dispatchEvent(
+      new CustomEvent("open-customer-chat", {
+        detail: { conversationId },
+      }),
+    );
+    setIsChatModalOpen(false);
   };
 
   const getInitials = (name) => {
@@ -169,6 +244,103 @@ export default function CustomerLayout() {
             <button type="button">
               <Bell size={18} />
             </button>
+
+            <div className="relative">
+              <button
+                type="button"
+                onClick={handleOpenChatList}
+                className="relative cursor-pointer hover:opacity-80 transition-opacity"
+                aria-label="Tin nhắn với shop"
+                title="Tin nhắn với shop"
+              >
+                <MessageCircle size={18} />
+                {user && totalUnreadCount > 0 && (
+                  <span className="absolute -top-2 -right-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#c04f25] px-1 text-[9px] font-extrabold text-white">
+                    {Math.min(totalUnreadCount, 9)}
+                  </span>
+                )}
+              </button>
+
+              {isChatModalOpen && (
+                <section className="absolute right-0 top-8 z-[60] w-[360px] overflow-hidden rounded-2xl border border-[#e7dfbd] bg-white text-[#3f3b2f] shadow-2xl">
+                  <div className="absolute -top-2 right-3 h-4 w-4 rotate-45 border-l border-t border-[#e7dfbd] bg-[#faf7e7]" />
+                  <header className="relative flex items-center justify-between border-b border-[#efe8cf] bg-[#faf7e7] px-4 py-3">
+                    <div>
+                      <h2 className="text-base font-extrabold text-[#3f3b2f]">Tin nhắn với shop</h2>
+                      <p className="mt-0.5 text-xs font-semibold text-[#7c7565]">
+                        Các shop bạn đã từng nhắn tin
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsChatModalOpen(false)}
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-[#7c7565] transition hover:bg-[#efe8cf] hover:text-[#b84a25]"
+                      aria-label="Đóng danh sách tin nhắn"
+                    >
+                      <X size={17} />
+                    </button>
+                  </header>
+
+                  <div className="max-h-[420px] overflow-y-auto p-2">
+                    {chatConversations.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center px-6 py-10 text-center">
+                        <MessageCircle size={34} className="mb-3 text-[#c04f25]" />
+                        <p className="text-sm font-extrabold text-[#3f3b2f]">Chưa có shop nào</p>
+                        <p className="mt-1 text-xs font-semibold text-[#7c7565]">
+                          Khi bạn bấm nhắn tin ở trang sản phẩm, shop sẽ xuất hiện tại đây.
+                        </p>
+                      </div>
+                    ) : (
+                      chatConversations.map((conversation) => {
+                        return (
+                          <button
+                            type="button"
+                            key={conversation.id}
+                            onClick={() => handleSelectConversation(conversation.id)}
+                            className="flex w-full items-start gap-3 rounded-xl p-3 text-left transition hover:bg-[#faf7e7]"
+                          >
+                            <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#d9efc4] text-sm font-extrabold text-[#4c7d38]">
+                              {conversation.shopAvatarUrl ? (
+                                <img
+                                  src={conversation.shopAvatarUrl}
+                                  alt=""
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                getChatInitials(conversation.shopName)
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-start justify-between gap-3">
+                                <p className="truncate text-sm font-extrabold text-[#3f3b2f]">
+                                  {conversation.shopName}
+                                </p>
+                                <div className="flex flex-col items-end gap-1 shrink-0">
+                                  <span className="text-[10px] font-bold text-[#9c927b]">
+                                    {formatChatTime(conversation.updatedAt)}
+                                  </span>
+                                  {conversation.customerUnreadCount > 0 && (
+                                    <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-[#c04f25] px-1 text-[9px] font-extrabold text-white">
+                                      {conversation.customerUnreadCount}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <p className="mt-0.5 truncate text-xs font-semibold text-[#7c7565]">
+                                {conversation.productName || "Hỏi đáp với shop"}
+                              </p>
+                              <p className="mt-1 truncate text-xs text-[#9c927b]">
+                                {conversation.lastMessagePreview || "Chưa có tin nhắn"}
+                              </p>
+                            </div>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </section>
+              )}
+            </div>
 
             <button
               type="button"
@@ -277,6 +449,8 @@ export default function CustomerLayout() {
         onClose={() => setIsAuthModalOpen(false)}
         onSuccess={handleAuthSuccess}
       />
+
+      {user ? <CustomerChatWidget /> : null}
     </div>
   );
 }
