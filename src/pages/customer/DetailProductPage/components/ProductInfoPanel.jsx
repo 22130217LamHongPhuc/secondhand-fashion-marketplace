@@ -1,4 +1,4 @@
-import { ShoppingCart, Star, Truck, RotateCcw } from "lucide-react";
+import { MessageCircle, ShoppingCart, Star, Truck, RotateCcw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cartService } from "@/services/cartService";
 import { toastService } from "@/services/toastService";
@@ -26,6 +26,22 @@ export function ProductInfoPanel({ product }) {
     } else {
       toastService.error(res.message);
     }
+  };
+
+  const handleMessageShop = () => {
+    if (!localStorage.getItem("token")) {
+      toastService.info("Đăng nhập để nhắn tin với shop.");
+      return;
+    }
+
+    window.dispatchEvent(
+      new CustomEvent("open-customer-chat", {
+        detail: {
+          shop: product.shop,
+          initialMessage: "Xin chào shop, mình muốn trao đổi thêm.",
+        },
+      }),
+    );
   };
 
   return (
@@ -100,6 +116,15 @@ export function ProductInfoPanel({ product }) {
       </div>
 
       <div className="space-y-3 pt-8">
+        <button
+          type="button"
+          onClick={handleMessageShop}
+          className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-[#c04f25] bg-white font-bold text-[#b84a25] transition hover:bg-[#fff3ea] cursor-pointer"
+        >
+          <MessageCircle size={18} />
+          Nhắn tin với shop
+        </button>
+
         <button
           onClick={handleAddToCart}
           disabled={product.stockQuantity === 0}
