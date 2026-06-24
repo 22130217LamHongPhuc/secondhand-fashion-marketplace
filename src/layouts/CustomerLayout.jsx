@@ -241,8 +241,16 @@ export default function CustomerLayout() {
               <ImageUp size={18} />
             </button>
 
-            <button type="button">
+            <button
+              type="button"
+              className="relative cursor-pointer hover:opacity-80 transition-opacity"
+              aria-label="Thông báo"
+              title="Thông báo"
+            >
               <Bell size={18} />
+              {user && totalUnreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-[#c04f25]" />
+              )}
             </button>
 
             <div className="relative">
@@ -319,17 +327,18 @@ export default function CustomerLayout() {
                                   <span className="text-[10px] font-bold text-[#9c927b]">
                                     {formatChatTime(conversation.updatedAt)}
                                   </span>
-                                  {conversation.customerUnreadCount > 0 && (
-                                    <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-[#c04f25] px-1 text-[9px] font-extrabold text-white">
-                                      {conversation.customerUnreadCount}
-                                    </span>
-                                  )}
                                 </div>
                               </div>
-                              <p className="mt-0.5 truncate text-xs font-semibold text-[#7c7565]">
-                                {conversation.productName || "Hỏi đáp với shop"}
-                              </p>
-                              <p className="mt-1 truncate text-xs text-[#9c927b]">
+                              {conversation.productName && (
+                                <p className="mt-0.5 truncate text-xs font-semibold text-[#7c7565]">
+                                  {conversation.productName}
+                                </p>
+                              )}
+                              <p className={`mt-1 truncate text-xs ${
+                                conversation.customerUnreadCount > 0
+                                  ? "font-bold text-[#3f3b2f]"
+                                  : "font-normal text-[#9c927b]"
+                              }`}>
                                 {conversation.lastMessagePreview || "Chưa có tin nhắn"}
                               </p>
                             </div>
