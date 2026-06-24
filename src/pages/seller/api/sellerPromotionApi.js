@@ -33,9 +33,8 @@ const sellerPromotionApi = {
     return axiosInstance.delete(`${BASE}/campaigns/${campaignId}/products/${productId}`);
   },
 
-  // We can query admin campaigns products endpoint to check registration details for simplicity
   getCampaignProducts: (campaignId) => {
-    return axiosInstance.get(`/api/admin/promotions/campaigns/${campaignId}/products`);
+    return axiosInstance.get(`${BASE}/campaigns/${campaignId}/products`);
   }
 };
 

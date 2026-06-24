@@ -8,6 +8,7 @@ import StoreProfilePage from '../pages/Store/StoreProfilePage';
 import PromotionsPage from '../pages/Promotions/PromotionsPage';
 import SellerLayout from '../layout/SellerLayout';
 import OrderDetailPage from '../pages/Orders/OrderDetailPage';
+import MessagesPage from '../pages/MessagesPage';
 
 const SellerRoutes = () => {
   return (
@@ -20,6 +21,7 @@ const SellerRoutes = () => {
         <Route path="products/:id" element={<ProductDetailPage />} />
         <Route path="orders" element={<OrdersPage />} />
         <Route path="orders/:id" element={<OrderDetailPage />} />
+        <Route path="messages" element={<MessagesPage />} />
         <Route path="analytics" element={<AnalyticsPage />} />
         <Route path="promotions" element={<PromotionsPage />} />
         <Route path="store-profile" element={<StoreProfilePage />} />

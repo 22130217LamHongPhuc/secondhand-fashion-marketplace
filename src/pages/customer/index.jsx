@@ -7,10 +7,18 @@ import ImageSearchPage from "./ImageSearchPage/ImageSearchPage";
 import OrderDetailPage from "./OrderHistoryPage/OrderDetailPage";
 import OrderHistoryPage from "./OrderHistoryPage/OrderHistoryPage";
 import CreateStorePage from "../seller/pages/Store/CreateStorePage";
+import { Profile } from "../user/pages/Profile";
+import CartPage from "./CartPage";
+import CheckoutPage from "./CheckoutPage";
+
 export const customerRoutes = [
   {
     index: true,
     element: <HomePage />,
+  },
+  {
+    path: "profile",
+    element: <Profile />,
   },
   {
     path: "shops",
@@ -43,5 +51,13 @@ export const customerRoutes = [
   {
     path: "regis-shop",
     element: <CreateStorePage />,
+  },
+  {
+    path: "cart",
+    element: <CartPage />,
+  },
+  {
+    path: "checkout",
+    element: <CheckoutPage />,
   },
 ];

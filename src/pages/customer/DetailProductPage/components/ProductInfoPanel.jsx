@@ -1,5 +1,7 @@
-import { ShoppingCart, Star, Truck, RotateCcw } from "lucide-react";
+import { MessageCircle, ShoppingCart, Star, Truck, RotateCcw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { cartService } from "@/services/cartService";
+import { toastService } from "@/services/toastService";
 
 export function ProductInfoPanel({ product }) {
   const navigateToShop = useNavigate();
@@ -8,16 +10,65 @@ export function ProductInfoPanel({ product }) {
     navigateToShop(`/shop/${id}`);
   };
 
+  const handleAddToCart = () => {
+    const res = cartService.addToCart(product);
+    if (res.success) {
+      toastService.success("Đã thêm sản phẩm vào giỏ hàng!");
+    } else {
+      toastService.warning(res.message);
+    }
+  };
+
+  const handleBuyNow = () => {
+    const res = cartService.addToCart(product);
+    if (res.success || res.message === "Sản phẩm đã có trong giỏ hàng!") {
+      navigateToShop("/cart", { state: { buyNowProductId: product.id } });
+    } else {
+      toastService.error(res.message);
+    }
+  };
+
+  const handleMessageShop = () => {
+    if (!localStorage.getItem("token")) {
+      toastService.info("Đăng nhập để nhắn tin với shop.");
+      return;
+    }
+
+    window.dispatchEvent(
+      new CustomEvent("open-customer-chat", {
+        detail: {
+          shop: product.shop,
+          initialMessage: "Xin chào shop, mình muốn trao đổi thêm.",
+        },
+      }),
+    );
+  };
+
   return (
     <aside className="space-y-6">
       <div>
-        <div className="mb-3 flex items-center gap-2">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
           <span className="rounded-full bg-[#d9efc4] px-3 py-1 text-xs font-semibold text-[#4c7d38]">
             {product.category}
           </span>
-          <span className="rounded-full bg-[#f4d8bd] px-3 py-1 text-xs font-semibold text-[#b84a25]">
-            {product.condition}
-          </span>
+          {product.condition && (
+            <span className="rounded-full bg-[#f4d8bd] px-3 py-1 text-xs font-semibold text-[#b84a25]">
+              {product.condition}
+            </span>
+          )}
+          {product.stockQuantity === 0 ? (
+            <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-bold text-red-700 animate-pulse">
+              Hết hàng
+            </span>
+          ) : product.stockQuantity === 1 ? (
+            <span className="rounded-full bg-[#ffeedb] px-3 py-1 text-xs font-bold text-[#b87825]">
+              Hàng độc bản
+            </span>
+          ) : (
+            <span className="rounded-full bg-[#e6f4ea] px-3 py-1 text-xs font-bold text-[#137333]">
+              Còn {product.stockQuantity} sản phẩm
+            </span>
+          )}
         </div>
 
         <h2 className="text-3xl font-extrabold tracking-tight text-[#3d3a2c]">
@@ -65,12 +116,29 @@ export function ProductInfoPanel({ product }) {
       </div>
 
       <div className="space-y-3 pt-8">
-        <button className="flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-[#c04f25] font-bold text-white shadow-sm transition hover:bg-[#a9411d]">
-          <ShoppingCart size={18} />
-          Thêm vào giỏ
+        <button
+          type="button"
+          onClick={handleMessageShop}
+          className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-[#c04f25] bg-white font-bold text-[#b84a25] transition hover:bg-[#fff3ea] cursor-pointer"
+        >
+          <MessageCircle size={18} />
+          Nhắn tin với shop
         </button>
 
-        <button className="h-14 w-full rounded-xl bg-[#ffc28f] font-bold text-[#6c331b] transition hover:bg-[#ffb678]">
+        <button
+          onClick={handleAddToCart}
+          disabled={product.stockQuantity === 0}
+          className="flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-[#c04f25] font-bold text-white shadow-sm transition hover:bg-[#a9411d] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+        >
+          <ShoppingCart size={18} />
+          {product.stockQuantity === 0 ? "Hết hàng" : "Thêm vào giỏ"}
+        </button>
+
+        <button
+          onClick={handleBuyNow}
+          disabled={product.stockQuantity === 0}
+          className="h-14 w-full rounded-xl bg-[#ffc28f] font-bold text-[#6c331b] transition hover:bg-[#ffb678] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+        >
           Mua ngay
         </button>
       </div>

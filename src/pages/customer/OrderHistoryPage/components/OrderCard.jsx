@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Ban,
   CalendarDays,
@@ -5,6 +6,7 @@ import {
   PackageSearch,
   Store,
   WalletCards,
+  Loader2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -13,16 +15,53 @@ import {
 } from "../constants";
 import { formatDate, formatVnd } from "../utils";
 import OrderStatusBadge from "./OrderStatusBadge";
+import { customerOrderService } from "@/services/customerOrder";
+import { toastService } from "@/services/toastService";
 
 export default function OrderCard({ order, onCancel }) {
   const navigate = useNavigate();
+  const [paying, setPaying] = useState(false);
+
   const canCancel = order.status === "PENDING";
+  const canRepay =
+    order.status === "PENDING" &&
+    order.paymentMethod === "WALLET" &&
+    order.paymentStatus !== "PAID";
+
   const paymentMethod =
     PAYMENT_METHOD_LABELS[order.paymentMethod] ||
     order.paymentMethod ||
     "Thanh toán";
   const paymentStatus =
     PAYMENT_STATUS_LABELS[order.paymentStatus] || order.paymentStatus || "";
+
+  const handleRepay = async () => {
+    setPaying(true);
+    try {
+      const storedUser = localStorage.getItem("user");
+      let customerId = null;
+      if (storedUser) {
+        customerId = JSON.parse(storedUser).userId;
+      }
+      const result = await customerOrderService.repay({
+        customerId,
+        orderId: order.id,
+      });
+      if (result?.paymentUrl) {
+        toastService.success("Đang chuyển hướng sang cổng thanh toán VNPay...");
+        setTimeout(() => {
+          window.location.href = result.paymentUrl;
+        }, 1000);
+      } else {
+        toastService.error("Không tạo được link thanh toán VNPay. Vui lòng thử lại.");
+      }
+    } catch (err) {
+      console.error(err);
+      toastService.error(err?.message || "Thanh toán lại thất bại. Vui lòng thử lại.");
+    } finally {
+      setPaying(false);
+    }
+  };
 
   return (
     <article className="overflow-hidden rounded-2xl border border-[#e7dfbd] bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
@@ -125,10 +164,28 @@ export default function OrderCard({ order, onCancel }) {
               </button>
             ) : null}
 
+            {canRepay ? (
+              <button
+                type="button"
+                disabled={paying}
+                onClick={handleRepay}
+                className="inline-flex items-center gap-1.5 rounded-full bg-[#c04f25] px-5 py-2.5 text-sm font-extrabold text-white transition hover:bg-[#a9411d] disabled:opacity-50 cursor-pointer"
+              >
+                {paying ? (
+                  <>
+                    <Loader2 className="animate-spin" size={14} />
+                    Đang xử lý...
+                  </>
+                ) : (
+                  "Thanh toán lại"
+                )}
+              </button>
+            ) : null}
+
             <button
               type="button"
               onClick={() => navigate(`/orders/${order.id}`)}
-              className="rounded-full bg-[#3d3a2c] px-5 py-2.5 text-sm font-extrabold text-white transition hover:bg-[#29271f]"
+              className="rounded-full bg-[#3d3a2c] px-5 py-2.5 text-sm font-extrabold text-white transition hover:bg-[#29271f] cursor-pointer"
             >
               Xem chi tiết
             </button>
