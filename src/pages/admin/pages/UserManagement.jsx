@@ -41,7 +41,7 @@ export function UserManagement() {
       }
 
       const [response, statistics] = await Promise.all([
-        userService.getAll(page, 10, filters),
+        userService.getAll(page, 20, filters),
         userService.getStatistics().catch(() => null),
       ]);
 
@@ -78,7 +78,7 @@ export function UserManagement() {
   const handleBanUser = async (userId, reason) => {
     try {
       await userService.ban(userId, reason);
-      alert("Cấm người dùng thành công!");
+      alert("Khóa tài khoản người dùng thành công!");
       loadUsers();
     } catch (err) {
       alert("Lỗi: " + err.message);
@@ -88,7 +88,7 @@ export function UserManagement() {
   const handleUnbanUser = async (userId) => {
     try {
       await userService.unban(userId);
-      alert("Gỡ cấm người dùng thành công!");
+      alert("Mở khóa tài khoản thành công!");
       loadUsers();
     } catch (err) {
       alert("Lỗi: " + err.message);
@@ -143,11 +143,9 @@ export function UserManagement() {
 
   const filteredUsersNormalized = normalizedUsers;
 
-  const totalUsersCount = stats.totalUsers ?? stats.total ?? users.length;
-  const newSellerCount =
-    stats.newSellers ??
-    stats.newUsers ??
-    normalizedUsers.filter((user) => user.role === "seller").length;
+  const totalUsersCount = stats.totalUsers ?? users.length;
+  const buyerCount = stats.totalCustomers ?? normalizedUsers.filter((user) => user.role === "buyer").length;
+  const sellerCount = stats.totalSellers ?? normalizedUsers.filter((user) => user.role === "seller").length;
   const lockedCount = stats.lockedUsers ?? normalizedUsers.filter((user) => user.status === "banned").length;
 
   const formatRole = (role) => {
@@ -177,10 +175,10 @@ export function UserManagement() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <div className="bg-white border border-stone-200/60 rounded-xl p-3.5 flex items-center justify-between shadow-sm">
           <div>
-            <div className="text-[10px] font-bold text-stone-400 tracking-wider uppercase">TỔNG NGƯỜI DÙNG</div>
+            <div className="text-[10px] font-bold text-stone-400 tracking-wider uppercase">TỔNG TÀI KHOẢN</div>
             <div className="text-2xl font-black text-stone-900 mt-1">{totalUsersCount.toLocaleString("vi-VN")}</div>
           </div>
           <div className="w-9 h-9 rounded-lg grid place-items-center bg-orange-50 text-[#c85a28]">
@@ -190,8 +188,18 @@ export function UserManagement() {
 
         <div className="bg-white border border-stone-200/60 rounded-xl p-3.5 flex items-center justify-between shadow-sm">
           <div>
-            <div className="text-[10px] font-bold text-stone-400 tracking-wider uppercase">NGƯỜI BÁN MỚI</div>
-            <div className="text-2xl font-black text-stone-900 mt-1">{newSellerCount.toLocaleString("vi-VN")}</div>
+            <div className="text-[10px] font-bold text-stone-400 tracking-wider uppercase">NGƯỜI MUA</div>
+            <div className="text-2xl font-black text-stone-900 mt-1">{buyerCount.toLocaleString("vi-VN")}</div>
+          </div>
+          <div className="w-9 h-9 rounded-lg grid place-items-center bg-emerald-50 text-emerald-700">
+            <Users className="w-5 h-5 text-emerald-700" />
+          </div>
+        </div>
+
+        <div className="bg-white border border-stone-200/60 rounded-xl p-3.5 flex items-center justify-between shadow-sm">
+          <div>
+            <div className="text-[10px] font-bold text-stone-400 tracking-wider uppercase">NGƯỜI BÁN</div>
+            <div className="text-2xl font-black text-stone-900 mt-1">{sellerCount.toLocaleString("vi-VN")}</div>
           </div>
           <div className="w-9 h-9 rounded-lg grid place-items-center bg-amber-50 text-amber-700">
             <Store className="w-5 h-5 text-amber-700" />
@@ -293,7 +301,7 @@ export function UserManagement() {
                       <td className="p-3.5 text-stone-850 text-[13px] align-middle">
                         <span className={`inline-flex items-center py-1 px-3 rounded-full text-[11px] font-bold uppercase ${user.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
                           }`}>
-                          {user.status === "active" ? "Hoạt động" : "Bị cấm"}
+                          {user.status === "active" ? "Hoạt động" : "Bị khóa"}
                         </span>
                       </td>
                       <td className="p-3.5 text-stone-850 text-[13px] align-middle">
@@ -315,7 +323,7 @@ export function UserManagement() {
 
             <div className="flex justify-between items-center mt-6 flex-wrap gap-4">
               <div className="text-stone-400 text-xs font-semibold">
-                Hiển thị trang {page} trên {totalPages}
+                Hiển thị {normalizedUsers.length > 0 ? (page - 1) * 30 + 1 : 0} - {Math.min(page * 30, totalUsersCount)} trong số {totalUsersCount} người dùng
               </div>
 
               <div className="flex items-center gap-1.5">
@@ -376,7 +384,7 @@ export function UserManagement() {
                 <div className="mt-2.5">
                   <span className={`inline-flex items-center py-1 px-3.5 rounded-full text-[11px] font-bold uppercase ${selectedUser.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
                     }`}>
-                    {selectedUser.status === "active" ? "Hoạt động" : "Bị cấm"}
+                    {selectedUser.status === "active" ? "Hoạt động" : "Bị khóa"}
                   </span>
                 </div>
               </div>
@@ -440,14 +448,11 @@ export function UserManagement() {
                 <button
                   className="py-2.5 px-5 bg-rose-600 hover:bg-rose-700 text-white border-none rounded-xl font-bold text-sm transition-all cursor-pointer flex-1"
                   onClick={() => {
-                    const reason = window.prompt("Nhập lý do cấm:");
-                    if (reason) {
-                      handleBanUser(selectedUser.id, reason);
-                      setShowDetailModal(false);
-                    }
+                    handleBanUser(selectedUser.id, "Locked by admin");
+                    setShowDetailModal(false);
                   }}
                 >
-                  Cấm người dùng
+                  Khóa tài khoản
                 </button>
               ) : (
                 <button
@@ -457,18 +462,9 @@ export function UserManagement() {
                     setShowDetailModal(false);
                   }}
                 >
-                  Gỡ cấm hoạt động
+                  Mở khóa tài khoản
                 </button>
               )}
-              <button
-                className="py-2.5 px-5 bg-stone-100 hover:bg-stone-200 text-stone-700 border-none rounded-xl font-bold text-sm transition-all cursor-pointer"
-                onClick={() => {
-                  handleDeleteUser(selectedUser.id);
-                  setShowDetailModal(false);
-                }}
-              >
-                Xóa tài khoản
-              </button>
             </div>
           </div>
         </div>

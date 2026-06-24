@@ -1,6 +1,6 @@
 import React from "react";
 
-export function OrderDetailView({ order, onBack, onUpdateStatus, onCancelOrder }) {
+export function OrderDetailView({ order, onBack, onUpdateStatus, onCancelOrder, readOnly = false }) {
   // Map raw status to user-friendly Vietnamese labels and colors
   const getStatusDetails = (status) => {
     const s = (status || "pending").toLowerCase();
@@ -190,33 +190,106 @@ export function OrderDetailView({ order, onBack, onUpdateStatus, onCancelOrder }
             <span>{statusInfo.label}</span>
           </span>
         </div>
-        <div className="flex gap-3 w-full sm:w-auto justify-end">
-          {(order.status || "pending").toLowerCase() === "pending" && (
-            <>
-              <button
-                className="bg-[#f0e9d6] hover:bg-[#e6ddc4] text-[#8b5a3c] hover:text-[#704324] border border-[#e1d6b9] rounded-xl py-2.5 px-5 text-[13px] font-bold flex items-center gap-2 cursor-pointer transition-all active:scale-95"
-                onClick={() => onCancelOrder(order.id)}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+        {!readOnly && (
+          <div className="flex gap-3 w-full sm:w-auto justify-end">
+            {(order.status || "pending").toLowerCase() === "pending" && (
+              <>
+                <button
+                  className="bg-[#f0e9d6] hover:bg-[#e6ddc4] text-[#8b5a3c] hover:text-[#704324] border border-[#e1d6b9] rounded-xl py-2.5 px-5 text-[13px] font-bold flex items-center gap-2 cursor-pointer transition-all active:scale-95"
+                  onClick={() => onCancelOrder(order.id)}
                 >
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="15" y1="9" x2="9" y2="15" />
-                  <line x1="9" y1="9" x2="15" y2="15" />
-                </svg>
-                <span>Hủy đơn</span>
-              </button>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="15" y1="9" x2="9" y2="15" />
+                    <line x1="9" y1="9" x2="15" y2="15" />
+                  </svg>
+                  <span>Hủy đơn</span>
+                </button>
+                <button
+                  className="bg-[#c85a28] hover:bg-[#b54a1a] text-white border-none rounded-xl py-2.5 px-5 text-[13px] font-bold flex items-center gap-2 cursor-pointer transition-all active:scale-95 shadow-[0_4px_10px_rgba(200,90,40,0.15)] hover:shadow-[0_6px_14px_rgba(200,90,40,0.25)] hover:-translate-y-[1px]"
+                  onClick={() => onUpdateStatus(order.id, "confirmed")}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  <span>Xác nhận đơn</span>
+                </button>
+              </>
+            )}
+
+            {(order.status || "pending").toLowerCase() === "confirmed" && (
+              <>
+                <button
+                  className="bg-[#f0e9d6] hover:bg-[#e6ddc4] text-[#8b5a3c] hover:text-[#704324] border border-[#e1d6b9] rounded-xl py-2.5 px-5 text-[13px] font-bold flex items-center gap-2 cursor-pointer transition-all active:scale-95"
+                  onClick={() => onCancelOrder(order.id)}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="15" y1="9" x2="9" y2="15" />
+                    <line x1="9" y1="9" x2="15" y2="15" />
+                  </svg>
+                  <span>Hủy đơn</span>
+                </button>
+                <button
+                  className="bg-[#c85a28] hover:bg-[#b54a1a] text-white border-none rounded-xl py-2.5 px-5 text-[13px] font-bold flex items-center gap-2 cursor-pointer transition-all active:scale-95 shadow-[0_4px_10px_rgba(200,90,40,0.15)] hover:shadow-[0_6px_14px_rgba(200,90,40,0.25)] hover:-translate-y-[1px]"
+                  onClick={() => onUpdateStatus(order.id, "shipping")}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <rect x="1" y="3" width="15" height="13" />
+                    <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
+                    <circle cx="5.5" cy="18.5" r="2.5" />
+                    <circle cx="18.5" cy="18.5" r="2.5" />
+                  </svg>
+                  <span>Giao hàng</span>
+                </button>
+              </>
+            )}
+
+            {((order.status || "pending").toLowerCase() === "shipping" ||
+              (order.status || "pending").toLowerCase() === "shipped") && (
               <button
                 className="bg-[#c85a28] hover:bg-[#b54a1a] text-white border-none rounded-xl py-2.5 px-5 text-[13px] font-bold flex items-center gap-2 cursor-pointer transition-all active:scale-95 shadow-[0_4px_10px_rgba(200,90,40,0.15)] hover:shadow-[0_6px_14px_rgba(200,90,40,0.25)] hover:-translate-y-[1px]"
-                onClick={() => onUpdateStatus(order.id, "confirmed")}
+                onClick={() => onUpdateStatus(order.id, "done")}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -231,82 +304,23 @@ export function OrderDetailView({ order, onBack, onUpdateStatus, onCancelOrder }
                 >
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
-                <span>Xác nhận đơn</span>
+                <span>Hoàn thành đơn</span>
               </button>
-            </>
-          )}
-
-          {(order.status || "pending").toLowerCase() === "confirmed" && (
-            <>
-              <button
-                className="bg-[#f0e9d6] hover:bg-[#e6ddc4] text-[#8b5a3c] hover:text-[#704324] border border-[#e1d6b9] rounded-xl py-2.5 px-5 text-[13px] font-bold flex items-center gap-2 cursor-pointer transition-all active:scale-95"
-                onClick={() => onCancelOrder(order.id)}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="15" y1="9" x2="9" y2="15" />
-                  <line x1="9" y1="9" x2="15" y2="15" />
-                </svg>
-                <span>Hủy đơn</span>
-              </button>
-              <button
-                className="bg-[#c85a28] hover:bg-[#b54a1a] text-white border-none rounded-xl py-2.5 px-5 text-[13px] font-bold flex items-center gap-2 cursor-pointer transition-all active:scale-95 shadow-[0_4px_10px_rgba(200,90,40,0.15)] hover:shadow-[0_6px_14px_rgba(200,90,40,0.25)] hover:-translate-y-[1px]"
-                onClick={() => onUpdateStatus(order.id, "shipping")}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <rect x="1" y="3" width="15" height="13" />
-                  <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
-                  <circle cx="5.5" cy="18.5" r="2.5" />
-                  <circle cx="18.5" cy="18.5" r="2.5" />
-                </svg>
-                <span>Giao hàng</span>
-              </button>
-            </>
-          )}
-
-          {((order.status || "pending").toLowerCase() === "shipping" ||
-            (order.status || "pending").toLowerCase() === "shipped") && (
-            <button
-              className="bg-[#c85a28] hover:bg-[#b54a1a] text-white border-none rounded-xl py-2.5 px-5 text-[13px] font-bold flex items-center gap-2 cursor-pointer transition-all active:scale-95 shadow-[0_4px_10px_rgba(200,90,40,0.15)] hover:shadow-[0_6px_14px_rgba(200,90,40,0.25)] hover:-translate-y-[1px]"
-              onClick={() => onUpdateStatus(order.id, "done")}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <polyline points="20 6 9 17 4 12" />
+            )}
+          </div>
+        )}
+        {readOnly && (
+          <div className="flex gap-3 w-full sm:w-auto justify-end">
+            <div className="bg-[#fffaf0] border border-[#f3ebd8] rounded-xl py-2.5 px-5 text-[13px] font-semibold text-[#9b6e4e] flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="16" x2="12" y2="12"/>
+                <line x1="12" y1="8" x2="12.01" y2="8"/>
               </svg>
-              <span>Hoàn thành đơn</span>
-            </button>
-          )}
-        </div>
+              <span>Chỉ xem • Seller xử lý đơn</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Main layout columns */}
@@ -394,6 +408,33 @@ export function OrderDetailView({ order, onBack, onUpdateStatus, onCancelOrder }
 
         {/* Right Column: Customer and Timeline */}
         <div>
+          {/* Shop Card */}
+          <div className="bg-[#fffaf0] border border-[#f3ebd8] rounded-2xl p-6 shadow-[0_4px_16px_rgba(139,90,60,0.04)] mb-5">
+            <h3 className="text-lg font-bold text-[#3e2723] m-0 mb-5 flex items-center gap-2">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-[#c85a28]"
+              >
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                <polyline points="9 22 9 12 15 12 15 22" />
+              </svg>
+              <span>Cửa hàng (Shop)</span>
+            </h3>
+            <div className="flex flex-col gap-2">
+              <div className="text-base font-bold text-[#3e2723] mb-1">{order.shopName || "Cửa hàng thời trang"}</div>
+              {order.shopOwner && <div className="text-xs text-[#8b7d6a]">Chủ shop: {order.shopOwner}</div>}
+              {order.shopPhone && <div className="text-xs text-[#8b7d6a]">SĐT: {order.shopPhone}</div>}
+            </div>
+          </div>
+
           {/* Customer Card */}
           <div className="bg-[#fffaf0] border border-[#f3ebd8] rounded-2xl p-6 shadow-[0_4px_16px_rgba(139,90,60,0.04)] mb-5">
             <h3 className="text-lg font-bold text-[#3e2723] m-0 mb-5 flex items-center gap-2">

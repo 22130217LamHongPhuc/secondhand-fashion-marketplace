@@ -1,3 +1,21 @@
+/**
+ * OrderManagement - Admin View (Read-Only)
+ * 
+ * Admin role CAN:
+ * - View all orders across all shops
+ * - Filter by status, date, shop
+ * - Search orders
+ * - View order details
+ * 
+ * Admin role CANNOT:
+ * - Update order status (only SELLER can)
+ * - Cancel orders (only SELLER can)
+ * - Process orders (only SELLER can)
+ * 
+ * This is a marketplace platform where sellers manage their own orders.
+ * Admin only monitors for platform oversight.
+ */
+
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { orderService } from "@/services/admin";
@@ -93,9 +111,10 @@ export function OrderManagement() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [shopFilter, setShopFilter] = useState("all");
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -107,7 +126,11 @@ export function OrderManagement() {
 
   useEffect(() => {
     loadOrders();
-  }, [page, statusFilter]);
+  }, [statusFilter]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter, dateFilter, searchTerm, shopFilter, startDate, endDate]);
 
   useEffect(() => {
     if (orderId) {
@@ -151,23 +174,22 @@ export function OrderManagement() {
     try {
       setLoading(true);
       const filters = statusFilter !== "all" ? { status: statusFilter } : {};
-      const response = await orderService.getAll(page, 10, filters).catch(() => null);
+      // Fetch all orders in one request to allow full searching/filtering and correct stats
+      const response = await orderService.getAll(1, 10000, filters).catch(() => null);
 
       const rawData = response?.data || response || {};
       const apiOrders = rawData.data || rawData.content || rawData.items || (Array.isArray(rawData) ? rawData : []);
-      const fallbackOrders = page === 1 && statusFilter === "all" && apiOrders.length === 0 ? demoOrders : [];
+      const fallbackOrders = statusFilter === "all" && apiOrders.length === 0 ? demoOrders : [];
       const ordersToSet = apiOrders.length > 0 ? apiOrders : fallbackOrders;
       const normalizedOrders = ordersToSet.map(order => ({
         ...order,
         status: order.status ? order.status.toLowerCase() : order.status
       }));
       setOrders(normalizedOrders);
-      setTotalPages(rawData.totalPages || rawData.total_pages || 1);
       setError(null);
     } catch (err) {
-      if (page === 1 && statusFilter === "all") {
+      if (statusFilter === "all") {
         setOrders(demoOrders);
-        setTotalPages(1);
       } else {
         setError(err.message);
         console.error(err);
@@ -177,6 +199,9 @@ export function OrderManagement() {
     }
   };
 
+  // ADMIN READ-ONLY: These functions are disabled for admin role
+  // Only sellers can update order status and cancel orders
+  /*
   const handleUpdateStatus = async (orderId, newStatus) => {
     try {
       await orderService.updateStatus(orderId, newStatus);
@@ -205,6 +230,7 @@ export function OrderManagement() {
       }
     }
   };
+  */
 
   const handleViewDetails = (order) => {
     navigate(`/admin/orders/${order.id}`);
@@ -239,25 +265,80 @@ export function OrderManagement() {
         (order.customerEmail || "").toLowerCase().includes(keyword) ||
         (order.shopName || "").toLowerCase().includes(keyword);
 
-      const today = new Date();
       const createdAt = new Date(order.createdAt);
-      const sameDay =
-        today.getFullYear() === createdAt.getFullYear() &&
-        today.getMonth() === createdAt.getMonth() &&
-        today.getDate() === createdAt.getDate();
-      const matchesDate = dateFilter === "all" || (dateFilter === "today" ? sameDay : true);
+      const today = new Date();
+      
+      let matchesDate = true;
+      if (dateFilter === "today") {
+        matchesDate =
+          today.getFullYear() === createdAt.getFullYear() &&
+          today.getMonth() === createdAt.getMonth() &&
+          today.getDate() === createdAt.getDate();
+      } else if (dateFilter === "this_week") {
+        const startOfWeek = new Date(today);
+        const day = startOfWeek.getDay();
+        const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1); // Monday
+        startOfWeek.setDate(diff);
+        startOfWeek.setHours(0, 0, 0, 0);
+        matchesDate = createdAt >= startOfWeek && createdAt <= today;
+      } else if (dateFilter === "this_month") {
+        matchesDate =
+          today.getFullYear() === createdAt.getFullYear() &&
+          today.getMonth() === createdAt.getMonth();
+      } else if (dateFilter === "custom") {
+        const orderDate = new Date(order.createdAt);
+        orderDate.setHours(0, 0, 0, 0);
+        
+        let matchesStart = true;
+        let matchesEnd = true;
+        
+        if (startDate) {
+          const start = new Date(startDate);
+          start.setHours(0, 0, 0, 0);
+          matchesStart = orderDate >= start;
+        }
+        if (endDate) {
+          const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999);
+          matchesEnd = orderDate <= end;
+        }
+        matchesDate = matchesStart && matchesEnd;
+      }
 
       const matchesShop = shopFilter === "all" || (order.shopName || "Unknown Shop") === shopFilter;
 
       return matchesSearch && matchesDate && matchesShop;
     });
-  }, [orders, searchTerm, dateFilter, shopFilter]);
+  }, [orders, searchTerm, dateFilter, shopFilter, startDate, endDate]);
 
-  const summary = {
-    totalProcessing: filteredOrders.filter((order) => ["pending", "confirmed"].includes(order.status)).length,
-    totalOrders: filteredOrders.length,
-    totalRevenue: filteredOrders.reduce((sum, order) => sum + (order.total || 0), 0),
-  };
+  const summary = useMemo(() => {
+    const total = filteredOrders.length;
+    const pending = filteredOrders.filter(o => o.status === "pending" || o.status === "pending_confirmation").length;
+    const shopProcessed = filteredOrders.filter(o => ["confirmed", "shipping", "shipped", "done", "delivered"].includes(o.status)).length;
+    const shipping = filteredOrders.filter(o => ["shipping", "shipped"].includes(o.status)).length;
+    const completed = filteredOrders.filter(o => ["done", "delivered"].includes(o.status)).length;
+    const cancelled = filteredOrders.filter(o => o.status === "cancelled").length;
+    const revenue = filteredOrders.reduce((sum, order) => sum + (order.total || 0), 0);
+
+    return {
+      total,
+      pending,
+      shopProcessed,
+      shipping,
+      completed,
+      cancelled,
+      revenue
+    };
+  }, [filteredOrders]);
+
+  const paginatedOrders = useMemo(() => {
+    const start = (page - 1) * 20;
+    return filteredOrders.slice(start, start + 20);
+  }, [filteredOrders, page]);
+
+  const totalPages = useMemo(() => {
+    return Math.ceil(filteredOrders.length / 20) || 1;
+  }, [filteredOrders]);
 
   const getStatusBadgeClass = (status = "") => {
     const s = status.toLowerCase();
@@ -303,8 +384,10 @@ export function OrderManagement() {
           onBack={() => {
             navigate("/admin/orders");
           }}
-          onUpdateStatus={handleUpdateStatus}
-          onCancelOrder={handleCancelOrder}
+          readOnly={true}
+          // Admin cannot update status or cancel orders - sellers only
+          // onUpdateStatus={handleUpdateStatus}
+          // onCancelOrder={handleCancelOrder}
         />
       );
     }
@@ -312,69 +395,153 @@ export function OrderManagement() {
 
   return (
     <div className="flex flex-col min-h-full animate-[fadeIn_0.3s_ease]">
-      <div className="mb-3.5">
-        <div>
-          <h1 className="text-[28px] font-extrabold text-[#a0522d] m-0">Quản trị đơn hàng</h1>
+      <div className="mb-4">
+        <h1 className="text-[28px] font-extrabold text-[#a0522d] m-0">Quản trị đơn hàng</h1>
+        <p className="text-xs text-[#8b7d6a] mt-1">Quản lý tổng quan tất cả đơn hàng trên nền tảng dành cho admin tổng.</p>
+      </div>
+
+      {/* Grid of 7 Stats Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mb-5">
+        {/* Card 1: Tổng đơn */}
+        <div 
+          className="flex flex-col justify-between min-h-[90px] transition-all hover:scale-[1.02] bg-white border border-[#e8e5e0] border-l-[4px] border-l-stone-400 rounded-xl p-3.5 shadow-sm"
+        >
+          <span className="text-[10px] font-bold tracking-wider uppercase text-stone-400">Tổng đơn hàng</span>
+          <span className="text-xl font-black mt-1 text-stone-900">{summary.total}</span>
+          <span className="text-[9px] text-stone-400 mt-1 font-medium">Toàn hệ thống</span>
+        </div>
+
+        {/* Card 2: Đơn chờ xử lý */}
+        <div 
+          className="flex flex-col justify-between min-h-[90px] transition-all hover:scale-[1.02] bg-white border border-[#e8e5e0] border-l-[4px] border-l-orange-500 rounded-xl p-3.5 shadow-sm"
+        >
+          <span className="text-[10px] font-bold tracking-wider uppercase text-stone-400">Chờ xử lý</span>
+          <span className="text-xl font-black mt-1 text-stone-900">{summary.pending}</span>
+          <span className="text-[9px] text-stone-400 mt-1 font-medium">Chờ xác nhận</span>
+        </div>
+
+        {/* Card 3: Shop đã xử lý */}
+        <div 
+          className="flex flex-col justify-between min-h-[90px] transition-all hover:scale-[1.02] bg-white border border-[#e8e5e0] border-l-[4px] border-l-lime-500 rounded-xl p-3.5 shadow-sm"
+        >
+          <span className="text-[10px] font-bold tracking-wider uppercase text-stone-400">Shop đã xử lý</span>
+          <span className="text-xl font-black mt-1 text-stone-900">{summary.shopProcessed}</span>
+          <span className="text-[9px] text-stone-400 mt-1 font-medium">Đã xác nhận</span>
+        </div>
+
+        {/* Card 4: Đang giao */}
+        <div 
+          className="flex flex-col justify-between min-h-[90px] transition-all hover:scale-[1.02] bg-white border border-[#e8e5e0] border-l-[4px] border-l-amber-500 rounded-xl p-3.5 shadow-sm"
+        >
+          <span className="text-[10px] font-bold tracking-wider uppercase text-stone-400">Đang giao</span>
+          <span className="text-xl font-black mt-1 text-stone-900">{summary.shipping}</span>
+          <span className="text-[9px] text-stone-400 mt-1 font-medium">Đang vận chuyển</span>
+        </div>
+
+        {/* Card 5: Đã giao */}
+        <div 
+          className="flex flex-col justify-between min-h-[90px] transition-all hover:scale-[1.02] bg-white border border-[#e8e5e0] border-l-[4px] border-l-blue-500 rounded-xl p-3.5 shadow-sm"
+        >
+          <span className="text-[10px] font-bold tracking-wider uppercase text-stone-400">Đã giao</span>
+          <span className="text-xl font-black mt-1 text-stone-900">{summary.completed}</span>
+          <span className="text-[9px] text-stone-400 mt-1 font-medium">Giao thành công</span>
+        </div>
+
+        {/* Card 6: Đã hủy */}
+        <div 
+          className="flex flex-col justify-between min-h-[90px] transition-all hover:scale-[1.02] bg-white border border-[#e8e5e0] border-l-[4px] border-l-rose-500 rounded-xl p-3.5 shadow-sm"
+        >
+          <span className="text-[10px] font-bold tracking-wider uppercase text-stone-400">Đã hủy</span>
+          <span className="text-xl font-black mt-1 text-stone-900">{summary.cancelled}</span>
+          <span className="text-[9px] text-stone-400 mt-1 font-medium">Đơn đã hủy</span>
+        </div>
+
+        {/* Card 7: Tổng doanh thu */}
+        <div 
+          className="flex flex-col justify-between min-h-[90px] transition-all hover:scale-[1.02] bg-white border border-[#e8e5e0] border-l-[4px] border-l-[#c85a28] rounded-xl p-3.5 shadow-sm"
+        >
+          <span className="text-[10px] font-bold tracking-wider uppercase text-stone-400">Doanh thu</span>
+          <span className="text-base font-black mt-1 text-[#c85a28] truncate">{summary.revenue?.toLocaleString("vi-VN")} đ</span>
+          <span className="text-[9px] text-stone-400 mt-1 font-medium">Đơn hoàn tất</span>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_250px] gap-4 items-stretch mb-[18px]">
-        <div className="bg-[#fbf7e6] border border-[#efe3ca] rounded-[18px] p-4 grid grid-cols-1 sm:grid-cols-[1.5fr_1fr_1.2fr_1fr] gap-2.5 items-center">
-          <div className="min-w-0">
+      {/* Filter Bar */}
+      <div className="bg-[#fbf7e6] border border-[#efe3ca] rounded-[18px] p-4 flex flex-col md:flex-row gap-3.5 items-stretch md:items-center mb-[18px]">
+        <div className="flex-1 min-w-0">
+          <input
+            type="text"
+            placeholder="Tìm theo ID, Khách hàng, Tên Shop..."
+            value={searchTerm}
+            className="w-full py-2.5 px-4 border border-[#e8dfd5] rounded-full text-[13px] text-[#5a4a3a] bg-[#f3efcf] focus:outline-none focus:border-[#c85a28] focus:bg-white focus:shadow-[0_0_0_3px_rgba(200,90,40,0.1)]"
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <div className="w-full md:w-[150px] min-w-0">
+          <select
+            value={dateFilter}
+            onChange={(e) => setDateFilter(e.target.value)}
+            className="w-full py-2.5 pr-8 pl-3.5 border border-[#e8dfd5] rounded-xl bg-[#f3efcf] text-[#8b5a3c] font-semibold cursor-pointer appearance-none bg-no-repeat bg-[right_12px_center] bg-[size:11px] transition-all hover:bg-[#efe9c3] hover:border-[#c85a28] focus:outline-none focus:border-[#c85a28] focus:bg-white focus:shadow-[0_0_0_3px_rgba(200,90,40,0.1)] bg-[image:url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'14\' height=\'14\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%238b5a3c\' stroke-width=\'2.5\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e')]"
+          >
+            <option value="all">Tất cả ngày</option>
+            <option value="today">Hôm nay</option>
+            <option value="this_week">Tuần này</option>
+            <option value="this_month">Tháng này</option>
+            <option value="custom">Chọn khoảng ngày...</option>
+          </select>
+        </div>
+        {dateFilter === "custom" && (
+          <div className="flex items-center gap-2 w-full md:w-auto shrink-0 animate-[fadeIn_0.2s_ease]">
             <input
-              type="text"
-              placeholder="Tìm theo ID, Khách hàng, Tên Shop..."
-              value={searchTerm}
-              className="w-full py-3 px-[18px] border border-[#e8dfd5] rounded-full text-[13px] text-[#5a4a3a] bg-[#f3efcf] focus:outline-none focus:border-[#c85a28] focus:bg-white focus:shadow-[0_0_0_3px_rgba(200,90,40,0.1)]"
-              onChange={(e) => setSearchTerm(e.target.value)}
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              onClick={(e) => e.target.showPicker?.()}
+              onFocus={(e) => e.target.showPicker?.()}
+              className="py-1.5 px-2.5 border border-[#e8dfd5] rounded-xl bg-[#f3efcf] text-[#8b5a3c] font-semibold text-xs outline-none focus:border-[#c85a28] focus:bg-white cursor-pointer"
+              style={{ minHeight: '38px' }}
+            />
+            <span className="text-[#8b5a3c] text-xs font-bold shrink-0">đến</span>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              onClick={(e) => e.target.showPicker?.()}
+              onFocus={(e) => e.target.showPicker?.()}
+              className="py-1.5 px-2.5 border border-[#e8dfd5] rounded-xl bg-[#f3efcf] text-[#8b5a3c] font-semibold text-xs outline-none focus:border-[#c85a28] focus:bg-white cursor-pointer"
+              style={{ minHeight: '38px' }}
             />
           </div>
-          <div className="min-w-0">
-            <select
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
-              className="w-full py-2.5 pr-8 pl-3.5 border border-[#e8dfd5] rounded-xl bg-[#f3efcf] text-[#8b5a3c] font-semibold cursor-pointer appearance-none bg-no-repeat bg-[right_12px_center] bg-[size:11px] transition-all hover:bg-[#efe9c3] hover:border-[#c85a28] focus:outline-none focus:border-[#c85a28] focus:bg-white focus:shadow-[0_0_0_3px_rgba(200,90,40,0.1)] bg-[image:url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'14\' height=\'14\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%238b5a3c\' stroke-width=\'2.5\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e')]"
-            >
-              <option value="today">Hôm nay</option>
-              <option value="all">Tất cả ngày</option>
-            </select>
-          </div>
-          <div className="min-w-0">
-            <select
-              value={shopFilter}
-              onChange={(e) => setShopFilter(e.target.value)}
-              className="w-full py-2.5 pr-8 pl-3.5 border border-[#e8dfd5] rounded-xl bg-[#f3efcf] text-[#8b5a3c] font-semibold cursor-pointer appearance-none bg-no-repeat bg-[right_12px_center] bg-[size:11px] transition-all hover:bg-[#efe9c3] hover:border-[#c85a28] focus:outline-none focus:border-[#c85a28] focus:bg-white focus:shadow-[0_0_0_3px_rgba(200,90,40,0.1)] bg-[image:url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'14\' height=\'14\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%238b5a3c\' stroke-width=\'2.5\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e')]"
-            >
-              <option value="all">Tất cả Shop</option>
-              {uniqueShops.map((shopName) => (
-                <option key={shopName} value={shopName}>
-                  {shopName}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="min-w-0">
-            <select
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
-                setPage(1);
-              }}
-              className="w-full py-2.5 pr-8 pl-3.5 border border-[#e8dfd5] rounded-xl bg-[#f3efcf] text-[#8b5a3c] font-semibold cursor-pointer appearance-none bg-no-repeat bg-[right_12px_center] bg-[size:11px] transition-all hover:bg-[#efe9c3] hover:border-[#c85a28] focus:outline-none focus:border-[#c85a28] focus:bg-white focus:shadow-[0_0_0_3px_rgba(200,90,40,0.1)] bg-[image:url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg' width=\'14\' height=\'14\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%238b5a3c\' stroke-width=\'2.5\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e')]"
-            >
-              {statusOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
+        )}
+        <div className="w-full md:w-[150px] min-w-0">
+          <select
+            value={shopFilter}
+            onChange={(e) => setShopFilter(e.target.value)}
+            className="w-full py-2.5 pr-8 pl-3.5 border border-[#e8dfd5] rounded-xl bg-[#f3efcf] text-[#8b5a3c] font-semibold cursor-pointer appearance-none bg-no-repeat bg-[right_12px_center] bg-[size:11px] transition-all hover:bg-[#efe9c3] hover:border-[#c85a28] focus:outline-none focus:border-[#c85a28] focus:bg-white focus:shadow-[0_0_0_3px_rgba(200,90,40,0.1)] bg-[image:url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'14\' height=\'14\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%238b5a3c\' stroke-width=\'2.5\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e')]"
+          >
+            <option value="all">Tất cả Shop</option>
+            {uniqueShops.map((shopName) => (
+              <option key={shopName} value={shopName}>
+                {shopName}
+              </option>
+            ))}
+          </select>
         </div>
-
-        <div className="bg-gradient-to-br from-[#d85f2f] to-[#c85a28] text-white rounded-[18px] p-4 px-[18px] shadow-[0_14px_25px_rgba(200,90,40,0.25)] relative overflow-hidden after:content-[''] after:absolute after:right-3.5 after:bottom-2.5 after:w-[72px] after:h-[72px] after:rounded-2xl after:border-4 after:border-white/10 after:opacity-75 min-h-[120px] lg:min-h-0 flex flex-col justify-center">
-          <div className="text-sm font-bold">Đơn chờ xử lý</div>
-          <div className="text-[34px] font-extrabold leading-none my-2">{summary.totalProcessing}</div>
-          <div className="text-xs opacity-90">Cần giao trước 15:00 hôm nay</div>
+        <div className="w-full md:w-[150px] min-w-0">
+          <select
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setPage(1);
+            }}
+            className="w-full py-2.5 pr-8 pl-3.5 border border-[#e8dfd5] rounded-xl bg-[#f3efcf] text-[#8b5a3c] font-semibold cursor-pointer appearance-none bg-no-repeat bg-[right_12px_center] bg-[size:11px] transition-all hover:bg-[#efe9c3] hover:border-[#c85a28] focus:outline-none focus:border-[#c85a28] focus:bg-white focus:shadow-[0_0_0_3px_rgba(200,90,40,0.1)] bg-[image:url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg' width=\'14\' height=\'14\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%238b5a3c\' stroke-width=\'2.5\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e')]"
+          >
+            {statusOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -537,6 +704,7 @@ export function OrderManagement() {
                   <tr className="bg-[#f8f2d4]">
                     <th className="p-3.5 px-3 text-left font-semibold text-[#8b5a3c] text-[12px] border-b border-[#e8dfd5] uppercase tracking-wider">MÃ ĐƠN HÀNG</th>
                     <th className="p-3.5 px-3 text-left font-semibold text-[#8b5a3c] text-[12px] border-b border-[#e8dfd5] uppercase tracking-wider">KHÁCH HÀNG</th>
+                    <th className="p-3.5 px-3 text-left font-semibold text-[#8b5a3c] text-[12px] border-b border-[#e8dfd5] uppercase tracking-wider">CỬA HÀNG</th>
                     <th className="p-3.5 px-3 text-left font-semibold text-[#8b5a3c] text-[12px] border-b border-[#e8dfd5] uppercase tracking-wider">NGÀY ĐẶT</th>
                     <th className="p-3.5 px-3 text-left font-semibold text-[#8b5a3c] text-[12px] border-b border-[#e8dfd5] uppercase tracking-wider">TỔNG TIỀN</th>
                     <th className="p-3.5 px-3 text-left font-semibold text-[#8b5a3c] text-[12px] border-b border-[#e8dfd5] uppercase tracking-wider">TRẠNG THÁI</th>
@@ -544,7 +712,7 @@ export function OrderManagement() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredOrders.map((order) => (
+                  {paginatedOrders.map((order) => (
                     <tr key={order.id} className="hover:bg-[#faf6f0]">
                       <td className="p-3.5 px-3 border-b border-[#e8dfd5] text-[#c85a28] font-extrabold align-middle">#TC-{order.id}</td>
                       <td className="p-3.5 px-3 border-b border-[#e8dfd5] text-[#5a4a3a] text-[13px] align-middle">
@@ -557,6 +725,9 @@ export function OrderManagement() {
                             <span className="text-[11px] text-[#9b6e4e]">{order.customerPhone}</span>
                           </div>
                         </div>
+                      </td>
+                      <td className="p-3.5 px-3 border-b border-[#e8dfd5] text-[#5a4a3a] text-[13px] align-middle font-bold text-[#8b5a3c]">
+                        {order.shopName || "N/A"}
                       </td>
                       <td className="p-3.5 px-3 border-b border-[#e8dfd5] text-[#5a4a3a] text-[13px] align-middle">{new Date(order.createdAt).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" })}</td>
                       <td className="p-3.5 px-3 border-b border-[#e8dfd5] text-[#5a4a3a] font-bold text-[13px] align-middle">{order.total?.toLocaleString("vi-VN")} đ</td>
@@ -598,7 +769,7 @@ export function OrderManagement() {
             {/* Pagination */}
             <div className="flex justify-between items-center mt-6 flex-wrap gap-4">
               <div className="text-stone-400 text-xs font-semibold">
-                Hiển thị {filteredOrders.length > 0 ? (page - 1) * 10 + 1 : 0} - {(page - 1) * 10 + filteredOrders.length} đơn hàng
+                Hiển thị {filteredOrders.length > 0 ? (page - 1) * 50 + 1 : 0} - {Math.min(page * 50, filteredOrders.length)} đơn hàng trong tổng số {filteredOrders.length}
               </div>
 
               <div className="flex items-center gap-1.5">

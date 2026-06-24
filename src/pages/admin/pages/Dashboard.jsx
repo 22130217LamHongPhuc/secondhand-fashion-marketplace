@@ -63,7 +63,7 @@ export function Dashboard() {
       <h1 className="text-[26px] font-bold text-[#a0522d] mb-[25px]">Dashboard</h1>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-[30px]">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 mb-[30px]">
         <div className="bg-white p-5 rounded-md shadow-[0_1px_4px_rgba(0,0,0,0.08)] flex items-center gap-[15px] transition-all duration-300 cursor-pointer border border-[#e8dfd5] hover:-translate-y-[3px] hover:shadow-[0_3px_8px_rgba(0,0,0,0.12)] flex-col sm:flex-row text-center sm:text-left">
           <div className="flex items-center justify-center w-[60px] h-[60px] bg-[#f5e6d3] rounded-md text-[#a0522d] shrink-0">
             <svg
@@ -101,6 +101,31 @@ export function Dashboard() {
               strokeLinecap="round"
               strokeLinejoin="round"
             >
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+          </div>
+          <div className="stat-content">
+            <h3 className="m-0 mb-1 text-[13px] text-[#9b6e4e] font-medium">Người mua</h3>
+            <p className="m-0 text-2xl font-bold text-[#a0522d]">
+              {Math.max(0, (stats?.totalUsers || 0) - (stats?.totalSellers || 0))}
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-white p-5 rounded-md shadow-[0_1px_4px_rgba(0,0,0,0.08)] flex items-center gap-[15px] transition-all duration-300 cursor-pointer border border-[#e8dfd5] hover:-translate-y-[3px] hover:shadow-[0_3px_8px_rgba(0,0,0,0.12)] flex-col sm:flex-row text-center sm:text-left">
+          <div className="flex items-center justify-center w-[60px] h-[60px] bg-[#f5e6d3] rounded-md text-[#a0522d] shrink-0">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
               <circle cx="9" cy="7" r="4" />
               <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
@@ -108,8 +133,8 @@ export function Dashboard() {
             </svg>
           </div>
           <div className="stat-content">
-            <h3 className="m-0 mb-1 text-[13px] text-[#9b6e4e] font-medium">Người dùng</h3>
-            <p className="m-0 text-2xl font-bold text-[#a0522d]">{stats?.totalUsers || 0}</p>
+            <h3 className="m-0 mb-1 text-[13px] text-[#9b6e4e] font-medium">Người bán</h3>
+            <p className="m-0 text-2xl font-bold text-[#a0522d]">{stats?.totalSellers || 0}</p>
           </div>
         </div>
 
