@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { dashboardService } from "@/services/admin";
-import "./Dashboard.css";
 
 export function Dashboard() {
   const [stats, setStats] = useState(null);
@@ -29,19 +28,30 @@ export function Dashboard() {
     }
   };
 
+  const getStatusBadgeClass = (status = "") => {
+    const s = status.toUpperCase();
+    const base = "inline-block py-1 px-3 rounded-full text-[11px] font-semibold uppercase ";
+    if (s === "PENDING") return base + "bg-[#fff3cd] text-[#856404]";
+    if (s === "CONFIRMED") return base + "bg-[#d1ecf1] text-[#0c5460]";
+    if (s === "SHIPPING") return base + "bg-[#cfe2ff] text-[#084298]";
+    if (s === "DONE" || s === "DELIVERED") return base + "bg-[#d1e7dd] text-[#0f5132]";
+    if (s === "CANCELLED") return base + "bg-[#f8d7da] text-[#842029]";
+    return base + "bg-[#faf6f0] text-[#5a4a3a]";
+  };
+
   if (loading) {
     return (
-      <div className="dashboard-container">
-        <div className="loading">Đang tải dữ liệu...</div>
+      <div className="flex flex-col min-h-full items-center justify-center py-10 px-5 text-sm text-[#9b6e4e]">
+        <div>Đang tải dữ liệu...</div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="dashboard-container">
-        <div className="error">Lỗi: {error}</div>
-        <button onClick={loadDashboardData} className="retry-btn">
+      <div className="flex flex-col min-h-full items-center justify-center py-10 px-5">
+        <div className="text-sm text-[#d9534f] font-medium">Lỗi: {error}</div>
+        <button onClick={loadDashboardData} className="block my-5 mx-auto py-2.5 px-[30px] bg-[#c85a28] text-white border-none rounded cursor-pointer font-semibold transition-colors duration-300 text-[13px] hover:bg-[#b84c1a]">
           Thử lại
         </button>
       </div>
@@ -49,13 +59,13 @@ export function Dashboard() {
   }
 
   return (
-    <div className="dashboard-container">
-      <h1 className="page-title">Dashboard</h1>
+    <div className="flex flex-col min-h-full animate-[fadeIn_0.3s_ease]">
+      <h1 className="text-[26px] font-bold text-[#a0522d] mb-[25px]">Dashboard</h1>
 
       {/* Statistics Cards */}
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-icon">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-[30px]">
+        <div className="bg-white p-5 rounded-md shadow-[0_1px_4px_rgba(0,0,0,0.08)] flex items-center gap-[15px] transition-all duration-300 cursor-pointer border border-[#e8dfd5] hover:-translate-y-[3px] hover:shadow-[0_3px_8px_rgba(0,0,0,0.12)] flex-col sm:flex-row text-center sm:text-left">
+          <div className="flex items-center justify-center w-[60px] h-[60px] bg-[#f5e6d3] rounded-md text-[#a0522d] shrink-0">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="22"
@@ -73,13 +83,13 @@ export function Dashboard() {
             </svg>
           </div>
           <div className="stat-content">
-            <h3>Tổng sản phẩm</h3>
-            <p className="stat-number">{stats?.totalProducts || 0}</p>
+            <h3 className="m-0 mb-1 text-[13px] text-[#9b6e4e] font-medium">Tổng sản phẩm</h3>
+            <p className="m-0 text-2xl font-bold text-[#a0522d]">{stats?.totalProducts || 0}</p>
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon">
+        <div className="bg-white p-5 rounded-md shadow-[0_1px_4px_rgba(0,0,0,0.08)] flex items-center gap-[15px] transition-all duration-300 cursor-pointer border border-[#e8dfd5] hover:-translate-y-[3px] hover:shadow-[0_3px_8px_rgba(0,0,0,0.12)] flex-col sm:flex-row text-center sm:text-left">
+          <div className="flex items-center justify-center w-[60px] h-[60px] bg-[#f5e6d3] rounded-md text-[#a0522d] shrink-0">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="22"
@@ -98,13 +108,13 @@ export function Dashboard() {
             </svg>
           </div>
           <div className="stat-content">
-            <h3>Người dùng</h3>
-            <p className="stat-number">{stats?.totalUsers || 0}</p>
+            <h3 className="m-0 mb-1 text-[13px] text-[#9b6e4e] font-medium">Người dùng</h3>
+            <p className="m-0 text-2xl font-bold text-[#a0522d]">{stats?.totalUsers || 0}</p>
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon">
+        <div className="bg-white p-5 rounded-md shadow-[0_1px_4px_rgba(0,0,0,0.08)] flex items-center gap-[15px] transition-all duration-300 cursor-pointer border border-[#e8dfd5] hover:-translate-y-[3px] hover:shadow-[0_3px_8px_rgba(0,0,0,0.12)] flex-col sm:flex-row text-center sm:text-left">
+          <div className="flex items-center justify-center w-[60px] h-[60px] bg-[#f5e6d3] rounded-md text-[#a0522d] shrink-0">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="22"
@@ -122,13 +132,13 @@ export function Dashboard() {
             </svg>
           </div>
           <div className="stat-content">
-            <h3>Đơn hàng</h3>
-            <p className="stat-number">{stats?.totalOrders || 0}</p>
+            <h3 className="m-0 mb-1 text-[13px] text-[#9b6e4e] font-medium">Đơn hàng</h3>
+            <p className="m-0 text-2xl font-bold text-[#a0522d]">{stats?.totalOrders || 0}</p>
           </div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-icon">
+        <div className="bg-white p-5 rounded-md shadow-[0_1px_4px_rgba(0,0,0,0.08)] flex items-center gap-[15px] transition-all duration-300 cursor-pointer border border-[#e8dfd5] hover:-translate-y-[3px] hover:shadow-[0_3px_8px_rgba(0,0,0,0.12)] flex-col sm:flex-row text-center sm:text-left">
+          <div className="flex items-center justify-center w-[60px] h-[60px] bg-[#f5e6d3] rounded-md text-[#a0522d] shrink-0">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="22"
@@ -145,8 +155,8 @@ export function Dashboard() {
             </svg>
           </div>
           <div className="stat-content">
-            <h3>Doanh thu</h3>
-            <p className="stat-number">
+            <h3 className="m-0 mb-1 text-[13px] text-[#9b6e4e] font-medium">Doanh thu</h3>
+            <p className="m-0 text-2xl font-bold text-[#a0522d]">
               {stats?.totalRevenue?.toLocaleString("vi-VN")} đ
             </p>
           </div>
@@ -154,31 +164,29 @@ export function Dashboard() {
       </div>
 
       {/* Overview Section */}
-      <div className="dashboard-overview">
-        <div className="section-left">
-          <div className="section-card">
-            <h2 className="section-title">Đơn hàng gần đây</h2>
-            <div className="recent-orders">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mt-[30px]">
+        <div className="lg:col-span-2">
+          <div className="bg-white p-5 rounded-md shadow-[0_1px_4px_rgba(0,0,0,0.08)] border border-[#e8dfd5]">
+            <h2 className="text-base font-semibold text-[#a0522d] m-0 mb-[18px]">Đơn hàng gần đây</h2>
+            <div className="overflow-x-auto">
               {stats?.recentOrders?.length > 0 ? (
-                <table className="data-table">
+                <table className="w-full border-collapse text-xs sm:text-sm">
                   <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>Khách hàng</th>
-                      <th>Tổng tiền</th>
-                      <th>Trạng thái</th>
+                    <tr className="bg-[#f5e6d3]">
+                      <th className="p-2 sm:p-3 text-left font-semibold text-[#8b5a3c] text-[13px]">ID</th>
+                      <th className="p-2 sm:p-3 text-left font-semibold text-[#8b5a3c] text-[13px]">Khách hàng</th>
+                      <th className="p-2 sm:p-3 text-left font-semibold text-[#8b5a3c] text-[13px]">Tổng tiền</th>
+                      <th className="p-2 sm:p-3 text-left font-semibold text-[#8b5a3c] text-[13px]">Trạng thái</th>
                     </tr>
                   </thead>
                   <tbody>
                     {stats.recentOrders.map((order) => (
-                      <tr key={order.id}>
-                        <td>#{order.id}</td>
-                        <td>{order.customerName}</td>
-                        <td>{order.total?.toLocaleString("vi-VN")} đ</td>
-                        <td>
-                          <span
-                            className={`status-badge status-${order.status}`}
-                          >
+                      <tr key={order.id} className="hover:bg-[#faf6f0]">
+                        <td className="p-2 sm:p-3 border-b border-[#e8dfd5] text-[#5a4a3a] text-[13px]">#{order.id}</td>
+                        <td className="p-2 sm:p-3 border-b border-[#e8dfd5] text-[#5a4a3a] text-[13px]">{order.customerName}</td>
+                        <td className="p-2 sm:p-3 border-b border-[#e8dfd5] text-[#5a4a3a] text-[13px]">{order.total?.toLocaleString("vi-VN")} đ</td>
+                        <td className="p-2 sm:p-3 border-b border-[#e8dfd5] text-[#5a4a3a] text-[13px]">
+                          <span className={getStatusBadgeClass(order.status)}>
                             {order.status}
                           </span>
                         </td>
@@ -187,27 +195,27 @@ export function Dashboard() {
                   </tbody>
                 </table>
               ) : (
-                <p className="empty-state">Chưa có đơn hàng</p>
+                <p className="text-center py-10 px-5 text-[#9b6e4e] text-sm">Chưa có đơn hàng</p>
               )}
             </div>
           </div>
         </div>
 
-        <div className="section-right">
-          <div className="section-card">
-            <h2 className="section-title">Hoạt động gần đây</h2>
-            <div className="activities-list">
+        <div className="lg:col-span-1">
+          <div className="bg-white p-5 rounded-md shadow-[0_1px_4px_rgba(0,0,0,0.08)] border border-[#e8dfd5]">
+            <h2 className="text-base font-semibold text-[#a0522d] m-0 mb-[18px]">Hoạt động gần đây</h2>
+            <div className="flex flex-col gap-3">
               {activities.length > 0 ? (
                 activities.map((activity, idx) => (
-                  <div key={idx} className="activity-item">
-                    <div className="activity-time">
+                  <div key={idx} className="p-3 bg-[#faf6f0] border-l-[3px] border-[#c85a28] rounded">
+                    <div className="text-[11px] text-[#9b6e4e] mb-1 font-medium">
                       {new Date(activity.timestamp).toLocaleTimeString("vi-VN")}
                     </div>
-                    <div className="activity-desc">{activity.description}</div>
+                    <div className="text-[13px] text-[#5a4a3a] font-medium">{activity.description}</div>
                   </div>
                 ))
               ) : (
-                <p className="empty-state">Chưa có hoạt động</p>
+                <p className="text-center py-10 px-5 text-[#9b6e4e] text-sm">Chưa có hoạt động</p>
               )}
             </div>
           </div>

@@ -1,5 +1,4 @@
 import React from "react";
-import "./OrderDetailView.css";
 
 export function OrderDetailView({ order, onBack, onUpdateStatus, onCancelOrder }) {
   // Map raw status to user-friendly Vietnamese labels and colors
@@ -140,15 +139,30 @@ export function OrderDetailView({ order, onBack, onUpdateStatus, onCancelOrder }
   const discount = order.discount || 50000;
   const total = order.total || (subtotal + shipping - discount);
 
+  const getStatusBadgeClass = (classType = "") => {
+    const s = classType.toLowerCase();
+    const base = "flex items-center gap-1.5 py-1.5 px-3.5 rounded-full text-xs font-bold border ";
+    if (s.includes("pending")) return base + "bg-[#fdf2d7] text-[#b35900] border-[#f6dfaf]";
+    if (s.includes("confirmed")) return base + "bg-[#e2f4df] text-[#276f27] border-[#c1e7bd]";
+    if (s.includes("shipping")) return base + "bg-[#e3f2fd] text-[#0d47a1] border-[#bbdefb]";
+    if (s.includes("delivered") || s.includes("done")) return base + "bg-[#efebe9] text-[#4e342e] border-[#d7ccc8]";
+    if (s.includes("cancelled")) return base + "bg-[#ffebee] text-[#c62828] border-[#ffcdd2]";
+    return base + "bg-[#fdf2d7] text-[#b35900] border-[#f6dfaf]";
+  };
+
   return (
-    <div className="order-detail-view-container">
+    <div className="flex flex-col gap-5 w-full text-[#3e2723] pb-10 animate-[fadeIn_0.35s_cubic-bezier(0.4,0,0.2,1)]">
       {/* Header with back button */}
-      <div className="detail-header-row">
-        <button className="back-to-list-btn" type="button" onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          onBack();
-        }}>
+      <div className="flex items-center justify-between">
+        <button
+          className="bg-none border-none flex items-center gap-2.5 text-[#3e2723] text-2xl font-bold cursor-pointer py-1 px-2 rounded-lg transition-all hover:-translate-x-1 hover:text-[#c85a28]"
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onBack();
+          }}
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="20"
@@ -168,19 +182,19 @@ export function OrderDetailView({ order, onBack, onUpdateStatus, onCancelOrder }
       </div>
 
       {/* Action and status bar */}
-      <div className="status-banner-card">
-        <div className="banner-left">
-          <span className="banner-label">TRẠNG THÁI HIỆN TẠI</span>
-          <span className={`banner-status-badge ${statusInfo.class}`}>
-            <span className="badge-icon">{statusInfo.icon}</span>
+      <div className="bg-[#fffaf0] border border-[#f3ebd8] rounded-2xl p-4 px-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-[0_4px_16px_rgba(139,90,60,0.04)]">
+        <div className="flex items-center gap-4">
+          <span className="text-[11px] font-bold text-[#8b7d6a] tracking-widest">TRẠNG THÁI HIỆN TẠI</span>
+          <span className={getStatusBadgeClass(statusInfo.class)}>
+            <span className="text-sm">{statusInfo.icon}</span>
             <span>{statusInfo.label}</span>
           </span>
         </div>
-        <div className="banner-right">
+        <div className="flex gap-3 w-full sm:w-auto justify-end">
           {(order.status || "pending").toLowerCase() === "pending" && (
             <>
               <button
-                className="action-btn-secondary"
+                className="bg-[#f0e9d6] hover:bg-[#e6ddc4] text-[#8b5a3c] hover:text-[#704324] border border-[#e1d6b9] rounded-xl py-2.5 px-5 text-[13px] font-bold flex items-center gap-2 cursor-pointer transition-all active:scale-95"
                 onClick={() => onCancelOrder(order.id)}
               >
                 <svg
@@ -201,7 +215,7 @@ export function OrderDetailView({ order, onBack, onUpdateStatus, onCancelOrder }
                 <span>Hủy đơn</span>
               </button>
               <button
-                className="action-btn-primary"
+                className="bg-[#c85a28] hover:bg-[#b54a1a] text-white border-none rounded-xl py-2.5 px-5 text-[13px] font-bold flex items-center gap-2 cursor-pointer transition-all active:scale-95 shadow-[0_4px_10px_rgba(200,90,40,0.15)] hover:shadow-[0_6px_14px_rgba(200,90,40,0.25)] hover:-translate-y-[1px]"
                 onClick={() => onUpdateStatus(order.id, "confirmed")}
               >
                 <svg
@@ -225,7 +239,7 @@ export function OrderDetailView({ order, onBack, onUpdateStatus, onCancelOrder }
           {(order.status || "pending").toLowerCase() === "confirmed" && (
             <>
               <button
-                className="action-btn-secondary"
+                className="bg-[#f0e9d6] hover:bg-[#e6ddc4] text-[#8b5a3c] hover:text-[#704324] border border-[#e1d6b9] rounded-xl py-2.5 px-5 text-[13px] font-bold flex items-center gap-2 cursor-pointer transition-all active:scale-95"
                 onClick={() => onCancelOrder(order.id)}
               >
                 <svg
@@ -246,7 +260,7 @@ export function OrderDetailView({ order, onBack, onUpdateStatus, onCancelOrder }
                 <span>Hủy đơn</span>
               </button>
               <button
-                className="action-btn-primary"
+                className="bg-[#c85a28] hover:bg-[#b54a1a] text-white border-none rounded-xl py-2.5 px-5 text-[13px] font-bold flex items-center gap-2 cursor-pointer transition-all active:scale-95 shadow-[0_4px_10px_rgba(200,90,40,0.15)] hover:shadow-[0_6px_14px_rgba(200,90,40,0.25)] hover:-translate-y-[1px]"
                 onClick={() => onUpdateStatus(order.id, "shipping")}
               >
                 <svg
@@ -273,7 +287,7 @@ export function OrderDetailView({ order, onBack, onUpdateStatus, onCancelOrder }
           {((order.status || "pending").toLowerCase() === "shipping" ||
             (order.status || "pending").toLowerCase() === "shipped") && (
             <button
-              className="action-btn-primary"
+              className="bg-[#c85a28] hover:bg-[#b54a1a] text-white border-none rounded-xl py-2.5 px-5 text-[13px] font-bold flex items-center gap-2 cursor-pointer transition-all active:scale-95 shadow-[0_4px_10px_rgba(200,90,40,0.15)] hover:shadow-[0_6px_14px_rgba(200,90,40,0.25)] hover:-translate-y-[1px]"
               onClick={() => onUpdateStatus(order.id, "done")}
             >
               <svg
@@ -296,15 +310,14 @@ export function OrderDetailView({ order, onBack, onUpdateStatus, onCancelOrder }
       </div>
 
       {/* Main layout columns */}
-      <div className="detail-layout-grid">
+      <div className="grid grid-cols-1 lg:grid-cols-[1.6fr_1fr] gap-5">
         {/* Left Column: Products and Cost */}
-        <div className="detail-left-column">
-          <div className="detail-section-card">
-            <h3 className="section-title">Sản phẩm trong đơn</h3>
-            <div className="products-list-wrapper">
+        <div>
+          <div className="bg-[#fffaf0] border border-[#f3ebd8] rounded-2xl p-6 shadow-[0_4px_16px_rgba(139,90,60,0.04)] mb-5">
+            <h3 className="text-lg font-bold text-[#3e2723] m-0 mb-5 flex items-center gap-2">Sản phẩm trong đơn</h3>
+            <div className="flex flex-col gap-4 mb-6">
               {order.items && order.items.length > 0 ? (
                 order.items.map((item, index) => {
-                  // Premium fallbacks for fashion item presentation
                   const productImg =
                     item.image ||
                     `https://images.unsplash.com/photo-${
@@ -316,17 +329,17 @@ export function OrderDetailView({ order, onBack, onUpdateStatus, onCancelOrder }
                   const isVerified = item.isVerified !== false;
 
                   return (
-                    <div className="product-item-row" key={index}>
+                    <div className="bg-white border border-[#f3ebd8] rounded-[14px] p-4 flex items-center gap-4 shadow-[0_2px_8px_rgba(139,90,60,0.02)]" key={index}>
                       <img
-                        className="product-thumbnail"
+                        className="w-[72px] h-[72px] rounded-lg object-cover border border-[#f0e5cb]"
                         src={productImg}
                         alt={item.productName}
                       />
-                      <div className="product-info-details">
-                        <span className="product-title-name">{item.productName}</span>
-                        <span className="product-meta-desc">Tình trạng: {productCondition}</span>
+                      <div className="flex-1 flex flex-col gap-1">
+                        <span className="text-[15px] font-bold text-[#3e2723]">{item.productName}</span>
+                        <span className="text-xs text-[#8b7d6a]">Tình trạng: {productCondition}</span>
                         {isVerified && (
-                          <span className="verified-product-badge">
+                          <span className="bg-[#e2f4df] border border-[#c8e6c9] text-[#2e7d32] text-[11px] font-bold py-1 px-2 rounded-md self-start inline-flex items-center gap-1 mt-1">
                             <svg
                               xmlns="http://www.w3.org/2000/svg"
                               width="10"
@@ -344,46 +357,46 @@ export function OrderDetailView({ order, onBack, onUpdateStatus, onCancelOrder }
                           </span>
                         )}
                       </div>
-                      <div className="product-pricing-details">
-                        <span className="product-price">{formatPrice(item.price)}</span>
-                        <span className="product-qty">x{item.quantity || 1}</span>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-base font-bold text-[#c85a28]">{formatPrice(item.price)}</span>
+                        <span className="text-xs text-[#8b7d6a]">x{item.quantity || 1}</span>
                       </div>
                     </div>
                   );
                 })
               ) : (
-                <div className="no-items-placeholder">Không có thông tin sản phẩm.</div>
+                <div className="text-center py-10 text-[#8b7d6a]">Không có thông tin sản phẩm.</div>
               )}
             </div>
 
             {/* Calculations Card */}
-            <div className="billing-calculations-card">
-              <div className="calc-row">
-                <span className="calc-label">Tạm tính</span>
-                <span className="calc-value">{formatPrice(subtotal)}</span>
+            <div className="bg-[#f3edd8] rounded-xl p-5 flex flex-col gap-3">
+              <div className="flex justify-between text-sm text-[#5d4037] font-medium">
+                <span>Tạm tính</span>
+                <span className="font-semibold text-[#3e2723]">{formatPrice(subtotal)}</span>
               </div>
-              <div className="calc-row">
-                <span className="calc-label">Phí vận chuyển</span>
-                <span className="calc-value">{formatPrice(shipping)}</span>
+              <div className="flex justify-between text-sm text-[#5d4037] font-medium">
+                <span>Phí vận chuyển</span>
+                <span className="font-semibold text-[#3e2723]">{formatPrice(shipping)}</span>
               </div>
-              <div className="calc-row">
-                <span className="calc-label">Giảm giá (Voucher)</span>
-                <span className="calc-value discount-text">-{formatPrice(discount)}</span>
+              <div className="flex justify-between text-sm text-[#5d4037] font-medium">
+                <span>Giảm giá (Voucher)</span>
+                <span className="font-semibold text-[#c62828]">{formatPrice(discount)}</span>
               </div>
-              <div className="calc-divider"></div>
-              <div className="calc-row total-row">
-                <span className="total-label">Tổng cộng</span>
-                <span className="total-value">{formatPrice(total)}</span>
+              <div className="h-[1px] bg-[#e5dcb7] my-1"></div>
+              <div className="flex justify-between text-[#3e2723] text-base">
+                <span className="font-bold">Tổng cộng</span>
+                <span className="text-lg font-extrabold text-[#c85a28]">{formatPrice(total)}</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* Right Column: Customer and Timeline */}
-        <div className="detail-right-column">
+        <div>
           {/* Customer Card */}
-          <div className="detail-section-card">
-            <h3 className="section-title">
+          <div className="bg-[#fffaf0] border border-[#f3ebd8] rounded-2xl p-6 shadow-[0_4px_16px_rgba(139,90,60,0.04)] mb-5">
+            <h3 className="text-lg font-bold text-[#3e2723] m-0 mb-5 flex items-center gap-2">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="18"
@@ -394,33 +407,33 @@ export function OrderDetailView({ order, onBack, onUpdateStatus, onCancelOrder }
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="section-title-icon"
+                className="text-[#c85a28]"
               >
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                 <circle cx="12" cy="7" r="4" />
               </svg>
               <span>Khách hàng</span>
             </h3>
-            <div className="customer-info-block">
-              <div className="cust-primary-name">{order.customerName || "Khách vãng lai"}</div>
-              <div className="cust-detail-text">{order.customerPhone || "Chưa có SĐT"}</div>
-              <div className="cust-detail-text">{order.customerEmail || "Chưa có email"}</div>
+            <div className="flex flex-col gap-2">
+              <div className="text-base font-bold text-[#3e2723] mb-1">{order.customerName || "Khách vãng lai"}</div>
+              <div className="text-xs text-[#8b7d6a]">{order.customerPhone || "Chưa có SĐT"}</div>
+              <div className="text-xs text-[#8b7d6a]">{order.customerEmail || "Chưa có email"}</div>
 
-              <div className="address-section-header">ĐỊA CHỈ GIAO HÀNG</div>
-              <div className="cust-address-text">
+              <div className="text-[11px] font-bold text-[#8b7d6a] tracking-widest mt-4 mb-1.5">ĐỊA CHỈ GIAO HÀNG</div>
+              <div className="text-xs text-[#3e2723] leading-relaxed">
                 {order.shippingAddress || "Chưa cung cấp địa chỉ"}, {order.shippingCity || ""}
               </div>
 
-              <div className="note-section-header">GHI CHÚ</div>
-              <div className="cust-note-box">
+              <div className="text-[11px] font-bold text-[#8b7d6a] tracking-widest mt-4 mb-1.5">GHI CHÚ</div>
+              <div className="bg-[#faf7ee] border-l-4 border-[#c85a28] rounded-lg p-3 text-xs italic text-[#5d4037] leading-relaxed">
                 {order.note || "Giao giờ hành chính giúp mình nhé."}
               </div>
             </div>
           </div>
 
           {/* Timeline History Card */}
-          <div className="detail-section-card">
-            <h3 className="section-title">
+          <div className="bg-[#fffaf0] border border-[#f3ebd8] rounded-2xl p-6 shadow-[0_4px_16px_rgba(139,90,60,0.04)] mb-5">
+            <h3 className="text-lg font-bold text-[#3e2723] m-0 mb-5 flex items-center gap-2">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="18"
@@ -431,26 +444,30 @@ export function OrderDetailView({ order, onBack, onUpdateStatus, onCancelOrder }
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="section-title-icon"
+                className="text-[#c85a28]"
               >
                 <circle cx="12" cy="12" r="10" />
                 <polyline points="12 6 12 12 16 14" />
               </svg>
               <span>Lịch sử đơn</span>
             </h3>
-            <div className="timeline-flow-wrapper">
+            <div className="flex flex-col pl-2 mt-2.5">
               {timelineEvents.map((event, idx) => (
                 <div
-                  className={`timeline-step-node ${event.current ? "current-node" : ""} ${
-                    event.danger ? "danger-node" : ""
-                  }`}
+                  className="relative flex gap-4 pb-6 last:pb-0"
                   key={idx}
                 >
-                  <div className="node-marker-bullet"></div>
-                  {idx < timelineEvents.length - 1 && <div className="node-connector-line"></div>}
-                  <div className="node-content-block">
-                    <span className="node-event-title">{event.title}</span>
-                    <span className="node-event-time">{event.time}</span>
+                  <div className={`w-2.5 h-2.5 rounded-full z-[2] mt-1 shadow-[0_0_0_2px_#fffaf0] transition-all ${
+                    event.current ? "scale-[1.2] bg-[#c85a28] shadow-[0_0_0_3px_rgba(200,90,40,0.25)]" :
+                    event.danger ? "bg-[#c62828] shadow-[0_0_0_3px_rgba(198,40,40,0.25)]" : "bg-[#d7ccc8]"
+                  }`}></div>
+                  {idx < timelineEvents.length - 1 && <div className="absolute left-[4.5px] top-3.5 bottom-0 w-[1px] bg-[#d7ccc8] z-[1]"></div>}
+                  <div className="flex flex-col gap-0.5">
+                    <span className={`text-sm font-semibold ${
+                      event.current ? "text-[#3e2723] font-bold" :
+                      event.danger ? "text-[#c62828] font-bold" : "text-[#8b7d6a]"
+                    }`}>{event.title}</span>
+                    <span className="text-[11px] text-[#8b7d6a]">{event.time}</span>
                   </div>
                 </div>
               ))}

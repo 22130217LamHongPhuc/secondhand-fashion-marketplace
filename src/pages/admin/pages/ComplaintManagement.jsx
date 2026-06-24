@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import "./ComplaintManagement.css";
 import { complaintService, shopService, orderService } from "../../../services/admin";
 
 const MOCK_TICKETS = [
@@ -169,7 +168,6 @@ export function ComplaintManagement() {
       }
     } catch (err) {
       console.error("Lỗi khi tải chi tiết đơn hàng:", err);
-      // Fallback
       setSelectedOrder({
         id: orderIdNumerical,
         createdAt: new Date().toISOString(),
@@ -310,21 +308,17 @@ export function ComplaintManagement() {
   }, []);
 
   const filteredTickets = tickets.filter((ticket) => {
-    // 1. Tab Filter
     const tabType = activeTab === "user-feedback" ? "USER_FEEDBACK" : "SHOP_COMPLAINT";
     if (ticket.rawType !== tabType) return false;
 
-    // 2. Severity Filter
     if (severityFilter !== "all") {
       if (ticket.rawSeverity !== severityFilter.toUpperCase()) return false;
     }
 
-    // 3. Date Filter
     if (dateFilter) {
       if (ticket.rawDate !== dateFilter) return false;
     }
 
-    // 4. Search Query Filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       const senderMatch = ticket.sender.toLowerCase().includes(query);
@@ -492,21 +486,51 @@ export function ComplaintManagement() {
 
   if (loading && tickets.length === 0) {
     return (
-      <div className="complaint-management-container" style={{ padding: "40px", textAlign: "center" }}>
-        <h2 style={{ color: "#3e2723" }}>Đang tải dữ liệu khiếu nại thực tế từ Database...</h2>
+      <div className="flex flex-col gap-5 w-full text-[#3e2723] pb-10 min-h-[50vh] justify-center items-center">
+        <h2 className="text-[#3e2723] text-xl font-bold">Đang tải dữ liệu khiếu nại thực tế từ Database...</h2>
       </div>
     );
   }
 
+  // Priority Badge Helper
+  const getPriorityBadgeClass = (priorityClass = "") => {
+    const p = priorityClass.toLowerCase();
+    const base = "inline-flex items-center py-1 px-2.5 rounded-full text-[11px] font-extrabold tracking-wider ";
+    if (p.includes("high")) return base + "bg-[#ffebee] text-[#c62828]";
+    if (p.includes("medium")) return base + "bg-[#faf2dc] text-[#b58428]";
+    if (p.includes("low")) return base + "bg-[#e8f5e9] text-[#2e7d32]";
+    return base + "bg-[#faf2dc] text-[#b58428]";
+  };
+
+  // Status Indicator Dot Helper
+  const getStatusIndicatorClass = (statusClass = "") => {
+    const s = statusClass.toLowerCase();
+    const base = "inline-flex items-center gap-1.5 text-[13px] font-bold bg-transparent p-0 border-none shadow-none before:content-[''] before:w-2 before:h-2 before:rounded-full before:inline-block ";
+    if (s.includes("pending")) return base + "text-[#c62828] before:bg-[#c62828]";
+    if (s.includes("processing")) return base + "text-[#ef6c00] before:bg-[#ef6c00]";
+    if (s.includes("resolved") || s.includes("done")) return base + "text-[#2e7d32] before:bg-[#2e7d32]";
+    return base + "text-[#8b7d6a] before:bg-[#8b7d6a]";
+  };
+
+  // Order Details Modal Status Badge Helper
+  const getModalStatusBadgeClass = (status = "") => {
+    const s = status.toLowerCase();
+    const base = "py-1 px-2.5 rounded-full text-[11px] font-bold uppercase ";
+    if (s === "pending" || s === "cancelled") return base + "bg-[#ffebee] text-[#c62828]";
+    if (s === "confirmed" || s === "done") return base + "bg-[#e8f5e9] text-[#2e7d32]";
+    if (s === "shipping") return base + "bg-[#fff3e0] text-[#ef6c00]";
+    return base + "bg-[#eaeaea] text-[#666666]";
+  };
+
   return (
-    <div className="complaint-management-container">
+    <div className="flex flex-col gap-5 w-full text-[#3e2723] pb-10 animate-[fadeIn_0.35s_cubic-bezier(0.4,0,0.2,1)]">
       {/* Top Title & Export */}
-      <div className="complaint-page-header">
+      <div className="flex items-center justify-between mb-2.5">
         <div>
-          <h1 className="complaint-title">Quản lý phản hồi & khiếu nại</h1>
-          <p className="complaint-subtitle">Theo dõi và xử lý các vấn đề từ cộng đồng Tiệm Cũ.</p>
+          <h1 className="text-[26px] font-extrabold text-[#3e2723] m-0 mb-1.5">Quản lý phản hồi & khiếu nại</h1>
+          <p className="text-sm text-[#8b7d6a] m-0">Theo dõi và xử lý các vấn đề từ cộng đồng Tiệm Cũ.</p>
         </div>
-        <button className="export-report-btn">
+        <button className="bg-[#c5e1a5] text-[#33691e] border border-[#aed581] rounded-lg py-2 px-4 text-[13px] font-bold flex items-center gap-2 cursor-pointer transition-all hover:bg-[#b2db8d] hover:-translate-y-[1px] active:scale-[0.97]">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="16"
@@ -527,10 +551,12 @@ export function ComplaintManagement() {
       </div>
 
       {/* Tabs & Filters Bar */}
-      <div className="complaints-control-bar">
-        <div className="tab-buttons-group">
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex bg-[#faf6eb] border border-[#ebdcb9] rounded-xl p-1 gap-1">
           <button
-            className={`tab-btn-item ${activeTab === "user-feedback" ? "active" : ""}`}
+            className={`bg-none border-none rounded-lg py-2 px-4 text-[13px] font-bold text-[#8b7d6a] cursor-pointer transition-all hover:text-[#3e2723] ${
+              activeTab === "user-feedback" ? "bg-white text-[#3e2723] shadow-[0_2px_8px_rgba(139,90,60,0.06)]" : ""
+            }`}
             onClick={() => {
               setActiveTab("user-feedback");
               setSelectedTicketId(null);
@@ -539,7 +565,9 @@ export function ComplaintManagement() {
             Phản hồi từ User
           </button>
           <button
-            className={`tab-btn-item ${activeTab === "shop-complaint" ? "active" : ""}`}
+            className={`bg-none border-none rounded-lg py-2 px-4 text-[13px] font-bold text-[#8b7d6a] cursor-pointer transition-all hover:text-[#3e2723] ${
+              activeTab === "shop-complaint" ? "bg-white text-[#3e2723] shadow-[0_2px_8px_rgba(139,90,60,0.06)]" : ""
+            }`}
             onClick={() => {
               setActiveTab("shop-complaint");
               setSelectedTicketId(null);
@@ -549,17 +577,17 @@ export function ComplaintManagement() {
           </button>
         </div>
 
-        <div className="filters-group-right">
+        <div className="flex items-center gap-3">
           <input
             type="text"
-            className="filter-search-input"
+            className="bg-white text-[#3e2723] border border-[#ebdcb9] py-2 px-3 rounded-lg text-[13px] outline-none min-w-[220px] transition-all focus:border-[#c85a28] focus:shadow-[0_0_0_3px_rgba(200,90,40,0.08)] placeholder:text-[#8b7d6a]/70"
             placeholder="Tìm theo Tên, Tiêu đề, Nội dung..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
 
           <select
-            className="filter-select-item"
+            className="bg-white border border-[#ebdcb9] rounded-lg py-2 pr-8 pl-3 text-[13px] font-semibold text-[#3e2723] cursor-pointer outline-none appearance-none bg-no-repeat bg-[right_12px_center] bg-[size:11px] bg-[image:url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'14\' height=\'14\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%233e2723\' stroke-width=\'2.5\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e')] transition-all hover:bg-[#faf8f2] hover:border-[#c85a28] focus:border-[#c85a28] focus:shadow-[0_0_0_3px_rgba(200,90,40,0.08)]"
             value={severityFilter}
             onChange={(e) => setSeverityFilter(e.target.value)}
           >
@@ -570,7 +598,7 @@ export function ComplaintManagement() {
           </select>
 
           <input
-            className="filter-date-input"
+            className="bg-white border border-[#ebdcb9] rounded-lg py-2 px-3 text-[13px] text-[#3e2723] outline-none"
             type="date"
             value={dateFilter}
             onChange={(e) => setDateFilter(e.target.value)}
@@ -578,21 +606,11 @@ export function ComplaintManagement() {
 
           {(severityFilter !== "all" || dateFilter || searchQuery) && (
             <button 
-              className="clear-filters-btn"
+              className="ml-2 py-2 px-3 bg-[#e0d5c1] border-none rounded-lg cursor-pointer font-medium text-[#3e2723] hover:bg-[#d5caaf]"
               onClick={() => {
                 setSeverityFilter("all");
                 setDateFilter("");
                 setSearchQuery("");
-              }}
-              style={{
-                marginLeft: "8px",
-                padding: "8px 12px",
-                backgroundColor: "#e0d5c1",
-                border: "none",
-                borderRadius: "6px",
-                cursor: "pointer",
-                fontWeight: "500",
-                color: "#3e2723"
               }}
             >
               Xóa bộ lọc
@@ -602,23 +620,23 @@ export function ComplaintManagement() {
       </div>
 
       {/* Complaints Data Table */}
-      <div className="complaints-table-wrapper">
-        <table className="complaints-data-table">
+      <div className="bg-[#fffaf0] border border-[#f3ebd8] rounded-2xl p-4 px-5 shadow-[0_4px_16px_rgba(139,90,60,0.04)]">
+        <table className="w-full border-collapse">
           <thead>
             <tr>
-              <th>TICKET ID</th>
-              <th>NGƯỜI GỬI</th>
-              <th>CHỦ ĐỀ</th>
-              <th>THỜI GIAN</th>
-              <th>ƯU TIÊN</th>
-              <th>TRẠNG THÁI</th>
-              <th style={{ textAlign: "center" }}>THAO TÁC</th>
+              <th className="p-3 text-left text-[11px] font-bold text-[#8b7d6a] tracking-widest border-b border-[#f0e5cb]">TICKET ID</th>
+              <th className="p-3 text-left text-[11px] font-bold text-[#8b7d6a] tracking-widest border-b border-[#f0e5cb]">NGƯỜI GỬI</th>
+              <th className="p-3 text-left text-[11px] font-bold text-[#8b7d6a] tracking-widest border-b border-[#f0e5cb]">CHỦ ĐỀ</th>
+              <th className="p-3 text-left text-[11px] font-bold text-[#8b7d6a] tracking-widest border-b border-[#f0e5cb]">THỜI GIAN</th>
+              <th className="p-3 text-left text-[11px] font-bold text-[#8b7d6a] tracking-widest border-b border-[#f0e5cb]">ƯU TIÊN</th>
+              <th className="p-3 text-left text-[11px] font-bold text-[#8b7d6a] tracking-widest border-b border-[#f0e5cb]">TRẠNG THÁI</th>
+              <th className="p-3 text-center text-[11px] font-bold text-[#8b7d6a] tracking-widest border-b border-[#f0e5cb]">THAO TÁC</th>
             </tr>
           </thead>
           <tbody>
             {filteredTickets.length === 0 ? (
               <tr>
-                <td colSpan="7" style={{ textAlign: "center", padding: "40px", color: "#8b7d6a" }}>
+                <td colSpan="7" className="text-center py-10 text-[#8b7d6a]">
                   Không tìm thấy phản hồi hoặc khiếu nại nào phù hợp!
                 </td>
               </tr>
@@ -626,33 +644,35 @@ export function ComplaintManagement() {
               filteredTickets.map((ticket) => (
                 <tr
                   key={ticket.id}
-                  className={selectedTicket && selectedTicket.id === ticket.id ? "row-selected" : ""}
+                  className={`hover:bg-[#fffdf9] border-b border-[#f9f5eb] last:border-none ${
+                    selectedTicket && selectedTicket.id === ticket.id ? "bg-[#faf2dc]" : ""
+                  }`}
                 >
-                  <td className="ticket-id-cell">#{ticket.id}</td>
-                  <td className="sender-profile-cell">
+                  <td className="p-[14px_12px] text-[13px] text-[#c85a28] font-bold align-middle">#{ticket.id}</td>
+                  <td className="p-[14px_12px] text-[13px] text-[#3e2723] align-middle flex items-center gap-2.5">
                     <span
-                      className="sender-avatar-bubble"
+                      className="w-7 h-7 rounded-full text-white flex items-center justify-center text-[11px] font-bold shadow-[0_2px_6px_rgba(0,0,0,0.08)]"
                       style={{ backgroundColor: ticket.senderColor }}
                     >
                       {ticket.senderInitial}
                     </span>
-                    <span className="sender-name-text">{ticket.sender}</span>
+                    <span className="font-bold">{ticket.sender}</span>
                   </td>
-                  <td className="subject-title-cell">{ticket.subject}</td>
-                  <td className="time-stamp-cell">{ticket.time}</td>
-                  <td>
-                    <span className={`priority-badge-dot ${ticket.priorityClass}`}>
+                  <td className="p-[14px_12px] text-[13px] text-[#3e2723] align-middle font-semibold max-w-[220px] whitespace-nowrap overflow-hidden text-ellipsis">{ticket.subject}</td>
+                  <td className="p-[14px_12px] text-[13px] text-[#8b7d6a] align-middle">{ticket.time}</td>
+                  <td className="p-[14px_12px] text-[13px] text-[#3e2723] align-middle">
+                    <span className={getPriorityBadgeClass(ticket.priorityClass)}>
                       {ticket.priority}
                     </span>
                   </td>
-                  <td>
-                    <span className={`status-indicator-dot ${ticket.statusClass}`}>
+                  <td className="p-[14px_12px] text-[13px] text-[#3e2723] align-middle">
+                    <span className={getStatusIndicatorClass(ticket.statusClass)}>
                       {ticket.status}
                     </span>
                   </td>
-                  <td style={{ textAlign: "center" }}>
+                  <td className="p-[14px_12px] text-[13px] text-[#3e2723] align-middle text-center">
                     <button
-                      className="view-ticket-details-btn"
+                      className="bg-[#f0e9d6] text-[#8b5a3c] border border-[#e1d6b9] rounded-lg py-1.5 px-3 text-[12px] font-bold cursor-pointer transition-all hover:bg-[#c85a28] hover:text-white hover:border-[#c85a28]"
                       onClick={() => setSelectedTicketId(ticket.id)}
                     >
                       Chi tiết
@@ -665,57 +685,57 @@ export function ComplaintManagement() {
         </table>
 
         {/* Table Footer / Pagination */}
-        <div className="table-footer-pagination">
-          <span className="results-count">Hiển thị {filteredTickets.length} / {tickets.filter(t => t.rawType === (activeTab === "user-feedback" ? "USER_FEEDBACK" : "SHOP_COMPLAINT")).length} kết quả</span>
-          <div className="pagination-controls">
-            <button className="pag-arrow-btn">‹</button>
-            <button className="pag-number-btn active">1</button>
-            <button className="pag-arrow-btn">›</button>
+        <div className="flex items-center justify-between mt-4">
+          <span className="text-xs text-[#8b7d6a] font-medium">Hiển thị {filteredTickets.length} / {tickets.filter(t => t.rawType === (activeTab === "user-feedback" ? "USER_FEEDBACK" : "SHOP_COMPLAINT")).length} kết quả</span>
+          <div className="flex items-center gap-1.5">
+            <button className="bg-[#f7f2e4] border border-[#e2d8bd] rounded-md w-7 h-7 flex items-center justify-center text-[13px] font-bold text-[#8b5a3c] cursor-pointer transition-all hover:bg-[#ebdcb9]">‹</button>
+            <button className="bg-[#c85a28] border border-[#c85a28] rounded-md w-7 h-7 flex items-center justify-center text-[13px] font-bold text-white cursor-pointer transition-all">1</button>
+            <button className="bg-[#f7f2e4] border border-[#e2d8bd] rounded-md w-7 h-7 flex items-center justify-center text-[13px] font-bold text-[#8b5a3c] cursor-pointer transition-all hover:bg-[#ebdcb9]">›</button>
           </div>
         </div>
       </div>
 
       {/* Selected Complaint Detail Layout */}
       {selectedTicket ? (
-        <div className="complaint-detail-two-cols">
+        <div className="grid grid-cols-1 lg:grid-cols-[1.8fr_1fr] gap-5">
           {/* Left Column: Selected Ticket Details */}
-          <div className="complaint-left-column">
-            <div className="selected-ticket-header">
+          <div>
+            <div className="flex items-center gap-4 mb-4">
               <span
-                className="sender-avatar-bubble large"
+                className="w-12 h-12 text-white flex items-center justify-center text-base font-bold shadow-[0_2px_6px_rgba(0,0,0,0.08)] rounded-full"
                 style={{ backgroundColor: selectedTicket.senderColor }}
               >
                 {selectedTicket.senderInitial}
               </span>
-              <div className="ticket-header-meta">
-                <div className="title-row-with-badge">
-                  <h2 className="selected-ticket-title">
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-3">
+                  <h2 className="text-2xl font-extrabold text-[#3e2723] m-0">
                     Chi tiết khiếu nại #{selectedTicket.id}
                   </h2>
                   {selectedTicket.urgent && (
-                    <span className="urgent-badge-label">URGENT ISSUE</span>
+                    <span className="bg-[#ffebee] text-[#c62828] border border-[#ffcdcd] text-[10px] font-extrabold tracking-wider py-1 px-2 rounded-md">URGENT ISSUE</span>
                   )}
                 </div>
-                <p className="selected-ticket-sub">
-                  Gửi bởi <span className="highlight-user">{selectedTicket.sender}</span>
+                <p className="text-[13px] text-[#8b7d6a] m-0">
+                  Gửi bởi <span className="font-bold text-[#c85a28]">{selectedTicket.sender}</span>
                   {selectedTicket.orderIdNumerical && (
-                    <> • Đơn hàng <span className="highlight-order clickable" onClick={() => handleViewOrderDetails(selectedTicket.orderIdNumerical)} title="Click để xem chi tiết đơn hàng">#{selectedTicket.orderId}</span></>
+                    <> • Đơn hàng <span className="cursor-pointer text-[#c85a28] underline transition-colors hover:text-[#a04018] font-bold" onClick={() => handleViewOrderDetails(selectedTicket.orderIdNumerical)} title="Click để xem chi tiết đơn hàng">#{selectedTicket.orderId}</span></>
                   )}
                   {selectedTicket.shopId && (
-                    <> • Shop <span className="highlight-order" style={{ color: "#c85a28" }}>{selectedTicket.shopName}</span></>
+                    <> • Shop <span className="font-bold text-[#3e2723]">{selectedTicket.shopName}</span></>
                   )}
                 </p>
               </div>
             </div>
 
             {/* Card: Complaint Content */}
-            <div className="complaint-detail-card">
-              <h3 className="card-inner-title">Nội dung khiếu nại</h3>
-              <p className="complaint-main-text" style={{ whiteSpace: "pre-line" }}>“{selectedTicket.content}”</p>
+            <div className="bg-[#fffaf0] border border-[#f3ebd8] rounded-2xl p-6 shadow-[0_4px_16px_rgba(139,90,60,0.04)]">
+              <h3 className="text-base font-bold text-[#3e2723] m-0 mb-4">Nội dung khiếu nại</h3>
+              <p className="text-sm leading-relaxed text-[#4e342e] italic m-0 mb-5" style={{ whiteSpace: "pre-line" }}>“{selectedTicket.content}”</p>
 
               {/* Interaction History */}
-              <div className="interaction-history-section">
-                <h4 className="interaction-title">
+              <div className="border-t border-dashed border-[#ebdcb9] pt-5 mb-6">
+                <h4 className="text-[11px] font-bold text-[#8b7d6a] tracking-widest m-0 mb-4 flex items-center gap-2">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="14"
@@ -732,13 +752,13 @@ export function ComplaintManagement() {
                   </svg>
                   <span>LỊCH SỬ TƯƠNG TÁC</span>
                 </h4>
-                <div className="timeline-flow-list">
+                <div className="flex flex-col pl-2">
                   {selectedTicket.history.map((hist, idx) => (
-                    <div className="timeline-flow-node" key={idx}>
-                      <div className="node-marker-dot"></div>
-                      <div className="node-info-text">
-                        <span className="node-time-label">{hist.time}</span>
-                        <span className="node-description-text" style={{ whiteSpace: "pre-line" }}>{hist.text}</span>
+                    <div className="relative flex gap-4 pb-5 last:pb-0 before:content-[''] before:absolute before:left-1 before:top-3 before:bottom-0 before:w-[1px] before:bg-[#ebdcb9] last:before:hidden" key={idx}>
+                      <div className="w-2 h-2 rounded-full bg-[#c85a28] z-[2] mt-1 shadow-[0_0_0_2px_#fffaf0]"></div>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[11px] text-[#8b7d6a]">{hist.time}</span>
+                        <span className="text-[13px] font-semibold text-[#3e2723] leading-normal" style={{ whiteSpace: "pre-line" }}>{hist.text}</span>
                       </div>
                     </div>
                   ))}
@@ -747,59 +767,49 @@ export function ComplaintManagement() {
 
               {/* Input Response Action or Resolution Display */}
               {selectedTicket.rawStatus === "PENDING" ? (
-                <div className="ticket-response-input-block">
+                <div className="border-t border-[#f3ebd8] pt-5 flex flex-col gap-4">
                   <textarea
-                    className="response-textarea-field"
+                    className="w-full border border-[#ebdcb9] rounded-xl p-4 text-[13px] text-[#3e2723] outline-none bg-white transition-all resize-y focus:border-[#c85a28] focus:shadow-[0_0_0_3px_rgba(200,90,40,0.08)]"
                     placeholder="Nhập phản hồi hoặc ghi chú giải quyết..."
                     rows="4"
                     value={responseText}
                     onChange={(e) => setResponseText(e.target.value)}
                   />
-                  <div className="ticket-action-buttons-bar">
-                    <div className="left-actions-group">
-                      <button className="btn-action-send" onClick={handleSendResponse}>
+                  <div className="flex justify-between items-center flex-wrap gap-3">
+                    <div className="flex gap-2 flex-wrap">
+                      <button className="bg-[#c85a28] text-white border-none rounded-xl py-2.5 px-4 text-[13px] font-bold cursor-pointer transition-all hover:bg-[#b54a1a]" onClick={handleSendResponse}>
                         Gửi phản hồi
                       </button>
                       {selectedTicket.shopId && (
-                        <button className="btn-action-ban" onClick={handleBanShop} title="Cộng gậy cảnh cáo shop">
+                        <button className="bg-[#ffebee] text-[#c62828] border border-[#ffcdd2] rounded-xl py-2.5 px-4 text-[13px] font-bold cursor-pointer transition-all hover:bg-[#ffd8d8]" onClick={handleBanShop} title="Cộng gậy cảnh cáo shop">
                           Cảnh cáo Shop
                         </button>
                       )}
                       {selectedTicket.orderIdNumerical && (
-                        <button className="btn-action-refund" onClick={handleApproveRefund} title="Phê duyệt hoàn trả tiền">
+                        <button className="bg-[#e8f5e9] text-[#2e7d32] border border-[#c8e6c9] rounded-xl py-2.5 px-4 text-[13px] font-bold cursor-pointer transition-all hover:bg-[#d0efd3]" onClick={handleApproveRefund} title="Phê duyệt hoàn trả tiền">
                           Phê duyệt hoàn tiền
                         </button>
                       )}
                     </div>
-                    <button className="btn-action-close-ticket" onClick={handleCloseTicket}>
+                    <button className="bg-[#f0e9d6] text-[#8b5a3c] border border-[#e1d6b9] rounded-xl py-2.5 px-4 text-[13px] font-bold cursor-pointer transition-all hover:bg-[#ebdcb9]" onClick={handleCloseTicket}>
                       Từ chối / Đóng Ticket
                     </button>
                   </div>
                 </div>
               ) : (
                 <div 
-                  className="resolution-summary-box" 
-                  style={{
-                    marginTop: "24px",
-                    padding: "20px",
-                    backgroundColor: selectedTicket.rawStatus === "RESOLVED" ? "#f1f8e9" : "#ffebee",
-                    borderLeft: selectedTicket.rawStatus === "RESOLVED" ? "5px solid #689f38" : "5px solid #d32f2f",
-                    borderRadius: "6px"
-                  }}
+                  className={`mt-6 p-5 rounded-lg border-l-[5px] ${
+                    selectedTicket.rawStatus === "RESOLVED" ? "bg-[#f1f8e9] border-[#689f38]" : "bg-[#ffebee] border-[#d32f2f]"
+                  }`}
                 >
                   <h4 
-                    style={{ 
-                      margin: "0 0 10px 0", 
-                      fontSize: "16px",
-                      color: selectedTicket.rawStatus === "RESOLVED" ? "#33691e" : "#b71c1c",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "6px"
-                    }}
+                    className={`margin-0 mb-2.5 text-base font-bold flex items-center gap-1.5 ${
+                      selectedTicket.rawStatus === "RESOLVED" ? "text-[#33691e]" : "text-[#b71c1c]"
+                    }`}
                   >
                     <span>{selectedTicket.rawStatus === "RESOLVED" ? "✓ KHIẾU NẠI ĐÃ ĐƯỢC GIẢI QUYẾT" : "✗ KHIẾU NẠI ĐÃ TỪ CHỐI"}</span>
                   </h4>
-                  <p style={{ margin: "0", fontSize: "14px", color: "#3e2723", lineHeight: "1.6", whiteSpace: "pre-line" }}>
+                  <p className="margin-0 text-sm text-[#3e2723] leading-relaxed" style={{ whiteSpace: "pre-line" }}>
                     <strong>Kết quả xử lý:</strong> {selectedTicket.resolution || "Không có chi tiết giải quyết."}
                   </p>
                 </div>
@@ -808,36 +818,36 @@ export function ComplaintManagement() {
           </div>
 
           {/* Right Column: Side Widgets */}
-          <div className="complaint-right-column">
-            {/* Card: Recent Activities Log */}
-            <div className="complaint-detail-card side-widget">
-              <h3 className="card-inner-title">Thông tin tham chiếu</h3>
+          <div className="flex flex-col gap-5">
+            {/* Card: Reference Details */}
+            <div className="bg-[#fffaf0] border border-[#f3ebd8] rounded-2xl p-6 shadow-[0_4px_16px_rgba(139,90,60,0.04)]">
+              <h3 className="text-base font-bold text-[#3e2723] m-0 mb-4">Thông tin tham chiếu</h3>
               
-              <div className="widget-reference-details" style={{ fontSize: "14px", color: "#3e2723" }}>
-                <div style={{ marginBottom: "12px", borderBottom: "1px solid #eee", paddingBottom: "12px" }}>
-                  <strong style={{ color: "#8b5a3c" }}>Người khiếu nại:</strong>
-                  <div style={{ marginTop: "4px" }}>
+              <div className="text-sm text-[#3e2723]">
+                <div className="mb-3 border-b border-[#f3ebd8] pb-3">
+                  <strong className="text-[#8b5a3c]">Người khiếu nại:</strong>
+                  <div className="mt-1">
                     Tên: {selectedTicket.sender}<br />
-                    Mức độ tin cậy: <span style={{ color: "#2e7d32", fontWeight: "bold" }}>Cao (98%)</span>
+                    Mức độ tin cậy: <span className="text-[#2e7d32] font-bold">Cao (98%)</span>
                   </div>
                 </div>
 
                 {selectedTicket.shopId && (
-                  <div style={{ marginBottom: "12px", borderBottom: "1px solid #eee", paddingBottom: "12px" }}>
-                    <strong style={{ color: "#8b5a3c" }}>Shop bị khiếu nại:</strong>
-                    <div style={{ marginTop: "4px" }}>
+                  <div className="mb-3 border-b border-[#f3ebd8] pb-3">
+                    <strong className="text-[#8b5a3c]">Shop bị khiếu nại:</strong>
+                    <div className="mt-1">
                       Tên shop: {selectedTicket.shopName}<br />
-                      Điểm phạt hiện tại: <span style={{ color: "#e65100", fontWeight: "bold" }}>1/5 gậy</span>
+                      Điểm phạt hiện tại: <span className="text-[#e65100] font-bold">1/5 gậy</span>
                     </div>
                   </div>
                 )}
 
                 {selectedTicket.orderIdNumerical && (
-                  <div style={{ marginBottom: "8px" }}>
-                    <strong style={{ color: "#8b5a3c" }}>Chi tiết đơn hàng:</strong>
-                    <div style={{ marginTop: "4px" }}>
-                      Mã đơn hàng: <span className="clickable-order-link" onClick={() => handleViewOrderDetails(selectedTicket.orderIdNumerical)} title="Click để xem chi tiết đơn hàng">{selectedTicket.orderId}</span><br />
-                      Phương thức: <span style={{ textTransform: "uppercase" }}>Thanh toán khi nhận hàng (COD)</span>
+                  <div className="mb-2">
+                    <strong className="text-[#8b5a3c]">Chi tiết đơn hàng:</strong>
+                    <div className="mt-1">
+                      Mã đơn hàng: <span className="text-[#c85a28] font-bold cursor-pointer underline transition-colors hover:text-[#a04018]" onClick={() => handleViewOrderDetails(selectedTicket.orderIdNumerical)} title="Click để xem chi tiết đơn hàng">{selectedTicket.orderId}</span><br />
+                      Phương thức: <span className="uppercase">Thanh toán khi nhận hàng (COD)</span>
                     </div>
                   </div>
                 )}
@@ -845,90 +855,90 @@ export function ComplaintManagement() {
             </div>
 
             {/* Card: Eco Green ESG Panel */}
-            <div className="complaint-detail-card side-widget green-theme-widget">
-              <h3 className="card-inner-title green-title">Tiệm Cũ Xanh</h3>
-              <p className="green-theme-body-text">
+            <div className="bg-[#e8f5e9] border border-[#c8e6c9] border-l-4 border-l-[#2e7d32] rounded-2xl p-6 shadow-[0_4px_16px_rgba(139,90,60,0.04)]">
+              <h3 className="text-base font-bold text-[#1b5e20] m-0 mb-4">Tiệm Cũ Xanh</h3>
+              <p className="text-[13px] leading-relaxed text-[#2e7d32] m-0 mb-4">
                 Các phản hồi về chương trình 'Mua bán vì môi trường' tăng 40% trong tháng này. Hãy chuẩn bị báo cáo chi tiết cho đối tác ESG.
               </p>
-              <span className="green-metrics-badge">GREEN METRICS</span>
+              <span className="bg-[#2e7d32] text-white text-[11px] font-extrabold tracking-wider py-1.5 px-3 rounded-md inline-block">GREEN METRICS</span>
             </div>
           </div>
         </div>
       ) : null}
 
       {showOrderModal && selectedOrder && (
-        <div className="modal-overlay" onClick={() => setShowOrderModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close-btn" onClick={() => setShowOrderModal(false)} title="Đóng">
+        <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-[1000] backdrop-blur-[4px]" onClick={() => setShowOrderModal(false)}>
+          <div className="relative bg-white p-[30px] rounded-xl max-w-[600px] w-[90%] max-h-[90vh] overflow-y-auto shadow-[0_8px_30px_rgba(0,0,0,0.2)] border border-[#ebdcb9] text-[#3e2723] animate-[modalScaleIn_0.3s_cubic-bezier(0.34,1.56,0.64,1)]" onClick={(e) => e.stopPropagation()}>
+            <button className="absolute top-4 right-4 bg-none border-none text-2xl cursor-pointer text-[#8b7d6a] flex items-center justify-center w-8 h-8 rounded-full transition-all hover:bg-[#faf6eb] hover:text-[#c85a28]" onClick={() => setShowOrderModal(false)} title="Đóng">
               <svg xmlns="http://www.w3.org/2000/svg" height="22" viewBox="0 -960 960 960" width="22" fill="currentColor">
                 <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/>
               </svg>
             </button>
-            <h2>Chi tiết đơn hàng #{selectedOrder.id}</h2>
+            <h2 className="m-0 mb-5 text-[#3e2723] text-xl font-bold">Chi tiết đơn hàng #{selectedOrder.id}</h2>
 
-            <div className="order-detail-body">
-              <div className="detail-section">
-                <h3>Thông tin đơn hàng</h3>
-                <div className="detail-item">
-                  <span className="label">ID đơn hàng:</span>
-                  <span className="value">#{selectedOrder.id}</span>
+            <div className="mb-5">
+              <div className="mb-5">
+                <h3 className="text-[13px] font-bold text-[#8b5a3c] m-0 mb-3.5 uppercase tracking-wider">Thông tin đơn hàng</h3>
+                <div className="flex justify-between py-2 text-[13px] border-b border-[#faf6eb]">
+                  <span className="text-[#8b7d6a] font-semibold">ID đơn hàng:</span>
+                  <span className="text-[#3e2723] font-bold">#{selectedOrder.id}</span>
                 </div>
-                <div className="detail-item">
-                  <span className="label">Ngày tạo:</span>
-                  <span className="value">
+                <div className="flex justify-between py-2 text-[13px] border-b border-[#faf6eb]">
+                  <span className="text-[#8b7d6a] font-semibold">Ngày tạo:</span>
+                  <span className="text-[#3e2723] font-bold">
                     {new Date(selectedOrder.createdAt).toLocaleString("vi-VN")}
                   </span>
                 </div>
-                <div className="detail-item">
-                  <span className="label">Trạng thái:</span>
-                  <span className={`status-badge status-${selectedOrder.status}`}>
+                <div className="flex justify-between py-2 text-[13px] border-b border-[#faf6eb] last:border-none">
+                  <span className="text-[#8b7d6a] font-semibold">Trạng thái:</span>
+                  <span className={getModalStatusBadgeClass(selectedOrder.status)}>
                     {statusLabels[selectedOrder.status] || selectedOrder.status}
                   </span>
                 </div>
               </div>
 
-              <div className="detail-section">
-                <h3>Khách hàng</h3>
-                <div className="detail-item">
-                  <span className="label">Tên người mua:</span>
-                  <span className="value">{selectedOrder.customerName}</span>
+              <div className="mb-5">
+                <h3 className="text-[13px] font-bold text-[#8b5a3c] m-0 mb-3.5 uppercase tracking-wider">Khách hàng</h3>
+                <div className="flex justify-between py-2 text-[13px] border-b border-[#faf6eb]">
+                  <span className="text-[#8b7d6a] font-semibold">Tên người mua:</span>
+                  <span className="text-[#3e2723] font-bold">{selectedOrder.customerName}</span>
                 </div>
-                <div className="detail-item">
-                  <span className="label">Email:</span>
-                  <span className="value">{selectedOrder.customerEmail}</span>
+                <div className="flex justify-between py-2 text-[13px] border-b border-[#faf6eb]">
+                  <span className="text-[#8b7d6a] font-semibold">Email:</span>
+                  <span className="text-[#3e2723] font-bold">{selectedOrder.customerEmail}</span>
                 </div>
-                <div className="detail-item">
-                  <span className="label">Điện thoại:</span>
-                  <span className="value">{selectedOrder.customerPhone}</span>
-                </div>
-              </div>
-
-              <div className="detail-section">
-                <h3>Địa chỉ giao hàng</h3>
-                <div className="detail-item">
-                  <span className="label">Địa chỉ:</span>
-                  <span className="value">{selectedOrder.shippingAddress}</span>
+                <div className="flex justify-between py-2 text-[13px] border-b border-[#faf6eb] last:border-none">
+                  <span className="text-[#8b7d6a] font-semibold">Điện thoại:</span>
+                  <span className="text-[#3e2723] font-bold">{selectedOrder.customerPhone}</span>
                 </div>
               </div>
 
-              <div className="detail-section">
-                <h3>Sản phẩm khiếu nại</h3>
-                <table className="items-table">
+              <div className="mb-5">
+                <h3 className="text-[13px] font-bold text-[#8b5a3c] m-0 mb-3.5 uppercase tracking-wider">Địa chỉ giao hàng</h3>
+                <div className="flex justify-between py-2 text-[13px] border-b border-[#faf6eb] last:border-none">
+                  <span className="text-[#8b7d6a] font-semibold">Địa chỉ:</span>
+                  <span className="text-[#3e2723] font-bold">{selectedOrder.shippingAddress}</span>
+                </div>
+              </div>
+
+              <div className="mb-5">
+                <h3 className="text-[13px] font-bold text-[#8b5a3c] m-0 mb-3.5 uppercase tracking-wider">Sản phẩm khiếu nại</h3>
+                <table className="w-full border-collapse mt-2.5 text-[13px]">
                   <thead>
                     <tr>
-                      <th>Tên sản phẩm</th>
-                      <th>Đơn giá</th>
-                      <th>Số lượng</th>
-                      <th>Thành tiền</th>
+                      <th className="text-left p-2 bg-[#faf6eb] text-[#8b7d6a] font-bold">Tên sản phẩm</th>
+                      <th className="text-left p-2 bg-[#faf6eb] text-[#8b7d6a] font-bold">Đơn giá</th>
+                      <th className="text-left p-2 bg-[#faf6eb] text-[#8b7d6a] font-bold">Số lượng</th>
+                      <th className="text-left p-2 bg-[#faf6eb] text-[#8b7d6a] font-bold">Thành tiền</th>
                     </tr>
                   </thead>
                   <tbody>
                     {selectedOrder.items?.map((item, idx) => (
                       <tr key={idx}>
-                        <td>{item.productName}</td>
-                        <td>{item.price?.toLocaleString("vi-VN")} đ</td>
-                        <td>{item.quantity}</td>
-                        <td className="total">
+                        <td className="p-2.5 border-b border-[#faf6eb] text-[#3e2723]">{item.productName}</td>
+                        <td className="p-2.5 border-b border-[#faf6eb] text-[#3e2723]">{item.price?.toLocaleString("vi-VN")} đ</td>
+                        <td className="p-2.5 border-b border-[#faf6eb] text-[#3e2723]">{item.quantity}</td>
+                        <td className="p-2.5 border-b border-[#faf6eb] text-[#c85a28] font-bold">
                           {(item.price * item.quantity)?.toLocaleString("vi-VN")} đ
                         </td>
                       </tr>
@@ -937,23 +947,23 @@ export function ComplaintManagement() {
                 </table>
               </div>
 
-              <div className="detail-section">
-                <h3>Tóm tắt thanh toán</h3>
-                <div className="detail-item">
-                  <span className="label">Tổng tiền hàng:</span>
-                  <span className="value">
+              <div className="mb-5">
+                <h3 className="text-[13px] font-bold text-[#8b5a3c] m-0 mb-3.5 uppercase tracking-wider">Tóm tắt thanh toán</h3>
+                <div className="flex justify-between py-2 text-[13px] border-b border-[#faf6eb]">
+                  <span className="text-[#8b7d6a] font-semibold">Tổng tiền hàng:</span>
+                  <span className="text-[#3e2723] font-bold">
                     {selectedOrder.subtotal?.toLocaleString("vi-VN")} đ
                   </span>
                 </div>
-                <div className="detail-item">
-                  <span className="label">Phí vận chuyển:</span>
-                  <span className="value">
+                <div className="flex justify-between py-2 text-[13px] border-b border-[#faf6eb]">
+                  <span className="text-[#8b7d6a] font-semibold">Phí vận chuyển:</span>
+                  <span className="text-[#3e2723] font-bold">
                     {selectedOrder.shipping?.toLocaleString("vi-VN")} đ
                   </span>
                 </div>
-                <div className="detail-item">
-                  <span className="label">Tổng cộng thanh toán:</span>
-                  <span className="value" style={{ color: "#c85a28", fontSize: "16px", fontWeight: "800" }}>
+                <div className="flex justify-between py-2 text-[13px] border-b border-[#faf6eb] last:border-none">
+                  <span className="text-[#8b7d6a] font-semibold">Tổng cộng thanh toán:</span>
+                  <span className="text-[#c85a28] text-base font-extrabold">
                     {selectedOrder.total?.toLocaleString("vi-VN")} đ
                   </span>
                 </div>
