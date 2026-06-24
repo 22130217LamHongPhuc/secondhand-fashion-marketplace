@@ -116,7 +116,7 @@ const MOCK_TICKETS = [
 ];
 
 export function ComplaintManagement() {
-  const [activeTab, setActiveTab] = useState("user-feedback");
+  const [activeTab, setActiveTab] = useState("shop-complaint");
   const [severityFilter, setSeverityFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -200,9 +200,9 @@ export function ComplaintManagement() {
 
   const mapApiTicketToFrontend = (apiTicket) => {
     const statusMap = {
-      PENDING: "Pending",
-      RESOLVED: "Resolved",
-      REJECTED: "Rejected"
+      PENDING: "Chờ xử lý",
+      RESOLVED: "Đã giải quyết",
+      REJECTED: "Đã từ chối"
     };
 
     const statusClassMap = {
@@ -256,6 +256,8 @@ export function ComplaintManagement() {
       orderIdNumerical: apiTicket.order ? apiTicket.order.id : null,
       shopName: apiTicket.reportedShop ? apiTicket.reportedShop.name : "N/A",
       shopId: apiTicket.reportedShop ? apiTicket.reportedShop.id : null,
+      shopWarningStrikes: apiTicket.reportedShop ? (apiTicket.reportedShop.warningStrikes ?? 0) : 0,
+      shopActive: apiTicket.reportedShop ? (apiTicket.reportedShop.isActive !== false) : true,
       urgent: apiTicket.severity === "HIGH",
       content: apiTicket.content,
       images: [],
@@ -308,12 +310,10 @@ export function ComplaintManagement() {
   }, []);
 
   const filteredTickets = tickets.filter((ticket) => {
-    const tabType = activeTab === "user-feedback" ? "USER_FEEDBACK" : "SHOP_COMPLAINT";
+    const tabType = "SHOP_COMPLAINT";
     if (ticket.rawType !== tabType) return false;
 
-    if (severityFilter !== "all") {
-      if (ticket.rawSeverity !== severityFilter.toUpperCase()) return false;
-    }
+
 
     if (dateFilter) {
       if (ticket.rawDate !== dateFilter) return false;
@@ -407,6 +407,46 @@ export function ComplaintManagement() {
         }));
         alert(`Đã phạt cảnh cáo gậy phạt thành công cho shop "${selectedTicket.shopName}" (Chế độ mô phỏng)!`);
         setResponseText("");
+      });
+  };
+  
+  const handleToggleShopActive = () => {
+    if (!selectedTicket.shopId) {
+      alert("Khiếu nại này không liên kết với Shop nào!");
+      return;
+    }
+    const newStatus = !selectedTicket.shopActive;
+    const actionLabel = newStatus ? "mở khóa" : "khóa";
+    if (!window.confirm(`Bạn có chắc chắn muốn ${actionLabel} cửa hàng "${selectedTicket.shopName}"?`)) {
+      return;
+    }
+    shopService.toggleActive(selectedTicket.shopId, newStatus)
+      .then(() => {
+        alert(`Đã ${actionLabel} cửa hàng thành công!`);
+        fetchComplaints(selectedTicket.id);
+      })
+      .catch((err) => {
+        console.error("Lỗi khi thay đổi trạng thái hoạt động của shop:", err);
+        alert(`Không thể ${actionLabel} cửa hàng!`);
+      });
+  };
+
+  const handleResetShopStrikes = () => {
+    if (!selectedTicket.shopId) {
+      alert("Khiếu nại này không liên kết với Shop nào!");
+      return;
+    }
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa tất cả gậy phạt của cửa hàng "${selectedTicket.shopName}"?`)) {
+      return;
+    }
+    shopService.resetStrikes(selectedTicket.shopId)
+      .then(() => {
+        alert("Đã xóa tất cả gậy phạt thành công!");
+        fetchComplaints(selectedTicket.id);
+      })
+      .catch((err) => {
+        console.error("Lỗi khi xóa gậy phạt shop:", err);
+        alert("Không thể xóa gậy phạt!");
       });
   };
 
@@ -550,32 +590,32 @@ export function ComplaintManagement() {
         </button>
       </div>
 
+      {/* Stats Cards Dashboard */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
+        <div className="bg-white border border-[#ebdcb9] rounded-2xl p-5 shadow-[0_4px_12px_rgba(139,90,60,0.02)] flex flex-col gap-1 border-l-4 border-l-[#8b7d6a]">
+          <span className="text-[11px] font-extrabold tracking-widest text-[#8b7d6a] uppercase">Tổng đơn khiếu nại</span>
+          <span className="text-2xl font-black text-[#3e2723] mt-1">{tickets.length}</span>
+          <span className="text-xs text-[#8b7d6a] mt-1">Đơn giao dịch bị khiếu nại trên toàn hệ thống</span>
+        </div>
+        <div className="bg-white border border-[#ebdcb9] rounded-2xl p-5 shadow-[0_4px_12px_rgba(139,90,60,0.02)] flex flex-col gap-1 border-l-4 border-l-[#c62828]">
+          <span className="text-[11px] font-extrabold tracking-widest text-[#c62828] uppercase">Cần xử lý</span>
+          <span className="text-2xl font-black text-[#c62828] mt-1">
+            {tickets.filter(t => t.rawStatus === "PENDING").length}
+          </span>
+          <span className="text-xs text-[#8b7d6a] mt-1">Khiếu nại đang chờ xác minh & giải quyết</span>
+        </div>
+        <div className="bg-white border border-[#ebdcb9] rounded-2xl p-5 shadow-[0_4px_12px_rgba(139,90,60,0.02)] flex flex-col gap-1 border-l-4 border-l-[#2e7d32]">
+          <span className="text-[11px] font-extrabold tracking-widest text-[#2e7d32] uppercase">Đã xử lý</span>
+          <span className="text-2xl font-black text-[#2e7d32] mt-1">
+            {tickets.filter(t => t.rawStatus !== "PENDING").length}
+          </span>
+          <span className="text-xs text-[#8b7d6a] mt-1">Đơn khiếu nại đã giải quyết / từ chối</span>
+        </div>
+      </div>
+
       {/* Tabs & Filters Bar */}
       <div className="flex items-center justify-between flex-wrap gap-4">
-        <div className="flex bg-[#faf6eb] border border-[#ebdcb9] rounded-xl p-1 gap-1">
-          <button
-            className={`bg-none border-none rounded-lg py-2 px-4 text-[13px] font-bold text-[#8b7d6a] cursor-pointer transition-all hover:text-[#3e2723] ${
-              activeTab === "user-feedback" ? "bg-white text-[#3e2723] shadow-[0_2px_8px_rgba(139,90,60,0.06)]" : ""
-            }`}
-            onClick={() => {
-              setActiveTab("user-feedback");
-              setSelectedTicketId(null);
-            }}
-          >
-            Phản hồi từ User
-          </button>
-          <button
-            className={`bg-none border-none rounded-lg py-2 px-4 text-[13px] font-bold text-[#8b7d6a] cursor-pointer transition-all hover:text-[#3e2723] ${
-              activeTab === "shop-complaint" ? "bg-white text-[#3e2723] shadow-[0_2px_8px_rgba(139,90,60,0.06)]" : ""
-            }`}
-            onClick={() => {
-              setActiveTab("shop-complaint");
-              setSelectedTicketId(null);
-            }}
-          >
-            Khiếu nại Shop
-          </button>
-        </div>
+        <div></div>
 
         <div className="flex items-center gap-3">
           <input
@@ -586,17 +626,6 @@ export function ComplaintManagement() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
 
-          <select
-            className="bg-white border border-[#ebdcb9] rounded-lg py-2 pr-8 pl-3 text-[13px] font-semibold text-[#3e2723] cursor-pointer outline-none appearance-none bg-no-repeat bg-[right_12px_center] bg-[size:11px] bg-[image:url('data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'14\' height=\'14\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%233e2723\' stroke-width=\'2.5\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e')] transition-all hover:bg-[#faf8f2] hover:border-[#c85a28] focus:border-[#c85a28] focus:shadow-[0_0_0_3px_rgba(200,90,40,0.08)]"
-            value={severityFilter}
-            onChange={(e) => setSeverityFilter(e.target.value)}
-          >
-            <option value="all">Mức độ: Tất cả</option>
-            <option value="high">Cao</option>
-            <option value="medium">Trung bình</option>
-            <option value="low">Thấp</option>
-          </select>
-
           <input
             className="bg-white border border-[#ebdcb9] rounded-lg py-2 px-3 text-[13px] text-[#3e2723] outline-none"
             type="date"
@@ -604,11 +633,10 @@ export function ComplaintManagement() {
             onChange={(e) => setDateFilter(e.target.value)}
           />
 
-          {(severityFilter !== "all" || dateFilter || searchQuery) && (
+          {(dateFilter || searchQuery) && (
             <button 
               className="ml-2 py-2 px-3 bg-[#e0d5c1] border-none rounded-lg cursor-pointer font-medium text-[#3e2723] hover:bg-[#d5caaf]"
               onClick={() => {
-                setSeverityFilter("all");
                 setDateFilter("");
                 setSearchQuery("");
               }}
@@ -627,8 +655,8 @@ export function ComplaintManagement() {
               <th className="p-3 text-left text-[11px] font-bold text-[#8b7d6a] tracking-widest border-b border-[#f0e5cb]">TICKET ID</th>
               <th className="p-3 text-left text-[11px] font-bold text-[#8b7d6a] tracking-widest border-b border-[#f0e5cb]">NGƯỜI GỬI</th>
               <th className="p-3 text-left text-[11px] font-bold text-[#8b7d6a] tracking-widest border-b border-[#f0e5cb]">CHỦ ĐỀ</th>
+              <th className="p-3 text-left text-[11px] font-bold text-[#8b7d6a] tracking-widest border-b border-[#f0e5cb]">ĐƠN HÀNG</th>
               <th className="p-3 text-left text-[11px] font-bold text-[#8b7d6a] tracking-widest border-b border-[#f0e5cb]">THỜI GIAN</th>
-              <th className="p-3 text-left text-[11px] font-bold text-[#8b7d6a] tracking-widest border-b border-[#f0e5cb]">ƯU TIÊN</th>
               <th className="p-3 text-left text-[11px] font-bold text-[#8b7d6a] tracking-widest border-b border-[#f0e5cb]">TRẠNG THÁI</th>
               <th className="p-3 text-center text-[11px] font-bold text-[#8b7d6a] tracking-widest border-b border-[#f0e5cb]">THAO TÁC</th>
             </tr>
@@ -659,12 +687,20 @@ export function ComplaintManagement() {
                     <span className="font-bold">{ticket.sender}</span>
                   </td>
                   <td className="p-[14px_12px] text-[13px] text-[#3e2723] align-middle font-semibold max-w-[220px] whitespace-nowrap overflow-hidden text-ellipsis">{ticket.subject}</td>
-                  <td className="p-[14px_12px] text-[13px] text-[#8b7d6a] align-middle">{ticket.time}</td>
-                  <td className="p-[14px_12px] text-[13px] text-[#3e2723] align-middle">
-                    <span className={getPriorityBadgeClass(ticket.priorityClass)}>
-                      {ticket.priority}
-                    </span>
+                  <td className="p-[14px_12px] text-[13px] text-[#3e2723] align-middle font-bold">
+                    {ticket.orderIdNumerical ? (
+                      <button
+                        onClick={() => handleViewOrderDetails(ticket.orderIdNumerical)}
+                        className="text-[#c85a28] hover:underline bg-transparent border-none p-0 cursor-pointer font-bold"
+                        title="Xem chi tiết đơn hàng"
+                      >
+                        {ticket.orderId}
+                      </button>
+                    ) : (
+                      <span className="text-[#8b7d6a]">N/A</span>
+                    )}
                   </td>
+                  <td className="p-[14px_12px] text-[13px] text-[#8b7d6a] align-middle">{ticket.time}</td>
                   <td className="p-[14px_12px] text-[13px] text-[#3e2723] align-middle">
                     <span className={getStatusIndicatorClass(ticket.statusClass)}>
                       {ticket.status}
@@ -781,9 +817,23 @@ export function ComplaintManagement() {
                         Gửi phản hồi
                       </button>
                       {selectedTicket.shopId && (
-                        <button className="bg-[#ffebee] text-[#c62828] border border-[#ffcdd2] rounded-xl py-2.5 px-4 text-[13px] font-bold cursor-pointer transition-all hover:bg-[#ffd8d8]" onClick={handleBanShop} title="Cộng gậy cảnh cáo shop">
-                          Cảnh cáo Shop
-                        </button>
+                        <>
+                          <button className="bg-[#ffebee] text-[#c62828] border border-[#ffcdd2] rounded-xl py-2.5 px-4 text-[13px] font-bold cursor-pointer transition-all hover:bg-[#ffd8d8]" onClick={handleBanShop} title="Cộng gậy cảnh cáo shop">
+                            Cảnh cáo Shop (+1 gậy)
+                          </button>
+                          <button className={`border rounded-xl py-2.5 px-4 text-[13px] font-bold cursor-pointer transition-all ${
+                            selectedTicket.shopActive 
+                              ? "bg-[#fff3e0] text-[#e65100] border-[#ffe0b2] hover:bg-[#ffe0b2]"
+                              : "bg-[#e8f5e9] text-[#2e7d32] border-[#c8e6c9] hover:bg-[#d0efd3]"
+                          }`} onClick={handleToggleShopActive} title={selectedTicket.shopActive ? "Khóa cửa hàng" : "Mở khóa cửa hàng"}>
+                            {selectedTicket.shopActive ? "Khóa Shop" : "Mở khóa Shop"}
+                          </button>
+                          {selectedTicket.shopWarningStrikes > 0 && (
+                            <button className="bg-[#e0f7fa] text-[#006064] border border-[#b2ebf2] rounded-xl py-2.5 px-4 text-[13px] font-bold cursor-pointer transition-all hover:bg-[#b2ebf2]" onClick={handleResetShopStrikes} title="Xóa toàn bộ gậy phạt">
+                              Xóa gậy phạt
+                            </button>
+                          )}
+                        </>
                       )}
                       {selectedTicket.orderIdNumerical && (
                         <button className="bg-[#e8f5e9] text-[#2e7d32] border border-[#c8e6c9] rounded-xl py-2.5 px-4 text-[13px] font-bold cursor-pointer transition-all hover:bg-[#d0efd3]" onClick={handleApproveRefund} title="Phê duyệt hoàn trả tiền">
@@ -837,7 +887,7 @@ export function ComplaintManagement() {
                     <strong className="text-[#8b5a3c]">Shop bị khiếu nại:</strong>
                     <div className="mt-1">
                       Tên shop: {selectedTicket.shopName}<br />
-                      Điểm phạt hiện tại: <span className="text-[#e65100] font-bold">1/5 gậy</span>
+                      Điểm phạt hiện tại: <span className="text-[#e65100] font-bold">{selectedTicket.shopWarningStrikes || 0}/5 gậy</span>
                     </div>
                   </div>
                 )}

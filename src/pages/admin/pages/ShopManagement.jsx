@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { shopService } from "../../../services/admin";
+import { shopService, complaintService } from "../../../services/admin";
 import { 
   Store, 
   Search, 
@@ -20,21 +20,32 @@ export function ShopManagement() {
   const [filterType, setFilterType] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  const [complaints, setComplaints] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const fetchShops = () => {
     setLoading(true);
-    shopService.getAll()
-      .then((res) => {
-        if (res && Array.isArray(res)) {
-          setShops(res);
-          if (res.length > 0) {
-            setSelectedShopId(res[0].id);
+    Promise.all([
+      shopService.getAll(),
+      complaintService.getAll().catch(() => [])
+    ])
+      .then(([shopsRes, complaintsRes]) => {
+        if (shopsRes && Array.isArray(shopsRes)) {
+          setShops(shopsRes);
+          if (shopsRes.length > 0) {
+            setSelectedShopId((prev) => {
+              if (prev && shopsRes.some((s) => s.id === prev)) return prev;
+              return shopsRes[0].id;
+            });
           }
+        }
+        if (complaintsRes && Array.isArray(complaintsRes)) {
+          setComplaints(complaintsRes);
         }
         setLoading(false);
       })
       .catch((err) => {
-        console.error("Lỗi khi lấy danh sách shop:", err);
+        console.error("Lỗi khi lấy danh sách shop và khiếu nại:", err);
         setLoading(false);
       });
   };
@@ -42,6 +53,10 @@ export function ShopManagement() {
   useEffect(() => {
     fetchShops();
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterType, searchQuery]);
 
   if (loading) {
     return (
@@ -62,6 +77,7 @@ export function ShopManagement() {
   }
 
   const selectedShop = shops.find((s) => s.id === selectedShopId) || shops[0] || {};
+  const shopComplaints = complaints.filter((c) => c.reportedShop && c.reportedShop.id === selectedShop.id);
 
   // Stats
   const totalShops = shops.length;
@@ -84,6 +100,13 @@ export function ShopManagement() {
     if (filterType === "locked") return !shop.isActive;
     return true;
   });
+
+  // Pagination logic
+  const shopsPerPage = 20;
+  const totalPages = Math.ceil(filteredShops.length / shopsPerPage);
+  const indexOfLastShop = currentPage * shopsPerPage;
+  const indexOfFirstShop = indexOfLastShop - shopsPerPage;
+  const currentShops = filteredShops.slice(indexOfFirstShop, indexOfLastShop);
 
   // Action: Toggle Verify Tích xanh
   const handleToggleVerify = (id) => {
@@ -260,7 +283,7 @@ export function ShopManagement() {
                 </tr>
               </thead>
               <tbody>
-                {filteredShops.map((shop) => (
+                {currentShops.map((shop) => (
                   <tr
                     key={shop.id}
                     className={`cursor-pointer border-b border-stone-100/80 transition-all duration-150 hover:bg-stone-50/60 ${selectedShop.id === shop.id ? "bg-orange-50/30" : ""}`}
@@ -308,6 +331,44 @@ export function ShopManagement() {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between border-t border-stone-100 pt-4 mt-4 text-xs">
+              <span className="text-stone-500 font-medium">
+                Hiển thị {indexOfFirstShop + 1} - {Math.min(indexOfLastShop, filteredShops.length)} của {filteredShops.length} cửa hàng
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  className="p-1.5 border border-stone-200 rounded-lg hover:bg-stone-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer bg-white text-stone-600 text-xs font-bold"
+                >
+                  Trước
+                </button>
+                {[...Array(totalPages)].map((_, i) => (
+                  <button
+                    key={i + 1}
+                    onClick={() => setCurrentPage(i + 1)}
+                    className={`w-7 h-7 border rounded-lg cursor-pointer font-bold text-xs ${
+                      currentPage === i + 1
+                        ? "bg-[#c85a28] border-[#c85a28] text-white"
+                        : "bg-white border-stone-200 text-stone-600 hover:bg-stone-50"
+                    }`}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+                <button
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                  className="p-1.5 border border-stone-200 rounded-lg hover:bg-stone-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer bg-white text-stone-600 text-xs font-bold"
+                >
+                  Sau
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right Column: Moderation Action Control Panel */}
@@ -363,6 +424,55 @@ export function ShopManagement() {
                     <strong className="text-stone-500">Nội dung báo cáo gần nhất:</strong>
                     <p className="m-0 mt-1 text-rose-600 italic">“{selectedShop.latestReportReason}”</p>
                   </div>
+                )}
+              </div>
+            </div>
+
+            {/* Penalty & Complaint History */}
+            <div className="flex flex-col gap-3 border border-stone-200/60 rounded-xl p-4 bg-stone-50/50">
+              <h4 className="text-[11px] font-bold text-stone-500 tracking-wider uppercase m-0 flex items-center justify-between">
+                <span>Lịch sử khiếu nại & xử phạt</span>
+                <span className="bg-stone-200 text-stone-600 px-2 py-0.5 rounded text-[10px]">
+                  {shopComplaints.length} bản ghi
+                </span>
+              </h4>
+              
+              <div className="flex flex-col gap-2.5 max-h-[380px] overflow-y-auto pr-1">
+                {shopComplaints.length === 0 ? (
+                  <p className="text-xs text-stone-400 italic m-0 text-center py-4">Chưa có lịch sử khiếu nại hoặc xử phạt nào cho shop này.</p>
+                ) : (
+                  shopComplaints.map((c) => (
+                    <div key={c.id} className="bg-white border border-stone-200/50 rounded-lg p-3 flex flex-col gap-1.5 shadow-xs">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[12px] font-extrabold text-stone-850 truncate max-w-[160px]">
+                          {c.title}
+                        </span>
+                        <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded ${
+                          c.status === "RESOLVED" ? "bg-emerald-50 text-emerald-700" :
+                          c.status === "REJECTED" ? "bg-stone-100 text-stone-500" :
+                          "bg-amber-50 text-amber-700"
+                        }`}>
+                          {c.status === "RESOLVED" ? "Đã xử lý" : c.status === "REJECTED" ? "Đã từ chối" : "Chờ xử lý"}
+                        </span>
+                      </div>
+                      
+                      {c.content && (
+                        <p className="text-[11px] text-stone-500 line-clamp-2 m-0 leading-relaxed">
+                          {c.content}
+                        </p>
+                      )}
+                      
+                      {c.resolution && (
+                        <div className="text-[10px] bg-stone-50 border-l-2 border-[#c85a28] pl-2 py-1 mt-1 text-stone-650 italic">
+                          <strong>Kết quả:</strong> {c.resolution}
+                        </div>
+                      )}
+                      
+                      <span className="text-[9px] text-stone-400 mt-0.5 self-end">
+                        {c.createdAt ? new Date(c.createdAt).toLocaleDateString("vi-VN") : "Hôm nay"}
+                      </span>
+                    </div>
+                  ))
                 )}
               </div>
             </div>
