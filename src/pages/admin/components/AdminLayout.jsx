@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import "./AdminLayout.css";
 
 const fallbackAvatar =
   "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=80&q=80";
@@ -221,26 +220,35 @@ export function AdminLayout({ children }) {
   ];
 
   return (
-    <div className="admin-container">
+    <div className="flex h-full w-full bg-[#faf9f6]">
       {/* Sidebar */}
-      <aside className={`admin-sidebar ${sidebarOpen ? "open" : "closed"}`}>
-        <div className="admin-logo">
-          <div className="logo-header">
-            <h2>Admin Panel</h2>
+      <aside
+        className={`bg-stone-950 text-stone-400 flex flex-col transition-all duration-300 ease-in-out shadow-[4px_0_24px_rgba(0,0,0,0.15)] border-r border-stone-900 overflow-hidden fixed md:relative h-screen md:h-full z-[1000] md:z-auto ${
+          sidebarOpen
+            ? "w-[220px] translate-x-0"
+            : "w-0 border-r-0 -translate-x-full md:translate-x-0 md:w-0 shadow-none"
+        }`}
+      >
+        <div className="p-5 border-b border-stone-900">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#c85a28] animate-pulse"></span>
+              <h2 className="m-0 text-sm font-extrabold text-white uppercase tracking-wider">Admin Panel</h2>
+            </div>
             {sidebarOpen && (
               <button
-                className="close-sidebar"
+                className="bg-none border-none cursor-pointer text-stone-500 p-1.5 rounded-lg inline-flex items-center justify-center transition-all duration-200 hover:bg-stone-900 hover:text-white hover:scale-105 active:scale-95"
                 onClick={() => setSidebarOpen(false)}
                 title="Thu gọn menu"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
+                  width="18"
+                  height="18"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
-                  strokeWidth="2.2"
+                  strokeWidth="2.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 >
@@ -253,21 +261,31 @@ export function AdminLayout({ children }) {
           </div>
         </div>
 
-        <nav className="admin-nav">
-          {menuItems.map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={`nav-item ${isActive(item.path) ? "active" : ""}`}
-            >
-              <span className="nav-icon">{item.icon}</span>
-              {sidebarOpen && <span className="nav-label">{item.label}</span>}
-            </Link>
-          ))}
+        <nav className="flex-1 py-5 flex flex-col gap-1">
+          {menuItems.map((item) => {
+            const active = isActive(item.path);
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`flex items-center gap-3.5 py-3 px-4 text-sm font-semibold transition-all duration-200 cursor-pointer ${
+                  active
+                    ? "bg-[#c85a28] text-white rounded-xl mx-3 shadow-[0_4px_12px_rgba(200,90,40,0.25)]"
+                    : "text-stone-400 hover:bg-stone-900 hover:text-stone-100 rounded-xl mx-3"
+                }`}
+              >
+                <span className={`min-w-[18px] inline-flex items-center justify-center transition-transform duration-200 ${active ? "scale-110 text-white" : "text-stone-500 group-hover:text-stone-200"}`}>{item.icon}</span>
+                {sidebarOpen && <span className="whitespace-nowrap overflow-hidden flex-1">{item.label}</span>}
+              </Link>
+            );
+          })}
         </nav>
 
-        <div className="admin-footer">
-          <button className="logout-btn" title="Đăng xuất">
+        <div className="p-4 border-t border-stone-900 flex flex-col gap-2">
+          <button
+            className="w-full py-3 px-4 bg-[#c85a28] hover:bg-[#b84c1a] text-white border-none rounded-xl cursor-pointer font-bold text-sm transition-all duration-200 shadow-md shadow-orange-950/20 active:scale-[0.98]"
+            title="Đăng xuất"
+          >
             {sidebarOpen ? (
               "Đăng xuất"
             ) : (
@@ -293,13 +311,13 @@ export function AdminLayout({ children }) {
       </aside>
 
       {/* Main Content */}
-      <div className="admin-content">
+      <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
         {/* Top Bar */}
-        <div className="admin-topbar">
-          <div className="topbar-left">
+        <div className="bg-white/80 backdrop-blur-md py-3.5 px-6 flex justify-between items-center shadow-[0_1px_3px_rgba(0,0,0,0.02)] border-b border-stone-100 sticky top-0 z-40">
+          <div className="flex items-center gap-[15px]">
             {!sidebarOpen && (
               <button
-                className="toggle-sidebar"
+                className="bg-none border-none cursor-pointer text-stone-600 p-1.5 mr-2.5 rounded-lg inline-flex items-center justify-center transition-all duration-200 hover:bg-stone-50 hover:text-[#c85a28] hover:scale-105 active:scale-95"
                 onClick={() => setSidebarOpen(true)}
                 title="Mở rộng menu"
               >
@@ -320,19 +338,25 @@ export function AdminLayout({ children }) {
                 </svg>
               </button>
             )}
-            <div className="topbar-profile-block">
-              <img
-                src={fallbackAvatar}
-                alt="User"
-                className="user-avatar"
-              />
-              <span className="user-info">Admin User</span>
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <img
+                  src={fallbackAvatar}
+                  alt="User"
+                  className="w-9 h-9 rounded-full border border-stone-200 object-cover shadow-sm transition-transform duration-300 hover:scale-105"
+                />
+                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white"></span>
+              </div>
+              <div className="flex flex-col">
+                <span className="font-bold text-stone-850 text-xs">Admin User</span>
+                <span className="text-[10px] text-stone-400 font-semibold uppercase tracking-wider">Hệ thống</span>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Page Content */}
-        <main className="admin-main">{children}</main>
+        <main className="flex-1 p-6 md:p-8 overflow-y-auto bg-[#faf9f6] h-full min-w-0">{children}</main>
       </div>
     </div>
   );

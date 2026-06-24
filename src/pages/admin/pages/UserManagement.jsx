@@ -1,6 +1,16 @@
 import { useEffect, useState } from "react";
 import { userService } from "@/services/admin";
-import "./UserManagement.css";
+import { 
+  Users, 
+  Store, 
+  Lock, 
+  Unlock, 
+  Search, 
+  Eye, 
+  Trash2, 
+  X, 
+  ChevronDown 
+} from "lucide-react";
 
 export function UserManagement() {
   const [users, setUsers] = useState([]);
@@ -27,13 +37,12 @@ export function UserManagement() {
         userService.getAll(page, 10, filters),
         userService.getStatistics().catch(() => null),
       ]);
-      // Xử lý đa dạng cấu trúc JSON trả về (Axios wraps in response.data)
       const rawData = response?.data || response;
       
       let apiUsers = [];
       if (Array.isArray(rawData)) apiUsers = rawData;
-      else if (Array.isArray(rawData?.data)) apiUsers = rawData.data; // Theo định dạng chuẩn API_REQUIREMENTS.md
-      else if (Array.isArray(rawData?.content)) apiUsers = rawData.content; // Theo Spring Boot Page mặc định
+      else if (Array.isArray(rawData?.data)) apiUsers = rawData.data;
+      else if (Array.isArray(rawData?.content)) apiUsers = rawData.content;
       else if (Array.isArray(rawData?.items)) apiUsers = rawData.items;
 
       setUsers(apiUsers);
@@ -44,24 +53,6 @@ export function UserManagement() {
       console.error(err);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleSelectUser = (userId) => {
-    const newSelected = new Set(selectedUsers);
-    if (newSelected.has(userId)) {
-      newSelected.delete(userId);
-    } else {
-      newSelected.add(userId);
-    }
-    setSelectedUsers(newSelected);
-  };
-
-  const handleSelectAll = () => {
-    if (selectedUsers.size === users.length) {
-      setSelectedUsers(new Set());
-    } else {
-      setSelectedUsers(new Set(users.map((u) => u.id)));
     }
   };
 
@@ -153,214 +144,285 @@ export function UserManagement() {
 
   const getRoleClass = (role) => {
     const normalized = (role || "buyer").toLowerCase();
-    if (normalized === "seller") return "role-badge seller";
-    if (normalized === "admin") return "role-badge admin";
-    return "role-badge buyer";
+    const base = "inline-flex items-center py-1 px-2.5 rounded-full text-[11px] font-bold ";
+    if (normalized === "seller") return base + "bg-[#f7d1ac] text-[#b86d22]";
+    if (normalized === "admin") return base + "bg-[#efe2cf] text-[#8b5a3c]";
+    return base + "bg-[#e9f4d3] text-[#6a9d2e]";
   };
 
   return (
-    <div className="user-management">
-      <div className="page-header">
+    <div className="flex flex-col min-h-full gap-6 animate-[fadeIn_0.3s_ease] text-stone-800">
+      {/* Page Header */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-5 mb-1">
         <div>
-          <h1 className="page-title">Quản trị người dùng</h1>
+          <h1 className="text-3xl font-extrabold text-stone-900 tracking-tight m-0">Quản trị người dùng</h1>
+          <p className="text-sm text-stone-500 mt-1">Quản lý tài khoản khách hàng, người bán và phân quyền vai trò trên hệ thống.</p>
         </div>
-        <div className="header-actions">
-          <button className="btn btn-secondary" type="button">
+        <div className="flex gap-2.5 flex-wrap w-full md:w-auto">
+          <button className="py-2.5 px-5 bg-white hover:bg-stone-50 text-stone-700 border border-stone-200 rounded-xl font-bold text-sm transition-all shadow-sm cursor-pointer w-full md:w-auto" type="button">
             Lọc vai trò
           </button>
-          <button className="btn btn-primary" type="button">
+          <button className="py-2.5 px-5 bg-[#c85a28] hover:bg-[#b84c1a] text-white border-none rounded-xl font-bold text-sm transition-all shadow-md shadow-orange-500/10 cursor-pointer w-full md:w-auto active:scale-[0.98]" type="button">
             + Thêm mới
           </button>
         </div>
       </div>
 
-      <div className="control-bar">
-        <div className="search-box">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="bg-gradient-to-br from-white to-stone-50/40 border border-stone-200/50 rounded-2xl p-5 shadow-[0_8px_30px_rgb(238,229,219,0.25)] hover:shadow-[0_12px_40px_rgb(238,229,219,0.35)] transition-all duration-300">
+          <div className="text-xs font-bold text-stone-400 tracking-widest uppercase">TỔNG NGƯỜI DÙNG</div>
+          <div className="flex items-center justify-between gap-3 mt-2.5">
+            <div className="text-3xl font-black text-stone-900 leading-none tracking-tight">{totalUsersCount.toLocaleString("vi-VN")}</div>
+            <div className="w-11 h-11 rounded-xl grid place-items-center bg-orange-50 text-[#c85a28] text-lg shadow-sm shadow-orange-500/5">
+              <Users className="w-5.5 h-5.5 text-[#c85a28]" />
+            </div>
+          </div>
+          <div className="mt-3.5 text-xs text-emerald-600 font-semibold flex items-center gap-1">
+            <span>↑ 12%</span>
+            <span className="text-stone-400 font-normal">so với tháng trước</span>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-white to-stone-50/40 border border-stone-200/50 rounded-2xl p-5 shadow-[0_8px_30px_rgb(238,229,219,0.25)] hover:shadow-[0_12px_40px_rgb(238,229,219,0.35)] transition-all duration-300">
+          <div className="text-xs font-bold text-stone-400 tracking-widest uppercase">NGƯỜI BÁN MỚI</div>
+          <div className="flex items-center justify-between gap-3 mt-2.5">
+            <div className="text-3xl font-black text-stone-900 leading-none tracking-tight">{newSellerCount.toLocaleString("vi-VN")}</div>
+            <div className="w-11 h-11 rounded-xl grid place-items-center bg-amber-50 text-amber-700 text-lg shadow-sm shadow-amber-500/5">
+              <Store className="w-5.5 h-5.5 text-amber-700" />
+            </div>
+          </div>
+          <div className="mt-3.5 text-xs text-emerald-600 font-semibold flex items-center gap-1">
+            <span>↑ 5%</span>
+            <span className="text-stone-400 font-normal">so với tháng trước</span>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-white to-stone-50/40 border border-stone-200/50 rounded-2xl p-5 shadow-[0_8px_30px_rgb(238,229,219,0.25)] hover:shadow-[0_12px_40px_rgb(238,229,219,0.35)] transition-all duration-300">
+          <div className="text-xs font-bold text-stone-400 tracking-widest uppercase">TÀI KHOẢN BỊ KHÓA</div>
+          <div className="flex items-center justify-between gap-3 mt-2.5">
+            <div className="text-3xl font-black text-stone-900 leading-none tracking-tight">{lockedCount.toLocaleString("vi-VN")}</div>
+            <div className="w-11 h-11 rounded-xl grid place-items-center bg-rose-50 text-rose-600 text-lg shadow-sm shadow-rose-500/5">
+              <Lock className="w-5.5 h-5.5 text-rose-600" />
+            </div>
+          </div>
+          <div className="mt-3.5 text-xs text-rose-600 font-semibold flex items-center gap-1">
+            <span>↓ 2%</span>
+            <span className="text-stone-400 font-normal">so với tháng trước</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Filter and Search Bar */}
+      <div className="flex flex-col md:flex-row gap-4 items-center">
+        <div className="w-full md:flex-1 relative">
+          <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-stone-400">
+            <Search className="w-4.5 h-4.5 text-stone-400" />
+          </div>
           <input
             type="text"
-            placeholder="Tìm kiếm người dùng, email..."
+            placeholder="Tìm kiếm theo tên hoặc email người dùng..."
             value={searchTerm}
+            className="w-full py-2.5 pl-12 pr-4 border border-stone-200 rounded-2xl text-[13px] bg-white transition-all outline-none focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5 shadow-sm placeholder-stone-400"
             onChange={(e) => {
               setSearchTerm(e.target.value);
               setPage(1);
             }}
           />
         </div>
-        <div className="filter-box">
+        <div className="w-full md:w-[200px] relative">
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
-            className="role-select"
+            className="w-full py-2.5 pr-10 pl-4 border border-stone-200 rounded-2xl bg-white text-stone-705 font-bold text-[13px] cursor-pointer appearance-none outline-none transition-all hover:border-[#c85a28] focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5 shadow-sm"
           >
             <option value="all">Tất cả vai trò</option>
             <option value="buyer">Người mua</option>
             <option value="seller">Người bán</option>
             <option value="admin">Quản trị</option>
           </select>
+          <ChevronDown className="w-4 h-4 text-stone-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
         </div>
       </div>
 
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-label">TỔNG NGƯỜI DÙNG</div>
-          <div className="stat-row">
-            <div className="stat-number">{totalUsersCount.toLocaleString("vi-VN")}</div>
-            <div className="stat-icon">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                <circle cx="9" cy="7" r="4" />
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-              </svg>
-            </div>
+      {/* Users Table Card */}
+      <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(238,229,219,0.2)] p-6 border border-stone-200/50 flex-1 min-h-0">
+        {loading ? (
+          <div className="text-center py-16 text-stone-400 text-sm font-semibold flex flex-col items-center justify-center gap-3">
+            <div className="w-8 h-8 rounded-full border-4 border-stone-200 border-t-[#c85a28] animate-spin"></div>
+            <span>Đang tải dữ liệu người dùng...</span>
           </div>
-          <div className="stat-trend">↑12% so với tháng trước</div>
-        </div>
+        ) : error ? (
+          <div className="text-center py-16 text-sm text-rose-600 font-bold bg-rose-50/50 rounded-xl border border-rose-100">Lỗi kết nối: {error}</div>
+        ) : filteredUsersNormalized.length > 0 ? (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse mb-4 text-sm">
+                <thead>
+                  <tr className="bg-stone-50/80 border-b border-stone-150">
+                    <th className="p-3.5 text-left font-bold text-stone-500 text-[11px] uppercase tracking-wider">Tên người dùng</th>
+                    <th className="p-3.5 text-left font-bold text-stone-500 text-[11px] uppercase tracking-wider">Email</th>
+                    <th className="p-3.5 text-left font-bold text-stone-500 text-[11px] uppercase tracking-wider">Vai trò</th>
+                    <th className="p-3.5 text-left font-bold text-stone-500 text-[11px] uppercase tracking-wider">Trạng thái</th>
+                    <th className="p-3.5 text-left font-bold text-stone-500 text-[11px] uppercase tracking-wider w-[120px]">Hành động</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredUsersNormalized.map((user) => (
+                    <tr key={user.id} className={`hover:bg-stone-50/60 border-b border-stone-100/80 transition-colors duration-150 ${selectedUsers.has(user.id) ? "bg-orange-50/30" : ""}`}>
+                      <td className="p-3.5 text-stone-800 text-[13px] align-middle">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-stone-100 text-[#c85a28] grid place-items-center text-xs font-bold shrink-0 overflow-hidden border border-stone-200/50">
+                            {user.avatar ? (
+                              <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <span>{(user.name || "U").slice(0, 2).toUpperCase()}</span>
+                            )}
+                          </div>
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-stone-900 font-extrabold">{user.name}</span>
+                            <span className="text-[11px] text-stone-400">
+                              Tham gia: {new Date(user.createdAt).toLocaleDateString("vi-VN")}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-3.5 text-stone-600 text-[13px] align-middle font-medium">{user.email}</td>
+                      <td className="p-3.5 text-stone-850 text-[13px] align-middle">
+                        <span className={getRoleClass(user.role)}>{formatRole(user.role)}</span>
+                      </td>
+                      <td className="p-3.5 text-stone-850 text-[13px] align-middle">
+                        <span className={`inline-flex items-center py-1 px-3 rounded-full text-[11px] font-bold uppercase ${
+                          user.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
+                        }`}>
+                          {user.status === "active" ? "Hoạt động" : "Bị cấm"}
+                        </span>
+                      </td>
+                      <td className="p-3.5 text-stone-850 text-[13px] align-middle">
+                        <div className="flex gap-1.5 items-center">
+                          <button
+                            className="p-1.5 rounded-lg text-blue-600 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 active:scale-95 transition-all border-none cursor-pointer flex items-center justify-center"
+                            onClick={() => handleViewDetails(user)}
+                            title="Xem chi tiết"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-        <div className="stat-card">
-          <div className="stat-label">NGƯỜI BÁN MỚI</div>
-          <div className="stat-row">
-            <div className="stat-number">{newSellerCount.toLocaleString("vi-VN")}</div>
-            <div className="stat-icon">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+            <div className="flex justify-between items-center mt-6 flex-wrap gap-4">
+              <button
+                onClick={() => setPage(Math.max(1, page - 1))}
+                disabled={page === 1}
+                className="py-2 px-4 bg-white border border-stone-250 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-stone-50 text-stone-700 rounded-xl font-bold text-xs transition-all shadow-sm cursor-pointer"
               >
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                <polyline points="9 22 9 12 15 12 15 22" />
-              </svg>
-            </div>
-          </div>
-          <div className="stat-trend">↑5% so với tháng trước</div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-label">TÀI KHOẢN BỊ KHÓA</div>
-          <div className="stat-row">
-            <div className="stat-number">{lockedCount.toLocaleString("vi-VN")}</div>
-            <div className="stat-icon danger">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+                Trước
+              </button>
+              <span className="text-stone-500 font-bold text-xs min-w-[90px] text-center">
+                Trang {page} / {totalPages}
+              </span>
+              <button
+                onClick={() => setPage(Math.min(totalPages, page + 1))}
+                disabled={page === totalPages}
+                className="py-2 px-4 bg-white border border-stone-250 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-stone-50 text-stone-700 rounded-xl font-bold text-xs transition-all shadow-sm cursor-pointer"
               >
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-              </svg>
+                Sau
+              </button>
             </div>
-          </div>
-          <div className="stat-trend danger">↓2% so với tháng trước</div>
-        </div>
+          </>
+        ) : (
+          <div className="text-center py-16 text-stone-400 text-sm font-semibold">Không tìm thấy người dùng nào phù hợp.</div>
+        )}
       </div>
 
       {/* User Details Modal */}
       {showDetailModal && selectedUser && (
-        <div className="modal-overlay" onClick={() => setShowDetailModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close-btn" onClick={() => setShowDetailModal(false)} title="Đóng">
-              <svg xmlns="http://www.w3.org/2000/svg" height="22" viewBox="0 -960 960 960" width="22" fill="currentColor">
-                <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/>
-              </svg>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex justify-center items-center z-[2000]" onClick={() => setShowDetailModal(false)}>
+          <div className="relative bg-white p-6 md:p-8 rounded-2xl max-w-[550px] w-[90%] max-h-[90vh] overflow-y-auto shadow-2xl border border-stone-200/50 animate-[fadeIn_0.2s_ease]" onClick={(e) => e.stopPropagation()}>
+            <button className="absolute top-4 right-4 bg-none border-none text-stone-400 cursor-pointer p-1.5 flex items-center justify-center rounded-xl transition-all hover:bg-stone-50 hover:text-stone-900" onClick={() => setShowDetailModal(false)} title="Đóng">
+              <X className="w-4.5 h-4.5" />
             </button>
-            <div className="user-detail-header">
+            <div className="flex flex-col sm:flex-row gap-5 mb-6 items-center sm:items-start text-center sm:text-left pb-6 border-b border-stone-100">
               <img
                 src={selectedUser.avatar || "https://via.placeholder.com/100"}
                 alt={selectedUser.name}
-                className="user-avatar-large"
+                className="w-20 h-20 rounded-full object-cover border-2 border-[#c85a28] shadow-sm"
               />
-              <div className="user-info">
-                <h2>{selectedUser.name}</h2>
-                <p className="user-email">{selectedUser.email}</p>
-                <span className={`user-status status-${selectedUser.status}`}>
-                  {selectedUser.status === "active" ? "Hoạt động" : "Bị cấm"}
-                </span>
-              </div>
-            </div>
-
-            <div className="user-detail-body">
-              <div className="detail-section">
-                <h3>Thông tin cơ bản</h3>
-                <div className="detail-item">
-                  <span className="label">Số điện thoại:</span>
-                  <span className="value">{selectedUser.phone || "Chưa cập nhật"}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="label">Địa chỉ:</span>
-                  <span className="value">{selectedUser.address || "Chưa cập nhật"}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="label">Ngày tạo:</span>
-                  <span className="value">
-                    {new Date(selectedUser.createdAt).toLocaleDateString("vi-VN")}
-                  </span>
-                </div>
-                <div className="detail-item">
-                  <span className="label">Vai trò:</span>
-                  <select
-                    value={(selectedUser.role || "buyer").toUpperCase().replace("BUYER", "CUSTOMER")}
-                    onChange={(e) => handleUpdateRole(selectedUser.id, e.target.value)}
-                    className="role-select-inline"
-                    style={{
-                      padding: "6px 10px",
-                      borderRadius: "6px",
-                      border: "1px solid #efe1cb",
-                      backgroundColor: "#faf6f0",
-                      color: "#8b5a3c",
-                      fontWeight: "700",
-                      fontSize: "12px",
-                      cursor: "pointer",
-                      outline: "none"
-                    }}
-                  >
-                    <option value="CUSTOMER">Người mua</option>
-                    <option value="SELLER">Người bán</option>
-                    <option value="ADMIN">Quản trị viên</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="detail-section">
-                <h3>Hoạt động</h3>
-                <div className="detail-item">
-                  <span className="label">Số đơn hàng:</span>
-                  <span className="value">{selectedUser.totalOrders || 0}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="label">Tổng chi tiêu:</span>
-                  <span className="value">
-                    {selectedUser.totalSpent?.toLocaleString("vi-VN") || 0} đ
+              <div className="flex flex-col gap-1">
+                <h2 className="m-0 text-xl font-extrabold text-stone-900">{selectedUser.name}</h2>
+                <p className="m-0 text-stone-400 text-xs font-medium">{selectedUser.email}</p>
+                <div className="mt-2.5">
+                  <span className={`inline-flex items-center py-1 px-3.5 rounded-full text-[11px] font-bold uppercase ${
+                    selectedUser.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
+                  }`}>
+                    {selectedUser.status === "active" ? "Hoạt động" : "Bị cấm"}
                   </span>
                 </div>
               </div>
             </div>
 
-            <div className="modal-actions">
+            <div className="flex flex-col gap-5 mb-8">
+              <div className="flex flex-col gap-3">
+                <h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest">Thông tin cơ bản</h3>
+                <div className="bg-stone-50/50 border border-stone-100 rounded-xl p-4 flex flex-col gap-2.5">
+                  <div className="flex justify-between text-[13px] border-b border-stone-100/50 pb-2">
+                    <span className="text-stone-400">Số điện thoại:</span>
+                    <span className="text-stone-850 font-bold">{selectedUser.phone || "Chưa cập nhật"}</span>
+                  </div>
+                  <div className="flex justify-between text-[13px] border-b border-stone-100/50 pb-2">
+                    <span className="text-stone-400">Địa chỉ:</span>
+                    <span className="text-stone-850 font-bold">{selectedUser.address || "Chưa cập nhật"}</span>
+                  </div>
+                  <div className="flex justify-between text-[13px] border-b border-stone-100/50 pb-2">
+                    <span className="text-stone-400">Ngày tạo tài khoản:</span>
+                    <span className="text-stone-850 font-bold">
+                      {new Date(selectedUser.createdAt).toLocaleDateString("vi-VN")}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-[13px] items-center pt-1">
+                    <span className="text-stone-400">Vai trò:</span>
+                    <div className="relative">
+                      <select
+                        value={(selectedUser.role || "buyer").toUpperCase().replace("BUYER", "CUSTOMER")}
+                        onChange={(e) => handleUpdateRole(selectedUser.id, e.target.value)}
+                        className="appearance-none py-1 pr-8 pl-3 rounded-lg border border-stone-200 bg-white text-stone-700 font-bold text-xs cursor-pointer outline-none focus:border-[#c85a28]"
+                      >
+                        <option value="CUSTOMER">Người mua</option>
+                        <option value="SELLER">Người bán</option>
+                        <option value="ADMIN">Quản trị viên</option>
+                      </select>
+                      <ChevronDown className="w-3.5 h-3.5 text-stone-450 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest">Hoạt động mua hàng</h3>
+                <div className="bg-stone-50/50 border border-stone-100 rounded-xl p-4 flex flex-col gap-2.5">
+                  <div className="flex justify-between text-[13px] border-b border-stone-100/50 pb-2">
+                    <span className="text-stone-400">Số đơn hàng:</span>
+                    <span className="text-stone-850 font-bold">{selectedUser.totalOrders || 0} đơn</span>
+                  </div>
+                  <div className="flex justify-between text-[13px] pt-1">
+                    <span className="text-stone-400">Tổng chi tiêu:</span>
+                    <span className="text-[#c85a28] font-black">
+                      {selectedUser.totalSpent?.toLocaleString("vi-VN") || 0} đ
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-2.5 flex-wrap">
               {selectedUser.status === "active" ? (
                 <button
-                  className="btn btn-danger"
+                  className="py-2.5 px-5 bg-rose-600 hover:bg-rose-700 text-white border-none rounded-xl font-bold text-sm transition-all cursor-pointer flex-1"
                   onClick={() => {
                     const reason = window.prompt("Nhập lý do cấm:");
                     if (reason) {
@@ -373,17 +435,17 @@ export function UserManagement() {
                 </button>
               ) : (
                 <button
-                  className="btn btn-warning"
+                  className="py-2.5 px-5 bg-emerald-600 hover:bg-emerald-700 text-white border-none rounded-xl font-bold text-sm transition-all cursor-pointer flex-1"
                   onClick={() => {
                     handleUnbanUser(selectedUser.id);
                     setShowDetailModal(false);
                   }}
                 >
-                  Gỡ cấm
+                  Gỡ cấm hoạt động
                 </button>
               )}
               <button
-                className="btn btn-danger"
+                className="py-2.5 px-5 bg-stone-100 hover:bg-stone-200 text-stone-700 border-none rounded-xl font-bold text-sm transition-all cursor-pointer"
                 onClick={() => {
                   handleDeleteUser(selectedUser.id);
                   setShowDetailModal(false);
@@ -395,173 +457,6 @@ export function UserManagement() {
           </div>
         </div>
       )}
-
-      {/* Users Table */}
-      <div className="users-section">
-        {loading ? (
-          <div className="loading">Đang tải dữ liệu...</div>
-        ) : error ? (
-          <div className="error">Lỗi: {error}</div>
-        ) : filteredUsersNormalized.length > 0 ? (
-          <>
-            <table className="users-table">
-              <thead>
-                <tr>
-                  <th>Tên người dùng</th>
-                  <th>Email</th>
-                  <th>Vai trò</th>
-                  <th>Trạng thái</th>
-                  <th>Hành động</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredUsersNormalized.map((user) => (
-                  <tr key={user.id} className={selectedUsers.has(user.id) ? "selected" : ""}>
-                    <td className="user-name-cell">
-                      <div className="user-avatar-fallback">
-                        {user.avatar ? (
-                          <img src={user.avatar} alt={user.name} className="user-thumb" />
-                        ) : (
-                          <span>{(user.name || "U").slice(0, 2).toUpperCase()}</span>
-                        )}
-                      </div>
-                      <div className="user-name-meta">
-                        <span className="user-name">{user.name}</span>
-                        <span className="user-created">
-                          Tham gia: {new Date(user.createdAt).toLocaleDateString("vi-VN")}
-                        </span>
-                      </div>
-                    </td>
-                    <td>{user.email}</td>
-                    <td>
-                      <span className={getRoleClass(user.role)}>{formatRole(user.role)}</span>
-                    </td>
-                    <td>
-                      <span className={`status-badge status-${user.status}`}>
-                        {user.status === "active" ? "Hoạt động" : "Bị cấm"}
-                      </span>
-                    </td>
-                    <td className="actions-cell">
-                      <div className="actions-wrapper">
-                        <button
-                          className="btn-icon btn-view"
-                          onClick={() => handleViewDetails(user)}
-                          title="Xem chi tiết"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2.2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                            <circle cx="12" cy="12" r="3" />
-                          </svg>
-                        </button>
-                        {user.status === "active" ? (
-                          <button
-                            className="btn-icon btn-ban"
-                            onClick={() => {
-                              const reason = window.prompt("Nhập lý do cấm:");
-                              if (reason) handleBanUser(user.id, reason);
-                            }}
-                            title="Cấm"
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="16"
-                              height="16"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2.2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            >
-                              <circle cx="12" cy="12" r="10" />
-                              <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
-                            </svg>
-                          </button>
-                        ) : (
-                          <button
-                            className="btn-icon btn-unban"
-                            onClick={() => handleUnbanUser(user.id)}
-                            title="Gỡ cấm"
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="16"
-                              height="16"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2.2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            >
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                          </button>
-                        )}
-                        <button
-                          className="btn-icon btn-delete"
-                          onClick={() => handleDeleteUser(user.id)}
-                          title="Xóa"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2.2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <polyline points="3 6 5 6 21 6" />
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                            <line x1="10" y1="11" x2="10" y2="17" />
-                            <line x1="14" y1="11" x2="14" y2="17" />
-                          </svg>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {/* Pagination */}
-            <div className="pagination">
-              <button
-                onClick={() => setPage(Math.max(1, page - 1))}
-                disabled={page === 1}
-                className="btn btn-secondary"
-              >
-                Trước
-              </button>
-              <span className="page-info">
-                Trang {page} / {totalPages}
-              </span>
-              <button
-                onClick={() => setPage(Math.min(totalPages, page + 1))}
-                disabled={page === totalPages}
-                className="btn btn-secondary"
-              >
-                Sau
-              </button>
-            </div>
-          </>
-        ) : (
-          <div className="empty-state">Chưa có người dùng nào</div>
-        )}
-      </div>
     </div>
   );
 }
