@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MessageCircle, Search, Send } from "lucide-react";
+import { MessageCircle, Search, Send, Image, Loader2 } from "lucide-react";
 import { chatMockService } from "@/services/chatMockService";
+import { toastService } from "@/services/toastService";
+import imageApi from "@/pages/seller/api/imageApi";
 
 function getInitials(name) {
   if (!name) return "KH";
@@ -25,12 +27,45 @@ export default function MessagesPage() {
   const [activeId, setActiveId] = useState(null);
   const [query, setQuery] = useState("");
   const [reply, setReply] = useState("");
+  const [imageUploading, setImageUploading] = useState(false);
   const messagesEndRef = useRef(null);
   const activeIdRef = useRef(activeId);
 
   useEffect(() => {
     activeIdRef.current = activeId;
   }, [activeId]);
+
+  const handleImageUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toastService.error("Ảnh không được vượt quá 5MB.");
+      return;
+    }
+
+    try {
+      setImageUploading(true);
+      const imageUrl = await imageApi.upload(file);
+      if (imageUrl) {
+        await chatMockService.sendMessage(activeId, imageUrl, "IMAGE");
+        
+        // Refresh conversations and active details
+        const [nextConversations, detail] = await Promise.all([
+          chatMockService.getConversations("SELLER"),
+          chatMockService.getConversation(activeId),
+        ]);
+        setConversations(
+          nextConversations.map((item) => (item.id === detail.id ? detail : item)),
+        );
+        window.dispatchEvent(new CustomEvent("secondhand-chat-updated"));
+      }
+    } catch (error) {
+      toastService.error(error?.message || "Không upload được ảnh.");
+    } finally {
+      setImageUploading(false);
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -49,6 +84,7 @@ export default function MessagesPage() {
                 nextConversations.map((item) => (item.id === detail.id ? detail : item))
               );
               setActiveId(currentActiveId);
+              window.dispatchEvent(new CustomEvent("secondhand-chat-updated"));
             }
           } catch (err) {
             if (isMounted) {
@@ -129,6 +165,7 @@ export default function MessagesPage() {
         setConversations((current) =>
           current.map((item) => (item.id === conversation.id ? conversation : item)),
         );
+        window.dispatchEvent(new CustomEvent("secondhand-chat-updated"));
       })
       .catch(() => {});
 
@@ -160,9 +197,6 @@ export default function MessagesPage() {
     <div className="flex h-[calc(100vh-116px)] min-h-[620px] flex-col gap-5">
       <div>
         <h1 className="font-heading text-2xl font-bold text-neutral-900">Tin nhắn khách hàng</h1>
-        <p className="mt-1 text-sm text-neutral-500">
-          Giao diện mock frontend, sẵn sàng thay bằng socket khi có backend realtime.
-        </p>
       </div>
 
       <section className="grid min-h-0 flex-1 grid-cols-[320px_minmax(0,1fr)] overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
@@ -225,9 +259,11 @@ export default function MessagesPage() {
                           )}
                         </div>
                       </div>
-                      <p className="mt-0.5 truncate text-xs font-semibold text-neutral-500">
-                        {conversation.productName || "Hỏi đáp chung"}
-                      </p>
+                      {conversation.productName && (
+                        <p className="mt-0.5 truncate text-xs font-semibold text-neutral-500">
+                          {conversation.productName}
+                        </p>
+                      )}
                       <p className="mt-1 truncate text-xs text-neutral-400">
                         {conversation.lastMessagePreview || "Chưa có tin nhắn"}
                       </p>
@@ -259,9 +295,11 @@ export default function MessagesPage() {
                     <h2 className="truncate text-base font-bold text-neutral-900">
                       {activeConversation.customerName}
                     </h2>
-                    <p className="truncate text-sm text-neutral-500">
-                      Đang hỏi về: {activeConversation.productName || "sản phẩm của shop"}
-                    </p>
+                    {activeConversation.productName && (
+                      <p className="truncate text-sm text-neutral-500">
+                        Đang hỏi về: {activeConversation.productName}
+                      </p>
+                    )}
                   </div>
                 </div>
               </header>
@@ -292,6 +330,8 @@ export default function MessagesPage() {
 
                   {(activeConversation.messages || []).map((message) => {
                     const isSeller = message.senderRole === "seller";
+                    const isImage = String(message.messageType).toUpperCase() === "IMAGE" || !!message.imageUrl;
+
                     return (
                       <div
                         key={message.id}
@@ -299,13 +339,27 @@ export default function MessagesPage() {
                       >
                         <div
                           className={`max-w-[70%] rounded-2xl px-4 py-2.5 text-sm shadow-sm ${
-                            isSeller
+                            isSeller && !isImage
                               ? "rounded-br-md bg-brand-primary text-white"
-                              : "rounded-bl-md bg-white text-neutral-700"
-                          }`}
+                              : !isSeller && !isImage
+                              ? "rounded-bl-md bg-white text-neutral-700"
+                              : ""
+                          } ${isImage ? "p-1 bg-transparent shadow-none" : ""}`}
                         >
-                          <p className="whitespace-pre-wrap break-words">{message.content}</p>
-                          <p className={`mt-1 text-[10px] ${isSeller ? "text-white/75" : "text-neutral-400"}`}>
+                          {isImage ? (
+                            <img
+                              src={message.imageUrl}
+                              alt="Ảnh đính kèm"
+                              className="max-w-[280px] rounded-xl object-cover border border-neutral-200"
+                            />
+                          ) : (
+                            <p className="whitespace-pre-wrap break-words">{message.content}</p>
+                          )}
+                          <p className={`mt-1 text-[10px] ${
+                            isImage 
+                              ? "text-neutral-500 font-semibold" 
+                              : isSeller ? "text-white/75" : "text-neutral-400"
+                          }`}>
                             {formatTime(message.createdAt)}
                           </p>
                         </div>
@@ -316,7 +370,21 @@ export default function MessagesPage() {
                 </div>
               </div>
 
-              <form onSubmit={handleSubmit} className="flex gap-3 border-t border-neutral-200 bg-white p-4">
+              <form onSubmit={handleSubmit} className="flex items-center gap-3 border-t border-neutral-200 bg-white p-4">
+                <label className="flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-neutral-200 bg-neutral-50 transition hover:bg-neutral-100">
+                  {imageUploading ? (
+                    <Loader2 size={18} className="animate-spin text-neutral-500" />
+                  ) : (
+                    <Image size={18} className="text-neutral-500 hover:text-[#c75c2e]" />
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    disabled={imageUploading}
+                    className="hidden"
+                    onChange={handleImageUpload}
+                  />
+                </label>
                 <input
                   value={reply}
                   onChange={(event) => setReply(event.target.value)}
@@ -325,10 +393,8 @@ export default function MessagesPage() {
                 />
                 <button
                   type="submit"
-                  disabled={!reply.trim()}
-                  className="flex h-12 items-center gap-2 rounded-xl bg-brand-primary px-5 text-sm font-bold text-white transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-40"
+                  className="flex h-12 shrink-0 items-center justify-center rounded-xl bg-[#c75c2e] px-6 text-sm font-bold text-white hover:bg-[#8b3a1a] cursor-pointer"
                 >
-                  <Send size={18} />
                   Gửi
                 </button>
               </form>

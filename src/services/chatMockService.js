@@ -84,15 +84,19 @@ export const chatMockService = {
     return conversation;
   },
 
-  async sendMessage(conversationId, content) {
-    const text = content?.trim();
-    if (!text) return null;
+  async sendMessage(conversationId, content, type = "TEXT") {
+    const value = content?.trim();
+    if (!value) return null;
+
+    const payload = { messageType: type };
+    if (type === "IMAGE") {
+      payload.imageUrl = value;
+    } else {
+      payload.content = value;
+    }
 
     const message = normalizeMessage(
-      await unwrap(axiosInstance.post(`/api/chat/conversations/${conversationId}/messages`, {
-        content: text,
-        messageType: "TEXT",
-      })),
+      await unwrap(axiosInstance.post(`/api/chat/conversations/${conversationId}/messages`, payload)),
     );
     emitChatUpdated();
     return message;

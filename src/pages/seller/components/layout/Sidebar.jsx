@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -9,6 +10,7 @@ import {
   Tag,
   MessageCircle,
 } from "lucide-react";
+import { chatMockService } from "@/services/chatMockService";
 
 const navItems = [
   { to: "/seller/dashboard", label: "Bảng điều khiển", icon: LayoutDashboard },
@@ -22,6 +24,40 @@ const navItems = [
 
 const Sidebar = () => {
   const location = useLocation();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const updateUnreadCount = (conversations) => {
+      const count = conversations.reduce(
+        (sum, conv) => sum + (conv.sellerUnreadCount || 0),
+        0
+      );
+      if (isMounted) {
+        setUnreadCount(count);
+      }
+    };
+
+    // Initial load
+    chatMockService.getConversations("SELLER")
+      .then((conversations) => {
+        updateUnreadCount(conversations);
+      })
+      .catch(() => {
+        if (isMounted) setUnreadCount(0);
+      });
+
+    // Subscribe to updates
+    const unsubscribe = chatMockService.subscribe((conversations) => {
+      updateUnreadCount(conversations);
+    }, "SELLER");
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, []);
 
   return (
     <aside className="flex w-60 flex-col border-r border-neutral-200 bg-brand-sidebar">
@@ -42,14 +78,21 @@ const Sidebar = () => {
             <NavLink
               key={item.to}
               to={item.to}
-              className={`flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${
+              className={`flex items-center justify-between rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${
                 isActive
                   ? "text-brand-primary bg-brand-primary/5"
                   : "text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100"
               }`}
             >
-              <Icon size={18} strokeWidth={isActive ? 2.2 : 1.8} />
-              <span>{item.label}</span>
+              <div className="flex items-center gap-3">
+                <Icon size={18} strokeWidth={isActive ? 2.2 : 1.8} />
+                <span>{item.label}</span>
+              </div>
+              {item.to === "/seller/messages" && unreadCount > 0 && (
+                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-primary px-1 text-[10px] font-bold text-white leading-none">
+                  {unreadCount}
+                </span>
+              )}
             </NavLink>
           );
         })}

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MessageCircle, Send, X } from "lucide-react";
+import { MessageCircle, Send, X, Image, Loader2 } from "lucide-react";
 import { chatMockService } from "@/services/chatMockService";
 import { toastService } from "@/services/toastService";
+import imageApi from "@/pages/seller/api/imageApi";
 
 function getInitials(name) {
   if (!name) return "CH";
@@ -26,12 +27,45 @@ export default function CustomerChatWidget() {
   const [conversationId, setConversationId] = useState(null);
   const [conversations, setConversations] = useState([]);
   const [message, setMessage] = useState("");
+  const [imageUploading, setImageUploading] = useState(false);
   const messagesEndRef = useRef(null);
   const conversationIdRef = useRef(conversationId);
 
   useEffect(() => {
     conversationIdRef.current = conversationId;
   }, [conversationId]);
+
+  const handleImageUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toastService.error("Ảnh không được vượt quá 5MB.");
+      return;
+    }
+
+    try {
+      setImageUploading(true);
+      const imageUrl = await imageApi.upload(file);
+      if (imageUrl && activeConversation) {
+        await chatMockService.sendMessage(activeConversation.id, imageUrl, "IMAGE");
+        
+        // Refresh conversations and active details
+        const [nextConversations, detail] = await Promise.all([
+          chatMockService.getConversations("CUSTOMER"),
+          chatMockService.getConversation(activeConversation.id),
+        ]);
+        setConversations(
+          nextConversations.map((item) => (item.id === detail.id ? detail : item)),
+        );
+        window.dispatchEvent(new CustomEvent("secondhand-chat-updated"));
+      }
+    } catch (error) {
+      toastService.error(error?.message || "Không upload được ảnh.");
+    } finally {
+      setImageUploading(false);
+    }
+  };
 
   const activeConversation = useMemo(() => {
     return conversations.find((item) => item.id === conversationId) || conversations[0] || null;
@@ -256,8 +290,10 @@ export default function CustomerChatWidget() {
                   </div>
                 ) : null}
 
-                {(activeConversation.messages || []).map((item) => {
+                 {(activeConversation.messages || []).map((item) => {
                   const isMine = item.senderRole === "customer";
+                  const isImage = String(item.messageType).toUpperCase() === "IMAGE" || !!item.imageUrl;
+
                   return (
                     <div
                       key={item.id}
@@ -265,13 +301,27 @@ export default function CustomerChatWidget() {
                     >
                       <div
                         className={`max-w-[78%] rounded-2xl px-3 py-2 text-sm shadow-sm ${
-                          isMine
+                          isMine && !isImage
                             ? "rounded-br-md bg-[#c04f25] text-white"
-                            : "rounded-bl-md bg-white text-[#3f3b2f]"
-                        }`}
+                            : !isMine && !isImage
+                            ? "rounded-bl-md bg-white text-[#3f3b2f]"
+                            : ""
+                        } ${isImage ? "p-1 bg-transparent shadow-none" : ""}`}
                       >
-                        <p className="whitespace-pre-wrap break-words">{item.content}</p>
-                        <p className={`mt-1 text-[10px] ${isMine ? "text-white/75" : "text-[#9c927b]"}`}>
+                        {isImage ? (
+                          <img
+                            src={item.imageUrl}
+                            alt="Ảnh đính kèm"
+                            className="max-w-[220px] rounded-xl object-cover border border-[#efe8cf]"
+                          />
+                        ) : (
+                          <p className="whitespace-pre-wrap break-words">{item.content}</p>
+                        )}
+                        <p className={`mt-1 text-[10px] ${
+                          isImage 
+                            ? "text-[#9c927b] font-semibold" 
+                            : isMine ? "text-white/75" : "text-[#9c927b]"
+                        }`}>
                           {formatTime(item.createdAt)}
                         </p>
                       </div>
@@ -283,7 +333,21 @@ export default function CustomerChatWidget() {
             )}
           </div>
 
-          <form onSubmit={handleSubmit} className="flex gap-2 border-t border-[#efe8cf] bg-white p-3">
+          <form onSubmit={handleSubmit} className="flex items-center gap-2 border-t border-[#efe8cf] bg-white p-3">
+            <label className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-[#e7dfbd] bg-[#fbfae6] transition hover:bg-[#efe8cf]">
+              {imageUploading ? (
+                <Loader2 size={17} className="animate-spin text-[#7c7565]" />
+              ) : (
+                <Image size={17} className="text-[#7c7565] hover:text-[#c04f25]" />
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                disabled={imageUploading || !activeConversation}
+                className="hidden"
+                onChange={handleImageUpload}
+              />
+            </label>
             <input
               value={message}
               onChange={(event) => setMessage(event.target.value)}
@@ -294,7 +358,7 @@ export default function CustomerChatWidget() {
             <button
               type="submit"
               disabled={!activeConversation || !message.trim()}
-              className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#c04f25] text-white transition hover:bg-[#a9411d] disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#c04f25] text-white transition hover:bg-[#a9411d] disabled:cursor-not-allowed disabled:opacity-40"
               aria-label="Gửi tin nhắn"
             >
               <Send size={18} />
