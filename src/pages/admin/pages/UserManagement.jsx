@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
 import { userService } from "@/services/admin";
-import { 
-  Users, 
-  Store, 
-  Lock, 
-  Unlock, 
-  Search, 
-  Eye, 
-  Trash2, 
-  X, 
-  ChevronDown 
+import {
+  Users,
+  Store,
+  Lock,
+  Unlock,
+  Search,
+  Eye,
+  Trash2,
+  X,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 
 export function UserManagement() {
@@ -27,26 +29,43 @@ export function UserManagement() {
 
   useEffect(() => {
     loadUsers();
-  }, [page, searchTerm]);
+  }, [page, searchTerm, roleFilter]);
 
   const loadUsers = async () => {
     try {
       setLoading(true);
-      const filters = searchTerm ? { search: searchTerm } : {};
+      const filters = {};
+      if (searchTerm) filters.search = searchTerm;
+      if (roleFilter && roleFilter !== "all") {
+        filters.role = roleFilter === "buyer" ? "CUSTOMER" : roleFilter.toUpperCase();
+      }
+
       const [response, statistics] = await Promise.all([
         userService.getAll(page, 10, filters),
         userService.getStatistics().catch(() => null),
       ]);
-      const rawData = response?.data || response;
-      
+
       let apiUsers = [];
-      if (Array.isArray(rawData)) apiUsers = rawData;
-      else if (Array.isArray(rawData?.data)) apiUsers = rawData.data;
-      else if (Array.isArray(rawData?.content)) apiUsers = rawData.content;
-      else if (Array.isArray(rawData?.items)) apiUsers = rawData.items;
+      let totalPages = 1;
+
+      if (response) {
+        if (Array.isArray(response)) {
+          apiUsers = response;
+          totalPages = 1;
+        } else if (response.data && Array.isArray(response.data)) {
+          apiUsers = response.data;
+          totalPages = response.totalPages || response.total_pages || 1;
+        } else if (response.content && Array.isArray(response.content)) {
+          apiUsers = response.content;
+          totalPages = response.totalPages || response.total_pages || 1;
+        } else {
+          apiUsers = response.data || [];
+          totalPages = response.totalPages || response.total_pages || 1;
+        }
+      }
 
       setUsers(apiUsers);
-      setTotalPages(rawData?.totalPages || rawData?.total_pages || 1);
+      setTotalPages(totalPages);
       setStats(statistics || response?.statistics || {});
     } catch (err) {
       setError(err.message);
@@ -122,10 +141,7 @@ export function UserManagement() {
 
   const normalizedUsers = users.map(normalizeUser);
 
-  const filteredUsersNormalized = normalizedUsers.filter((user) => {
-    if (roleFilter === "all") return true;
-    return user.role === roleFilter;
-  });
+  const filteredUsersNormalized = normalizedUsers;
 
   const totalUsersCount = stats.totalUsers ?? stats.total ?? users.length;
   const newSellerCount =
@@ -158,57 +174,37 @@ export function UserManagement() {
           <h1 className="text-3xl font-extrabold text-stone-900 tracking-tight m-0">Quản trị người dùng</h1>
           <p className="text-sm text-stone-500 mt-1">Quản lý tài khoản khách hàng, người bán và phân quyền vai trò trên hệ thống.</p>
         </div>
-        <div className="flex gap-2.5 flex-wrap w-full md:w-auto">
-          <button className="py-2.5 px-5 bg-white hover:bg-stone-50 text-stone-700 border border-stone-200 rounded-xl font-bold text-sm transition-all shadow-sm cursor-pointer w-full md:w-auto" type="button">
-            Lọc vai trò
-          </button>
-          <button className="py-2.5 px-5 bg-[#c85a28] hover:bg-[#b84c1a] text-white border-none rounded-xl font-bold text-sm transition-all shadow-md shadow-orange-500/10 cursor-pointer w-full md:w-auto active:scale-[0.98]" type="button">
-            + Thêm mới
-          </button>
-        </div>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <div className="bg-gradient-to-br from-white to-stone-50/40 border border-stone-200/50 rounded-2xl p-5 shadow-[0_8px_30px_rgb(238,229,219,0.25)] hover:shadow-[0_12px_40px_rgb(238,229,219,0.35)] transition-all duration-300">
-          <div className="text-xs font-bold text-stone-400 tracking-widest uppercase">TỔNG NGƯỜI DÙNG</div>
-          <div className="flex items-center justify-between gap-3 mt-2.5">
-            <div className="text-3xl font-black text-stone-900 leading-none tracking-tight">{totalUsersCount.toLocaleString("vi-VN")}</div>
-            <div className="w-11 h-11 rounded-xl grid place-items-center bg-orange-50 text-[#c85a28] text-lg shadow-sm shadow-orange-500/5">
-              <Users className="w-5.5 h-5.5 text-[#c85a28]" />
-            </div>
+        <div className="bg-white border border-stone-200/60 rounded-xl p-3.5 flex items-center justify-between shadow-sm">
+          <div>
+            <div className="text-[10px] font-bold text-stone-400 tracking-wider uppercase">TỔNG NGƯỜI DÙNG</div>
+            <div className="text-2xl font-black text-stone-900 mt-1">{totalUsersCount.toLocaleString("vi-VN")}</div>
           </div>
-          <div className="mt-3.5 text-xs text-emerald-600 font-semibold flex items-center gap-1">
-            <span>↑ 12%</span>
-            <span className="text-stone-400 font-normal">so với tháng trước</span>
+          <div className="w-9 h-9 rounded-lg grid place-items-center bg-orange-50 text-[#c85a28]">
+            <Users className="w-5 h-5 text-[#c85a28]" />
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-white to-stone-50/40 border border-stone-200/50 rounded-2xl p-5 shadow-[0_8px_30px_rgb(238,229,219,0.25)] hover:shadow-[0_12px_40px_rgb(238,229,219,0.35)] transition-all duration-300">
-          <div className="text-xs font-bold text-stone-400 tracking-widest uppercase">NGƯỜI BÁN MỚI</div>
-          <div className="flex items-center justify-between gap-3 mt-2.5">
-            <div className="text-3xl font-black text-stone-900 leading-none tracking-tight">{newSellerCount.toLocaleString("vi-VN")}</div>
-            <div className="w-11 h-11 rounded-xl grid place-items-center bg-amber-50 text-amber-700 text-lg shadow-sm shadow-amber-500/5">
-              <Store className="w-5.5 h-5.5 text-amber-700" />
-            </div>
+        <div className="bg-white border border-stone-200/60 rounded-xl p-3.5 flex items-center justify-between shadow-sm">
+          <div>
+            <div className="text-[10px] font-bold text-stone-400 tracking-wider uppercase">NGƯỜI BÁN MỚI</div>
+            <div className="text-2xl font-black text-stone-900 mt-1">{newSellerCount.toLocaleString("vi-VN")}</div>
           </div>
-          <div className="mt-3.5 text-xs text-emerald-600 font-semibold flex items-center gap-1">
-            <span>↑ 5%</span>
-            <span className="text-stone-400 font-normal">so với tháng trước</span>
+          <div className="w-9 h-9 rounded-lg grid place-items-center bg-amber-50 text-amber-700">
+            <Store className="w-5 h-5 text-amber-700" />
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-white to-stone-50/40 border border-stone-200/50 rounded-2xl p-5 shadow-[0_8px_30px_rgb(238,229,219,0.25)] hover:shadow-[0_12px_40px_rgb(238,229,219,0.35)] transition-all duration-300">
-          <div className="text-xs font-bold text-stone-400 tracking-widest uppercase">TÀI KHOẢN BỊ KHÓA</div>
-          <div className="flex items-center justify-between gap-3 mt-2.5">
-            <div className="text-3xl font-black text-stone-900 leading-none tracking-tight">{lockedCount.toLocaleString("vi-VN")}</div>
-            <div className="w-11 h-11 rounded-xl grid place-items-center bg-rose-50 text-rose-600 text-lg shadow-sm shadow-rose-500/5">
-              <Lock className="w-5.5 h-5.5 text-rose-600" />
-            </div>
+        <div className="bg-white border border-stone-200/60 rounded-xl p-3.5 flex items-center justify-between shadow-sm">
+          <div>
+            <div className="text-[10px] font-bold text-stone-400 tracking-wider uppercase">TÀI KHOẢN BỊ KHÓA</div>
+            <div className="text-2xl font-black text-stone-900 mt-1">{lockedCount.toLocaleString("vi-VN")}</div>
           </div>
-          <div className="mt-3.5 text-xs text-rose-600 font-semibold flex items-center gap-1">
-            <span>↓ 2%</span>
-            <span className="text-stone-400 font-normal">so với tháng trước</span>
+          <div className="w-9 h-9 rounded-lg grid place-items-center bg-rose-50 text-rose-600">
+            <Lock className="w-5 h-5 text-rose-600" />
           </div>
         </div>
       </div>
@@ -233,7 +229,10 @@ export function UserManagement() {
         <div className="w-full md:w-[200px] relative">
           <select
             value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
+            onChange={(e) => {
+              setRoleFilter(e.target.value);
+              setPage(1);
+            }}
             className="w-full py-2.5 pr-10 pl-4 border border-stone-200 rounded-2xl bg-white text-stone-705 font-bold text-[13px] cursor-pointer appearance-none outline-none transition-all hover:border-[#c85a28] focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5 shadow-sm"
           >
             <option value="all">Tất cả vai trò</option>
@@ -292,9 +291,8 @@ export function UserManagement() {
                         <span className={getRoleClass(user.role)}>{formatRole(user.role)}</span>
                       </td>
                       <td className="p-3.5 text-stone-850 text-[13px] align-middle">
-                        <span className={`inline-flex items-center py-1 px-3 rounded-full text-[11px] font-bold uppercase ${
-                          user.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
-                        }`}>
+                        <span className={`inline-flex items-center py-1 px-3 rounded-full text-[11px] font-bold uppercase ${user.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
+                          }`}>
                           {user.status === "active" ? "Hoạt động" : "Bị cấm"}
                         </span>
                       </td>
@@ -316,23 +314,42 @@ export function UserManagement() {
             </div>
 
             <div className="flex justify-between items-center mt-6 flex-wrap gap-4">
-              <button
-                onClick={() => setPage(Math.max(1, page - 1))}
-                disabled={page === 1}
-                className="py-2 px-4 bg-white border border-stone-250 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-stone-50 text-stone-700 rounded-xl font-bold text-xs transition-all shadow-sm cursor-pointer"
-              >
-                Trước
-              </button>
-              <span className="text-stone-500 font-bold text-xs min-w-[90px] text-center">
-                Trang {page} / {totalPages}
-              </span>
-              <button
-                onClick={() => setPage(Math.min(totalPages, page + 1))}
-                disabled={page === totalPages}
-                className="py-2 px-4 bg-white border border-stone-250 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-stone-50 text-stone-700 rounded-xl font-bold text-xs transition-all shadow-sm cursor-pointer"
-              >
-                Sau
-              </button>
+              <div className="text-stone-400 text-xs font-semibold">
+                Hiển thị trang {page} trên {totalPages}
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setPage(Math.max(1, page - 1))}
+                  disabled={page === 1}
+                  className="w-9 h-9 bg-white border border-stone-200 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-stone-50 text-stone-700 rounded-xl font-bold transition-all shadow-sm cursor-pointer flex items-center justify-center"
+                  title="Trang trước"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((pNum) => (
+                  <button
+                    key={pNum}
+                    onClick={() => setPage(pNum)}
+                    className={`w-9 h-9 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center border ${page === pNum
+                        ? "bg-[#c85a28] text-white border-[#c85a28] shadow-sm"
+                        : "bg-white text-stone-600 border-stone-200 hover:bg-stone-50"
+                      }`}
+                  >
+                    {pNum}
+                  </button>
+                ))}
+
+                <button
+                  onClick={() => setPage(Math.min(totalPages, page + 1))}
+                  disabled={page === totalPages}
+                  className="w-9 h-9 bg-white border border-stone-200 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-stone-50 text-stone-700 rounded-xl font-bold transition-all shadow-sm cursor-pointer flex items-center justify-center"
+                  title="Trang sau"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </>
         ) : (
@@ -357,9 +374,8 @@ export function UserManagement() {
                 <h2 className="m-0 text-xl font-extrabold text-stone-900">{selectedUser.name}</h2>
                 <p className="m-0 text-stone-400 text-xs font-medium">{selectedUser.email}</p>
                 <div className="mt-2.5">
-                  <span className={`inline-flex items-center py-1 px-3.5 rounded-full text-[11px] font-bold uppercase ${
-                    selectedUser.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
-                  }`}>
+                  <span className={`inline-flex items-center py-1 px-3.5 rounded-full text-[11px] font-bold uppercase ${selectedUser.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
+                    }`}>
                     {selectedUser.status === "active" ? "Hoạt động" : "Bị cấm"}
                   </span>
                 </div>

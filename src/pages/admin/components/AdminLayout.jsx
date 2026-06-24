@@ -338,20 +338,7 @@ export function AdminLayout({ children }) {
                 </svg>
               </button>
             )}
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <img
-                  src={fallbackAvatar}
-                  alt="User"
-                  className="w-9 h-9 rounded-full border border-stone-200 object-cover shadow-sm transition-transform duration-300 hover:scale-105"
-                />
-                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white"></span>
-              </div>
-              <div className="flex flex-col">
-                <span className="font-bold text-stone-850 text-xs">Admin User</span>
-                <span className="text-[10px] text-stone-400 font-semibold uppercase tracking-wider">Hệ thống</span>
-              </div>
-            </div>
+            
           </div>
         </div>
 

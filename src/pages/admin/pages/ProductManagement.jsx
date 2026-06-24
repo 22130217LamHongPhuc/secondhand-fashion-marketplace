@@ -114,6 +114,25 @@ export function ProductManagement() {
     }
   };
 
+  const getCategoryAndChildrenNames = (categoryName) => {
+    if (categoryName === "all") return [];
+    const names = [categoryName];
+    const categoryObj = categories.find((c) => c.name === categoryName);
+    if (!categoryObj) return names;
+
+    const findChildren = (parentId) => {
+      categories.forEach((c) => {
+        if (c.parentId === parentId) {
+          names.push(c.name);
+          findChildren(c.id);
+        }
+      });
+    };
+
+    findChildren(categoryObj.id);
+    return names;
+  };
+
   const filteredProducts = products
     .filter((product) => {
       const searchValue = searchTerm.trim().toLowerCase();
@@ -129,7 +148,11 @@ export function ProductManagement() {
         (activeTab === "pending" && product.status === "pending") ||
         (activeTab === "violation" && product.status === "violation");
 
-      const matchesCategory = categoryFilter === "all" || product.category === categoryFilter;
+      const matchesCategory = (() => {
+        if (categoryFilter === "all") return true;
+        const allowedCategories = getCategoryAndChildrenNames(categoryFilter);
+        return allowedCategories.includes(product.category);
+      })();
 
       return matchesSearch && matchesTab && matchesCategory;
     })
@@ -514,27 +537,43 @@ export function ProductManagement() {
 
             {/* Pagination & Status bar */}
             <div className="flex justify-between items-center mt-6 flex-wrap gap-4">
-              <button
-                onClick={() => setPage(Math.max(1, currentPage - 1))}
-                disabled={currentPage === 1}
-                className="py-2 px-4 bg-white border border-stone-250 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-stone-50 text-stone-700 rounded-xl font-bold text-xs transition-all shadow-sm cursor-pointer flex items-center gap-1"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" />
-                <span>Trước</span>
-              </button>
-              
               <div className="text-stone-400 text-xs font-semibold">
                 Hiển thị {startItem} - {endItem} trên {filteredProducts.length} sản phẩm
               </div>
 
-              <button
-                onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
-                disabled={currentPage === totalPages}
-                className="py-2 px-4 bg-white border border-stone-250 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-stone-50 text-stone-700 rounded-xl font-bold text-xs transition-all shadow-sm cursor-pointer flex items-center gap-1"
-              >
-                <span>Sau</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                  className="w-9 h-9 bg-white border border-stone-200 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-stone-50 text-stone-700 rounded-xl font-bold transition-all shadow-sm cursor-pointer flex items-center justify-center"
+                  title="Trang trước"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((pNum) => (
+                  <button
+                    key={pNum}
+                    onClick={() => setPage(pNum)}
+                    className={`w-9 h-9 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center border ${
+                      currentPage === pNum
+                        ? "bg-[#c85a28] text-white border-[#c85a28] shadow-sm"
+                        : "bg-white text-stone-600 border-stone-200 hover:bg-stone-50"
+                    }`}
+                  >
+                    {pNum}
+                  </button>
+                ))}
+
+                <button
+                  onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
+                  disabled={currentPage === totalPages}
+                  className="w-9 h-9 bg-white border border-stone-200 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-stone-50 text-stone-700 rounded-xl font-bold transition-all shadow-sm cursor-pointer flex items-center justify-center"
+                  title="Trang sau"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </>
         ) : (

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { orderService } from "@/services/admin";
 import { OrderDetailView } from "./OrderDetailView";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const demoOrders = [
   {
@@ -595,27 +596,44 @@ export function OrderManagement() {
             </div>
 
             {/* Pagination */}
-            <div className="flex justify-center md:justify-end items-center gap-2.5 mt-1.5 flex-wrap">
-              <button
-                onClick={() => setPage(Math.max(1, page - 1))}
-                disabled={page === 1}
-                className="py-2.5 px-5 bg-[#e8dfd5] disabled:opacity-50 hover:bg-[#dccfc5] text-[#8b5a3c] border-none rounded-xl font-bold text-[13px] transition-colors cursor-pointer"
-              >
-                Trước
-              </button>
-              <span className="text-[#8b5a3c] font-semibold min-w-[100px] text-center text-[13px]">
-                Trang {page} / {totalPages}
-              </span>
-              <button
-                onClick={() => setPage(Math.min(totalPages, page + 1))}
-                disabled={page === totalPages}
-                className="py-2.5 px-5 bg-[#e8dfd5] disabled:opacity-50 hover:bg-[#dccfc5] text-[#8b5a3c] border-none rounded-xl font-bold text-[13px] transition-colors cursor-pointer"
-              >
-                Sau
-              </button>
-            </div>
-            <div className="text-[#8b5a3c] text-[13px] mt-2 flex justify-center md:justify-start">
-              Hiển thị {filteredOrders.length > 0 ? (page - 1) * 10 + 1 : 0} - {(page - 1) * 10 + filteredOrders.length} đơn hàng
+            <div className="flex justify-between items-center mt-6 flex-wrap gap-4">
+              <div className="text-stone-400 text-xs font-semibold">
+                Hiển thị {filteredOrders.length > 0 ? (page - 1) * 10 + 1 : 0} - {(page - 1) * 10 + filteredOrders.length} đơn hàng
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setPage(Math.max(1, page - 1))}
+                  disabled={page === 1}
+                  className="w-9 h-9 bg-white border border-stone-200 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-stone-50 text-stone-700 rounded-xl font-bold transition-all shadow-sm cursor-pointer flex items-center justify-center"
+                  title="Trang trước"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((pNum) => (
+                  <button
+                    key={pNum}
+                    onClick={() => setPage(pNum)}
+                    className={`w-9 h-9 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center border ${
+                      page === pNum
+                        ? "bg-[#c85a28] text-white border-[#c85a28] shadow-sm"
+                        : "bg-white text-stone-600 border-stone-200 hover:bg-stone-50"
+                    }`}
+                  >
+                    {pNum}
+                  </button>
+                ))}
+
+                <button
+                  onClick={() => setPage(Math.min(totalPages, page + 1))}
+                  disabled={page === totalPages}
+                  className="w-9 h-9 bg-white border border-stone-200 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-stone-50 text-stone-700 rounded-xl font-bold transition-all shadow-sm cursor-pointer flex items-center justify-center"
+                  title="Trang sau"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </>
         ) : (
