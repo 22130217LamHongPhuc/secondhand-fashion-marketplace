@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Bell, ImageUp, MessageCircle, ReceiptText, Search, ShoppingCart, User, LogOut, X } from "lucide-react";
+import { Bell, ImageUp, MessageCircle, ReceiptText, Search, ShoppingCart, User, LogOut, X, Shield } from "lucide-react";
 import { Outlet, useNavigate } from "react-router-dom";
 import AuthModal from "./AuthModal";
 import CustomerChatWidget from "./CustomerChatWidget";
@@ -422,6 +422,25 @@ export default function CustomerLayout() {
                       <User size={15} />
                       Xem hồ sơ
                     </button>
+
+                    {/* Admin/Seller link - show for ADMIN or SELLER role */}
+                    {(user.role === "ADMIN" || user.role === "SELLER" || user.roleId === 3 || user.roleId === 2) && (
+                      <button
+                        onClick={() => {
+                          setIsDropdownOpen(false);
+                          // Navigate to admin page if ADMIN (roleId 3), seller page if SELLER (roleId 2)
+                          if (user.role === "ADMIN" || user.roleId === 3) {
+                            navigate("/admin");
+                          } else if (user.role === "SELLER" || user.roleId === 2) {
+                            navigate("/seller");
+                          }
+                        }}
+                        className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-bold text-[#706b5c] hover:bg-[#faf7e7] hover:text-[#b84a25] transition cursor-pointer"
+                      >
+                        <Shield size={15} />
+                        Trang quản trị
+                      </button>
+                    )}
                     
                     <button
                       onClick={() => {

@@ -1,3 +1,4 @@
+import { Navigate } from "react-router-dom";
 import { AdminLayout } from "./components";
 import {
   Dashboard,
@@ -14,6 +15,10 @@ import {
 export { AdminLayout };
 
 export const adminRoutes = [
+  {
+    path: "/admin",
+    element: <Navigate to="/admin/dashboard" replace />,
+  },
   {
     path: "/admin/dashboard",
     element: (
