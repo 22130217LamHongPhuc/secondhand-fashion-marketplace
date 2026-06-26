@@ -198,13 +198,13 @@
 }
 
 /* Keep typography consistent across customer, seller and admin screens. */
-:where(html, body, #root, #root *, #root *::before, #root *::after) {
+:where(html, body, body *, body *::before, body *::after) {
   font-family: Arial, sans-serif !important;
 }
 
 /* Arial Black (800/900) has incomplete Vietnamese glyph coverage on some
    Windows installations, which makes the browser mix in a serif fallback. */
-:where(#root .font-black, #root .font-extrabold) {
+:where(body .font-black, body .font-extrabold) {
   font-weight: 700 !important;
 }
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Bell, ImageUp, MessageCircle, ReceiptText, Search, ShoppingCart, User, LogOut, X, Shield } from "lucide-react";
+import { Bell, ImageUp, MessageCircle, ReceiptText, Search, ShoppingCart, User, LogOut, X, Shield, AlertCircle } from "lucide-react";
 import { Outlet, useNavigate } from "react-router-dom";
 import AuthModal from "./AuthModal";
 import CustomerChatWidget from "./CustomerChatWidget";
@@ -268,6 +268,13 @@ export default function CustomerLayout() {
             >
               Đơn hàng
             </button>
+            <button
+              type="button"
+              onClick={() => navigate("/complaints")}
+              className="hover:text-[#b84a25]"
+            >
+              Khiếu nại
+            </button>
           </nav>
 
           <div className="flex items-center gap-4 text-[#b84a25]">
@@ -515,7 +522,6 @@ export default function CustomerLayout() {
                     
                     <hr className="my-1.5 border-[#faf7e7]" />
                     
-                    {/* Menu items */}
                     <button
                       onClick={() => {
                         setIsDropdownOpen(false);
@@ -525,6 +531,17 @@ export default function CustomerLayout() {
                     >
                       <User size={15} />
                       Xem hồ sơ
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setIsDropdownOpen(false);
+                        navigate("/complaints");
+                      }}
+                      className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-bold text-[#706b5c] hover:bg-[#faf7e7] hover:text-[#b84a25] transition cursor-pointer"
+                    >
+                      <AlertCircle size={15} />
+                      Khiếu nại của tôi
                     </button>
 
                     {/* Admin/Seller link - show for ADMIN or SELLER role */}

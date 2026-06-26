@@ -2,12 +2,17 @@ import { customerOrderService } from "@/services/customerOrder";
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import CancelOrderModal from "./components/CancelOrderModal";
+import ComplaintModal from "./components/ComplaintModal";
+import ComplaintDetailModal from "./components/ComplaintDetailModal";
 import OrderDetailHeader from "./components/OrderDetailHeader";
 import OrderDetailItems from "./components/OrderDetailItems";
 import OrderDetailSkeleton from "./components/OrderDetailSkeleton";
 import OrderDetailSummary from "./components/OrderDetailSummary";
 import OrderShippingAddress from "./components/OrderShippingAddress";
 import OrderTimeline from "./components/OrderTimeline";
+import { customerComplaintService } from "@/services/customerComplaint";
+import { toastService } from "@/services/toastService";
+
 export default function OrderDetailPage() {
   const { orderId } = useParams();
 
@@ -17,6 +22,10 @@ export default function OrderDetailPage() {
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState("");
+  const [complaintOpen, setComplaintOpen] = useState(false);
+  const [submittingComplaint, setSubmittingComplaint] = useState(false);
+  const [complaintError, setComplaintError] = useState("");
+  const [activeComplaintId, setActiveComplaintId] = useState(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -73,6 +82,29 @@ export default function OrderDetailPage() {
     }
   };
 
+  const handleCreateComplaint = async ({ title, content }) => {
+    if (!order) return;
+
+    setSubmittingComplaint(true);
+    setComplaintError("");
+
+    try {
+      await customerComplaintService.createComplaint({
+        orderId: order.id,
+        title,
+        content,
+      });
+      toastService.success("Gửi khiếu nại thành công!");
+      window.dispatchEvent(new CustomEvent("secondhand-complaint-created", { detail: { orderId: order.id } }));
+      setComplaintOpen(false);
+    } catch (err) {
+      console.error("Failed to submit complaint", err);
+      setComplaintError(err?.message || "Không thể gửi khiếu nại. Vui lòng thử lại sau.");
+    } finally {
+      setSubmittingComplaint(false);
+    }
+  };
+
   if (loading) {
     return <OrderDetailSkeleton />;
   }
@@ -93,7 +125,12 @@ export default function OrderDetailPage() {
 
   return (
     <div className="space-y-5">
-      <OrderDetailHeader order={order} onCancel={() => setCancelOpen(true)} />
+      <OrderDetailHeader
+        order={order}
+        onCancel={() => setCancelOpen(true)}
+        onComplaint={() => setComplaintOpen(true)}
+        onViewComplaint={setActiveComplaintId}
+      />
 
       <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
         <div className="space-y-5">
@@ -118,6 +155,25 @@ export default function OrderDetailPage() {
           setCancelError("");
         }}
         onConfirm={handleCancelOrder}
+      />
+
+      <ComplaintModal
+        open={complaintOpen}
+        order={order}
+        submitting={submittingComplaint}
+        error={complaintError}
+        onClose={() => {
+          if (submittingComplaint) return;
+          setComplaintOpen(false);
+          setComplaintError("");
+        }}
+        onConfirm={handleCreateComplaint}
+      />
+
+      <ComplaintDetailModal
+        open={Boolean(activeComplaintId)}
+        complaintId={activeComplaintId}
+        onClose={() => setActiveComplaintId(null)}
       />
     </div>
   );

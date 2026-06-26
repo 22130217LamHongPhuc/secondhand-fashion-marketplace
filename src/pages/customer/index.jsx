@@ -10,6 +10,7 @@ import CreateStorePage from "../seller/pages/Store/CreateStorePage";
 import { Profile } from "../user/pages/Profile";
 import CartPage from "./CartPage";
 import CheckoutPage from "./CheckoutPage";
+import ComplaintPage from "./ComplaintPage";
 
 export const customerRoutes = [
   {
@@ -35,6 +36,10 @@ export const customerRoutes = [
   {
     path: "orders/:orderId",
     element: <OrderDetailPage />,
+  },
+  {
+    path: "complaints",
+    element: <ComplaintPage />,
   },
   {
     path: "products",

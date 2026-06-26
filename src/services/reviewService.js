@@ -1,6 +1,5 @@
 import { http } from "./http";
 
-const API_BASE = "http://localhost:8080/api/customer/reviews";
 export const reviewService = {
   async createReview({ orderId, productId, rating, comment, images }) {
     const formData = new FormData();
@@ -13,18 +12,14 @@ export const reviewService = {
     images.forEach((file) => {
       formData.append("images", file);
     });
-    console.log("formData", formData);
 
-    const response = await fetch(API_BASE, {
+    const token = localStorage.getItem("token");
+    return http("/api/customer/reviews", {
       method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
       body: formData,
     });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data?.message ?? "Failed to create review");
-    }
-    return data;
   },
 };
