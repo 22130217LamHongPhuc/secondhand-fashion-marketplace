@@ -57,8 +57,12 @@ export const customerProductService = {
   },
 
   createComment: async ({ productId, content, parentId = null }) => {
+    const token = localStorage.getItem("token");
     const response = await http("/api/customer/comments", {
       method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
       body: JSON.stringify({
         productId,
         content,

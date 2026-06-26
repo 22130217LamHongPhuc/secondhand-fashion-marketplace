@@ -12,6 +12,7 @@ import { customerProductService } from "@/services/customerProduct";
 import WriteCommentSheet from "./components/WriteCommentSheet";
 import { useSseSubscription } from "@/hooks";
 import { toastService } from "@/services/toastService";
+import toast from "react-hot-toast";
 
 function formatVnd(value) {
   if (value === null || value === undefined || value === "") return "";
@@ -132,9 +133,9 @@ export default function ProductDetailPage() {
   const galleryImages = useMemo(() => {
     const imgs = product?.images?.length
       ? product.images
-          .slice()
-          .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
-          .map((img) => ({ src: img.url, alt: product?.name ?? "" }))
+        .slice()
+        .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+        .map((img) => ({ src: img.url, alt: product?.name ?? "" }))
       : product?.thumbnailUrl
         ? [{ src: product.thumbnailUrl, alt: product?.name ?? "" }]
         : [];
@@ -216,9 +217,9 @@ export default function ProductDetailPage() {
 
       images: Array.isArray(r.imageUrls)
         ? r.imageUrls.map((url, index) => ({
-            id: `${r.id}-${index}`,
-            url,
-          }))
+          id: `${r.id}-${index}`,
+          url,
+        }))
         : Array.isArray(r.images)
           ? r.images
           : [],
@@ -255,7 +256,7 @@ export default function ProductDetailPage() {
 
       setReviewModalOpen(false);
     } catch (error) {
-      alert(error?.message ?? "Không gửi được đánh giá");
+      toast.error("Phải đặt hàng trước mới đánh giá được");
     } finally {
       setSubmittingReview(false);
     }
@@ -298,7 +299,7 @@ export default function ProductDetailPage() {
 
       setCommentModalOpen(false);
     } catch (error) {
-      alert(error?.message ?? "KhÃ´ng gá»­i Ä‘Æ°á»£c bÃ¬nh luáº­n");
+      toast.error("Không gửi được bình luận");
     } finally {
       setSubmittingComment(false);
     }
@@ -358,6 +359,7 @@ export default function ProductDetailPage() {
       <ProductBottomContent
         description={description}
         attributes={attributes}
+        metadata={product?.metadata}
         reviews={reviews}
         comments={comments}
         onWriteReview={() => setReviewModalOpen(true)}

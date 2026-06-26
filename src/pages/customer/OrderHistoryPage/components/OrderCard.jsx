@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Ban,
   CalendarDays,
@@ -7,6 +7,7 @@ import {
   Store,
   WalletCards,
   Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -17,10 +18,12 @@ import { formatDate, formatVnd } from "../utils";
 import OrderStatusBadge from "./OrderStatusBadge";
 import { customerOrderService } from "@/services/customerOrder";
 import { toastService } from "@/services/toastService";
+import { customerComplaintService } from "@/services/customerComplaint";
 
-export default function OrderCard({ order, onCancel }) {
+export default function OrderCard({ order, onCancel, onComplaint, onViewComplaint }) {
   const navigate = useNavigate();
   const [paying, setPaying] = useState(false);
+  const [complaint, setComplaint] = useState(null);
 
   const canCancel = order.status === "PENDING";
   const canRepay =
@@ -34,6 +37,33 @@ export default function OrderCard({ order, onCancel }) {
     "Thanh toán";
   const paymentStatus =
     PAYMENT_STATUS_LABELS[order.paymentStatus] || order.paymentStatus || "";
+
+  useEffect(() => {
+    if (order.status !== "DONE") return;
+    let isMounted = true;
+
+    const fetchComplaint = () => {
+      customerComplaintService.checkComplaintByOrder(order.id)
+        .then((res) => {
+          if (isMounted) setComplaint(res);
+        })
+        .catch((err) => console.error(err));
+    };
+
+    fetchComplaint();
+
+    const handleCreated = (e) => {
+      if (e.detail?.orderId === order.id) {
+        fetchComplaint();
+      }
+    };
+
+    window.addEventListener("secondhand-complaint-created", handleCreated);
+    return () => {
+      isMounted = false;
+      window.removeEventListener("secondhand-complaint-created", handleCreated);
+    };
+  }, [order.id, order.status]);
 
   const handleRepay = async () => {
     setPaying(true);
@@ -180,6 +210,28 @@ export default function OrderCard({ order, onCancel }) {
                   "Thanh toán lại"
                 )}
               </button>
+            ) : null}
+
+            {order.status === "DONE" ? (
+              complaint ? (
+                <button
+                  type="button"
+                  onClick={() => onViewComplaint?.(complaint.id)}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[#bfe5c4] bg-[#edf8ed] px-5 py-2.5 text-sm font-extrabold text-[#2f7d38] transition hover:bg-[#dceddd] cursor-pointer"
+                >
+                  <AlertCircle size={15} />
+                  Xem khiếu nại
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onComplaint?.(order)}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[#eadfca] bg-[#fffaf0] px-5 py-2.5 text-sm font-extrabold text-[#b84a25] transition hover:bg-[#f3ead8]"
+                >
+                  <AlertCircle size={15} />
+                  Khiếu nại
+                </button>
+              )
             ) : null}
 
             <button

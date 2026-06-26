@@ -141,10 +141,14 @@ export const customerOrderService = {
       params.set("customerId", String(customerId));
     }
 
+    const token = localStorage.getItem("token");
     const response = await http(
       `/api/customer/orders/${orderId}/cancel?${params.toString()}`,
       {
         method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ reason }),
       },
     );

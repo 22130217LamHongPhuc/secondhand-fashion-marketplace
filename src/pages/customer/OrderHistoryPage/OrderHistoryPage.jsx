@@ -5,10 +5,13 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toastService } from "@/services/toastService";
 import CancelOrderModal from "./components/CancelOrderModal";
+import ComplaintModal from "./components/ComplaintModal";
+import ComplaintDetailModal from "./components/ComplaintDetailModal";
 import EmptyOrders from "./components/EmptyOrders";
 import OrderCard from "./components/OrderCard";
 import OrderSkeleton from "./components/OrderSkeleton";
 import { ORDER_STATUS_OPTIONS } from "./constants";
+import { customerComplaintService } from "@/services/customerComplaint";
 
 function toListOrderFromDetail(order) {
   const firstItem = order.items?.[0];
@@ -75,6 +78,10 @@ export default function OrderHistoryPage() {
   const [cancelTarget, setCancelTarget] = useState(null);
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState("");
+  const [complaintTarget, setComplaintTarget] = useState(null);
+  const [submittingComplaint, setSubmittingComplaint] = useState(false);
+  const [complaintError, setComplaintError] = useState("");
+  const [activeComplaintId, setActiveComplaintId] = useState(null);
 
   const activeStatus = useMemo(() => {
     return ORDER_STATUS_OPTIONS.some((option) => option.value === status)
@@ -165,6 +172,29 @@ export default function OrderHistoryPage() {
       setCancelError("Không thể hủy đơn hàng. Vui lòng thử lại sau.");
     } finally {
       setCancelling(false);
+    }
+  };
+
+  const handleCreateComplaint = async ({ title, content }) => {
+    if (!complaintTarget) return;
+
+    setSubmittingComplaint(true);
+    setComplaintError("");
+
+    try {
+      await customerComplaintService.createComplaint({
+        orderId: complaintTarget.id,
+        title,
+        content,
+      });
+      toastService.success("Gửi khiếu nại thành công!");
+      window.dispatchEvent(new CustomEvent("secondhand-complaint-created", { detail: { orderId: complaintTarget.id } }));
+      setComplaintTarget(null);
+    } catch (err) {
+      console.error("Failed to submit complaint", err);
+      setComplaintError(err?.message || "Không thể gửi khiếu nại. Vui lòng thử lại sau.");
+    } finally {
+      setSubmittingComplaint(false);
     }
   };
 
@@ -267,6 +297,8 @@ export default function OrderHistoryPage() {
                 key={order.id ?? order.orderCode}
                 order={order}
                 onCancel={setCancelTarget}
+                onComplaint={setComplaintTarget}
+                onViewComplaint={setActiveComplaintId}
               />
             ))}
           </div>
@@ -292,6 +324,25 @@ export default function OrderHistoryPage() {
           setCancelError("");
         }}
         onConfirm={handleCancelOrder}
+      />
+
+      <ComplaintModal
+        open={Boolean(complaintTarget)}
+        order={complaintTarget}
+        submitting={submittingComplaint}
+        error={complaintError}
+        onClose={() => {
+          if (submittingComplaint) return;
+          setComplaintTarget(null);
+          setComplaintError("");
+        }}
+        onConfirm={handleCreateComplaint}
+      />
+
+      <ComplaintDetailModal
+        open={Boolean(activeComplaintId)}
+        complaintId={activeComplaintId}
+        onClose={() => setActiveComplaintId(null)}
       />
     </div>
   );
