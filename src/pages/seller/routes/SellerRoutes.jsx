@@ -6,6 +6,9 @@ import OrdersPage from '../pages/Orders/OrdersPage';
 import AnalyticsPage from '../pages/Analytics/AnalyticsPage';
 import StoreProfilePage from '../pages/Store/StoreProfilePage';
 import PromotionsPage from '../pages/Promotions/PromotionsPage';
+import ShopPromotionsPage from '../pages/Promotions/ShopPromotionsPage';
+import CreatePromotionPage from '../pages/Promotions/CreatePromotionPage';
+import EditPromotionPage from '../pages/Promotions/EditPromotionPage';
 import SellerLayout from '../layout/SellerLayout';
 import OrderDetailPage from '../pages/Orders/OrderDetailPage';
 import MessagesPage from '../pages/MessagesPage';
@@ -24,6 +27,9 @@ const SellerRoutes = () => {
         <Route path="messages" element={<MessagesPage />} />
         <Route path="analytics" element={<AnalyticsPage />} />
         <Route path="promotions" element={<PromotionsPage />} />
+        <Route path="shop-promotions" element={<ShopPromotionsPage />} />
+        <Route path="shop-promotions/new" element={<CreatePromotionPage />} />
+        <Route path="shop-promotions/:id/edit" element={<EditPromotionPage />} />
         <Route path="store-profile" element={<StoreProfilePage />} />
       </Route>
     </Routes>

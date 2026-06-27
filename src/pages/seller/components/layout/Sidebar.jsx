@@ -18,7 +18,7 @@ const navItems = [
   { to: "/seller/orders", label: "Đơn hàng", icon: ShoppingCart },
   { to: "/seller/messages", label: "Tin nhắn", icon: MessageCircle },
   { to: "/seller/analytics", label: "Phân tích", icon: BarChart3 },
-  { to: "/seller/promotions", label: "Khuyến mãi", icon: Tag },
+  { to: "/seller/shop-promotions", label: "Khuyến mãi", icon: Tag },
   { to: "/seller/store-profile", label: "Hồ sơ cửa hàng", icon: Store },
 ];
 

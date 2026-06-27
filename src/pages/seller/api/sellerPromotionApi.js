@@ -1,9 +1,27 @@
 import axiosInstance from "@/config/axios";
 
 const BASE = "/api/seller/promotions";
+const PROMO_BASE = "/api/v1/seller/promotions";
 
 const sellerPromotionApi = {
-  // Coupon Management
+  // === Shop Promotion API (new) ===
+  getPromotions: (params = {}) => {
+    return axiosInstance.get(PROMO_BASE, { params });
+  },
+  
+  createPromotion: (data) => {
+    return axiosInstance.post(PROMO_BASE, data);
+  },
+  
+  updatePromotion: (id, data) => {
+    return axiosInstance.put(`${PROMO_BASE}/${id}`, data);
+  },
+  
+  changeStatus: (id, status) => {
+    return axiosInstance.patch(`${PROMO_BASE}/${id}/status`, null, { params: { status } });
+  },
+
+  // === Coupon Management (Old) ===
   getCoupons: () => {
     return axiosInstance.get(`${BASE}/coupons`);
   },

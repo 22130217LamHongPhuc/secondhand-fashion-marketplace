@@ -27,3 +27,11 @@ export const sellerShopKeys = {
   all:     ['seller', 'shop'],
   profile: () => [...sellerShopKeys.all, 'profile'],
 };
+
+export const sellerPromotionKeys = {
+  all:     ['seller', 'promotions'],
+  lists:   () => [...sellerPromotionKeys.all, 'list'],
+  list:    (params) => [...sellerPromotionKeys.lists(), params],
+  details: () => [...sellerPromotionKeys.all, 'detail'],
+  detail:  (id) => [...sellerPromotionKeys.details(), id],
+};
