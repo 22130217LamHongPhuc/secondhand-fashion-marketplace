@@ -10,6 +10,13 @@ export default class Shop {
     this.description = raw.description ?? "";
     this.avatarUrl = raw.avatarUrl ?? "";
     this.bannerUrl = raw.bannerUrl ?? "";
+    this.provinceId = raw.provinceId ?? null;
+    this.provinceName = raw.provinceName ?? "";
+    this.districtId = raw.districtId ?? null;
+    this.districtName = raw.districtName ?? "";
+    this.wardCode = raw.wardCode ?? "";
+    this.wardName = raw.wardName ?? "";
+    this.addressDetail = raw.addressDetail ?? "";
   }
 
   static fromApi(raw) {

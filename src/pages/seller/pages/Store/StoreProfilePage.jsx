@@ -101,6 +101,9 @@ const StoreProfilePage = () => {
       setAvatarPreview(avatarUrl || ""); // Revert preview
     } finally {
       setAvatarUploading(false);
+      if (e.target) {
+        e.target.value = "";
+      }
     }
   };
 
@@ -127,6 +130,9 @@ const StoreProfilePage = () => {
       setBannerPreview(bannerUrl || ""); // Revert preview
     } finally {
       setBannerUploading(false);
+      if (e.target) {
+        e.target.value = "";
+      }
     }
   };
 
