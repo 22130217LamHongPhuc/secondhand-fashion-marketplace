@@ -4,6 +4,7 @@ import { Pencil, Eye, Lightbulb, Camera, Loader2, Globe } from "lucide-react";
 import { useSellerShop, useCreateShop } from "../../hooks";
 import { imageApi } from "../../api";
 import { toastService } from "@/services/toastService";
+import { shippingService } from "@/services/shippingService";
 
 // Helper function to slugify name in frontend preview
 const slugify = (text) => {
@@ -39,6 +40,17 @@ const CreateStorePage = () => {
     const [avatarUrl, setAvatarUrl] = useState("");
     const [bannerUrl, setBannerUrl] = useState("");
     const [slugPreview, setSlugPreview] = useState("");
+    const [provinceId, setProvinceId] = useState("");
+    const [provinceName, setProvinceName] = useState("");
+    const [districtId, setDistrictId] = useState("");
+    const [districtName, setDistrictName] = useState("");
+    const [wardCode, setWardCode] = useState("");
+    const [wardName, setWardName] = useState("");
+    const [addressDetail, setAddressDetail] = useState("");
+    const [provinces, setProvinces] = useState([]);
+    const [districts, setDistricts] = useState([]);
+    const [wards, setWards] = useState([]);
+    const [addressLoading, setAddressLoading] = useState(false);
 
     // Upload/Preview states
     const [avatarPreview, setAvatarPreview] = useState("");
@@ -63,6 +75,89 @@ const CreateStorePage = () => {
         setSlugPreview(slugify(name));
     }, [name]);
 
+    useEffect(() => {
+        let cancelled = false;
+        const loadProvinces = async () => {
+            setAddressLoading(true);
+            try {
+                const data = await shippingService.getProvinces();
+                if (!cancelled) {
+                    setProvinces(data || []);
+                }
+            } catch (err) {
+                toastService.error("Không thể tải danh sách tỉnh/thành từ GHN.");
+            } finally {
+                if (!cancelled) {
+                    setAddressLoading(false);
+                }
+            }
+        };
+
+        loadProvinces();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    const handleProvinceChange = async (e) => {
+        const selectedId = e.target.value;
+        const province = provinces.find(item => String(item.ProvinceID) === String(selectedId));
+        setProvinceId(selectedId);
+        setProvinceName(province?.ProvinceName || "");
+        setDistrictId("");
+        setDistrictName("");
+        setWardCode("");
+        setWardName("");
+        setDistricts([]);
+        setWards([]);
+
+        if (!selectedId) {
+            return;
+        }
+
+        setAddressLoading(true);
+        try {
+            const data = await shippingService.getDistricts(selectedId);
+            setDistricts(data || []);
+        } catch (err) {
+            toastService.error("Không thể tải danh sách quận/huyện từ GHN.");
+        } finally {
+            setAddressLoading(false);
+        }
+    };
+
+    const handleDistrictChange = async (e) => {
+        const selectedId = e.target.value;
+        const district = districts.find(item => String(item.DistrictID) === String(selectedId));
+        setDistrictId(selectedId);
+        setDistrictName(district?.DistrictName || "");
+        setWardCode("");
+        setWardName("");
+        setWards([]);
+
+        if (!selectedId) {
+            return;
+        }
+
+        setAddressLoading(true);
+        try {
+            const data = await shippingService.getWards(selectedId);
+            setWards(data || []);
+        } catch (err) {
+            toastService.error("Không thể tải danh sách phường/xã từ GHN.");
+        } finally {
+            setAddressLoading(false);
+        }
+    };
+
+    const handleWardChange = (e) => {
+        const selectedCode = e.target.value;
+        const ward = wards.find(item => String(item.WardCode) === String(selectedCode));
+        setWardCode(selectedCode);
+        setWardName(ward?.WardName || "");
+    };
+
     const handleAvatarChange = async (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -86,6 +181,9 @@ const CreateStorePage = () => {
             setAvatarPreview(avatarUrl || ""); // Revert preview
         } finally {
             setAvatarUploading(false);
+            if (e.target) {
+                e.target.value = "";
+            }
         }
     };
 
@@ -112,6 +210,9 @@ const CreateStorePage = () => {
             setBannerPreview(bannerUrl || ""); // Revert preview
         } finally {
             setBannerUploading(false);
+            if (e.target) {
+                e.target.value = "";
+            }
         }
     };
 
@@ -134,12 +235,23 @@ const CreateStorePage = () => {
             toastService.warning("Vui lòng tải lên ảnh bìa.");
             return;
         }
+        if (!provinceId || !districtId || !wardCode || !addressDetail.trim()) {
+            toastService.warning("Vui lòng chọn đầy đủ địa chỉ lấy hàng của cửa hàng.");
+            return;
+        }
 
         const payload = {
             name: name.trim(),
             description: description.trim(),
             avatarUrl,
             bannerUrl,
+            provinceId: Number(provinceId),
+            provinceName,
+            districtId: Number(districtId),
+            districtName,
+            wardCode,
+            wardName,
+            addressDetail: addressDetail.trim(),
         };
 
         try {
@@ -345,12 +457,87 @@ const CreateStorePage = () => {
                         />
                     </div>
 
+                    {/* ── Pickup Address ── */}
+                    <div>
+                        <div className="flex items-center justify-between">
+                            <label className="text-sm font-semibold text-neutral-700">
+                                Địa chỉ lấy hàng *
+                            </label>
+                            {addressLoading && (
+                                <span className="flex items-center gap-1 text-xs font-medium text-neutral-400">
+                                    <Loader2 size={12} className="animate-spin" />
+                                    Đang tải GHN...
+                                </span>
+                            )}
+                        </div>
+                        <div className="mt-1.5 grid grid-cols-3 gap-3">
+                            <div>
+                                <label className="mb-1 block text-xs font-bold text-neutral-500">Tỉnh/TP</label>
+                                <select
+                                    required
+                                    value={provinceId}
+                                    onChange={handleProvinceChange}
+                                    className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-700 outline-hidden transition-all focus:border-brand-primary/40 focus:bg-white focus:ring-2 focus:ring-brand-primary/10"
+                                >
+                                    <option value="">-- Chọn Tỉnh --</option>
+                                    {provinces.map((province) => (
+                                        <option key={province.ProvinceID} value={province.ProvinceID}>
+                                            {province.ProvinceName}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="mb-1 block text-xs font-bold text-neutral-500">Quận/Huyện</label>
+                                <select
+                                    required
+                                    value={districtId}
+                                    onChange={handleDistrictChange}
+                                    disabled={!provinceId}
+                                    className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-700 outline-hidden transition-all disabled:cursor-not-allowed disabled:text-neutral-400 focus:border-brand-primary/40 focus:bg-white focus:ring-2 focus:ring-brand-primary/10"
+                                >
+                                    <option value="">-- Chọn Huyện --</option>
+                                    {districts.map((district) => (
+                                        <option key={district.DistrictID} value={district.DistrictID}>
+                                            {district.DistrictName}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="mb-1 block text-xs font-bold text-neutral-500">Phường/Xã</label>
+                                <select
+                                    required
+                                    value={wardCode}
+                                    onChange={handleWardChange}
+                                    disabled={!districtId}
+                                    className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-700 outline-hidden transition-all disabled:cursor-not-allowed disabled:text-neutral-400 focus:border-brand-primary/40 focus:bg-white focus:ring-2 focus:ring-brand-primary/10"
+                                >
+                                    <option value="">-- Chọn Xã --</option>
+                                    {wards.map((ward) => (
+                                        <option key={ward.WardCode} value={ward.WardCode}>
+                                            {ward.WardName}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+                        <input
+                            type="text"
+                            required
+                            value={addressDetail}
+                            onChange={(e) => setAddressDetail(e.target.value)}
+                            placeholder="Số nhà, tên đường, tòa nhà..."
+                            className="mt-3 w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-700 outline-hidden transition-all focus:border-brand-primary/40 focus:bg-white focus:ring-2 focus:ring-brand-primary/10"
+                        />
+                    </div>
+
                     {/* ── Save Button ── */}
                     <div className="flex justify-center pt-2 pb-4  ">
                         <div
                             className="rounded-xl bg-brand-primary px-7 py-3 text-sm font-semibold text-white shadow-md transition-all hover:bg-brand-dark hover:shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"><button
                                 type="submit"
-                                disabled={isSubmitting || avatarUploading || bannerUploading}
+                                disabled={isSubmitting || avatarUploading || bannerUploading || addressLoading}
                             >
                                 {isSubmitting && <Loader2 size={16} className="animate-spin" />}
                                 Đăng ký cửa hàng

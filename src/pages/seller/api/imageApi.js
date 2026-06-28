@@ -10,9 +10,7 @@ const imageApi = {
   upload: async (file) => {
     const formData = new FormData();
     formData.append("file", file);
-    const res = await axiosInstance.post("/api/images", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    const res = await axiosInstance.post("/api/images", formData);
     return res.data.data; // ApiResponse<String> -> data field contains URL
   },
 };
