@@ -24,16 +24,133 @@ const CreatePromotionPage = () => {
     endDate: "",
   });
 
+  const [errors, setErrors] = useState({});
+
+  const validateField = (name, value, currentData) => {
+    let error = null;
+    switch (name) {
+      case "code":
+        if (!value || !value.trim()) error = "Mã khuyến mãi không được để trống";
+        else if (value.length < 5 || value.length > 20) error = "Mã khuyến mãi phải từ 5-20 ký tự";
+        else if (!/^[a-zA-Z0-9]+$/.test(value)) error = "Mã khuyến mãi chỉ được chứa chữ và số, không có khoảng trắng hay dấu";
+        break;
+      case "name":
+        if (!value || !value.trim()) error = "Tên chương trình không được để trống";
+        else if (value.length > 100) error = "Tên chương trình tối đa 100 ký tự";
+        break;
+      case "description":
+        if (value && value.length > 500) error = "Mô tả tối đa 500 ký tự";
+        break;
+      case "discountValue":
+        const dVal = parseFloat(value);
+        if (value === "" || isNaN(dVal)) error = "Mức giảm không được để trống";
+        else if (dVal <= 0) error = "Mức giảm phải lớn hơn 0";
+        else if (currentData.discountType === "PERCENTAGE" && dVal > 100) error = "Mức giảm phần trăm tối đa là 100";
+        break;
+      case "maxDiscountAmount":
+        if (currentData.discountType === "PERCENTAGE") {
+          const maxVal = parseFloat(value);
+          if (value === "" || isNaN(maxVal)) error = "Mức giảm tối đa không được để trống";
+          else if (maxVal <= 0) error = "Mức giảm tối đa phải lớn hơn 0";
+        }
+        break;
+      case "minOrderValue":
+        if (value !== "") {
+          const minVal = parseFloat(value);
+          if (isNaN(minVal) || minVal < 0) error = "Giá trị đơn hàng tối thiểu không được âm";
+        }
+        break;
+      case "minOrderItems":
+        if (value !== "") {
+          const minItems = parseInt(value, 10);
+          if (isNaN(minItems) || minItems < 1) error = "Số lượng sản phẩm tối thiểu phải từ 1";
+        }
+        break;
+      case "quantity":
+        const qty = parseInt(value, 10);
+        if (value === "" || isNaN(qty)) error = "Tổng số lượng mã không được để trống";
+        else if (qty < 1) error = "Tổng số lượng mã phải từ 1";
+        break;
+      case "startDate":
+        if (!value) error = "Vui lòng chọn thời gian bắt đầu";
+        else {
+          const start = new Date(value).getTime();
+          if (start < Date.now() - 60000) error = "Thời gian bắt đầu không được nhỏ hơn thời gian hiện tại";
+        }
+        break;
+      case "endDate":
+        if (!value) error = "Vui lòng chọn thời gian kết thúc";
+        else if (currentData.startDate) {
+          const start = new Date(currentData.startDate).getTime();
+          const end = new Date(value).getTime();
+          if (end <= start) error = "Thời gian kết thúc phải sau thời gian bắt đầu";
+        }
+        break;
+      default:
+        break;
+    }
+    return error;
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    const finalValue = name === "code" ? value.toUpperCase() : value;
+
+    setFormData((prev) => {
+      const nextData = { ...prev, [name]: finalValue };
+
+      // Validate the field that just changed
+      const fieldError = validateField(name, finalValue, nextData);
+      setErrors((prevErrors) => {
+        const nextErrors = { ...prevErrors };
+        if (fieldError) {
+          nextErrors[name] = fieldError;
+        } else {
+          delete nextErrors[name];
+        }
+
+        // Re-validate related fields
+        if (name === "discountType") {
+          const valError = validateField("discountValue", nextData.discountValue, nextData);
+          if (valError) nextErrors.discountValue = valError;
+          else delete nextErrors.discountValue;
+
+          const maxError = validateField("maxDiscountAmount", nextData.maxDiscountAmount, nextData);
+          if (maxError) nextErrors.maxDiscountAmount = maxError;
+          else delete nextErrors.maxDiscountAmount;
+        }
+
+        if (name === "startDate" && nextData.endDate) {
+          const endError = validateField("endDate", nextData.endDate, nextData);
+          if (endError) nextErrors.endDate = endError;
+          else delete nextErrors.endDate;
+        }
+
+        return nextErrors;
+      });
+
+      return nextData;
+    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate all fields before submit
+    const newErrors = {};
+    for (const key of Object.keys(formData)) {
+      const error = validateField(key, formData[key], formData);
+      if (error) {
+        newErrors[key] = error;
+      }
+    }
+    
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      toastService.error("Vui lòng sửa các lỗi nhập liệu trước khi tiếp tục");
+      return;
+    }
+
     try {
       const payload = {
         ...formData,
@@ -106,6 +223,7 @@ const CreatePromotionPage = () => {
               startDate: data.startDate ? data.startDate.substring(0, 16) : "",
               endDate: data.endDate ? data.endDate.substring(0, 16) : "",
             });
+            setErrors({}); // Clear errors on clone
             toastService.success("Đã sao chép dữ liệu khuyến mãi cũ. Vui lòng nhập mã code mới!");
           }}
         />
@@ -124,10 +242,15 @@ const CreatePromotionPage = () => {
                 name="code"
                 required
                 value={formData.code}
-                onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                onChange={handleChange}
                 placeholder="VD: SUMMER2024"
-                className="w-full rounded-xl border border-neutral-300 px-4 py-2.5 text-sm outline-none transition-all focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+                className={`w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition-all ${
+                  errors.code
+                    ? "border-accent-red focus:border-accent-red focus:ring-1 focus:ring-accent-red"
+                    : "border-neutral-300 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+                }`}
               />
+              {errors.code && <p className="text-xs text-accent-red">{errors.code}</p>}
             </div>
 
             <div className="space-y-2">
@@ -141,8 +264,13 @@ const CreatePromotionPage = () => {
                 value={formData.name}
                 onChange={handleChange}
                 placeholder="VD: Sale Mùa Hè 2024"
-                className="w-full rounded-xl border border-neutral-300 px-4 py-2.5 text-sm outline-none transition-all focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+                className={`w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition-all ${
+                  errors.name
+                    ? "border-accent-red focus:border-accent-red focus:ring-1 focus:ring-accent-red"
+                    : "border-neutral-300 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+                }`}
               />
+              {errors.name && <p className="text-xs text-accent-red">{errors.name}</p>}
             </div>
           </div>
 
@@ -154,8 +282,13 @@ const CreatePromotionPage = () => {
               onChange={handleChange}
               rows="3"
               placeholder="Nhập mô tả cho mã khuyến mãi..."
-              className="w-full rounded-xl border border-neutral-300 px-4 py-2.5 text-sm outline-none transition-all focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+              className={`w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition-all ${
+                errors.description
+                  ? "border-accent-red focus:border-accent-red focus:ring-1 focus:ring-accent-red"
+                  : "border-neutral-300 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+              }`}
             ></textarea>
+            {errors.description && <p className="text-xs text-accent-red">{errors.description}</p>}
           </div>
         </div>
 
@@ -192,8 +325,13 @@ const CreatePromotionPage = () => {
                 value={formData.discountValue}
                 onChange={handleChange}
                 placeholder={formData.discountType === 'PERCENTAGE' ? "VD: 10" : "VD: 50000"}
-                className="w-full rounded-xl border border-neutral-300 px-4 py-2.5 text-sm outline-none transition-all focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+                className={`w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition-all ${
+                  errors.discountValue
+                    ? "border-accent-red focus:border-accent-red focus:ring-1 focus:ring-accent-red"
+                    : "border-neutral-300 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+                }`}
               />
+              {errors.discountValue && <p className="text-xs text-accent-red">{errors.discountValue}</p>}
             </div>
 
             {formData.discountType === 'PERCENTAGE' && (
@@ -209,8 +347,13 @@ const CreatePromotionPage = () => {
                   value={formData.maxDiscountAmount}
                   onChange={handleChange}
                   placeholder="VD: 100000"
-                  className="w-full rounded-xl border border-neutral-300 px-4 py-2.5 text-sm outline-none transition-all focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+                  className={`w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition-all ${
+                    errors.maxDiscountAmount
+                      ? "border-accent-red focus:border-accent-red focus:ring-1 focus:ring-accent-red"
+                      : "border-neutral-300 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+                  }`}
                 />
+                {errors.maxDiscountAmount && <p className="text-xs text-accent-red">{errors.maxDiscountAmount}</p>}
               </div>
             )}
           </div>
@@ -232,8 +375,13 @@ const CreatePromotionPage = () => {
                 value={formData.minOrderValue}
                 onChange={handleChange}
                 placeholder="VD: 0"
-                className="w-full rounded-xl border border-neutral-300 px-4 py-2.5 text-sm outline-none transition-all focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+                className={`w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition-all ${
+                  errors.minOrderValue
+                    ? "border-accent-red focus:border-accent-red focus:ring-1 focus:ring-accent-red"
+                    : "border-neutral-300 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+                }`}
               />
+              {errors.minOrderValue && <p className="text-xs text-accent-red">{errors.minOrderValue}</p>}
             </div>
 
             <div className="space-y-2">
@@ -247,8 +395,13 @@ const CreatePromotionPage = () => {
                 value={formData.minOrderItems}
                 onChange={handleChange}
                 placeholder="VD: 1"
-                className="w-full rounded-xl border border-neutral-300 px-4 py-2.5 text-sm outline-none transition-all focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+                className={`w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition-all ${
+                  errors.minOrderItems
+                    ? "border-accent-red focus:border-accent-red focus:ring-1 focus:ring-accent-red"
+                    : "border-neutral-300 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+                }`}
               />
+              {errors.minOrderItems && <p className="text-xs text-accent-red">{errors.minOrderItems}</p>}
             </div>
 
             <div className="space-y-2">
@@ -263,8 +416,13 @@ const CreatePromotionPage = () => {
                 value={formData.quantity}
                 onChange={handleChange}
                 placeholder="VD: 100"
-                className="w-full rounded-xl border border-neutral-300 px-4 py-2.5 text-sm outline-none transition-all focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+                className={`w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition-all ${
+                  errors.quantity
+                    ? "border-accent-red focus:border-accent-red focus:ring-1 focus:ring-accent-red"
+                    : "border-neutral-300 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+                }`}
               />
+              {errors.quantity && <p className="text-xs text-accent-red">{errors.quantity}</p>}
             </div>
           </div>
         </div>
@@ -284,8 +442,13 @@ const CreatePromotionPage = () => {
                 required
                 value={formData.startDate}
                 onChange={handleChange}
-                className="w-full rounded-xl border border-neutral-300 px-4 py-2.5 text-sm outline-none transition-all focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+                className={`w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition-all ${
+                  errors.startDate
+                    ? "border-accent-red focus:border-accent-red focus:ring-1 focus:ring-accent-red"
+                    : "border-neutral-300 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+                }`}
               />
+              {errors.startDate && <p className="text-xs text-accent-red">{errors.startDate}</p>}
             </div>
 
             <div className="space-y-2">
@@ -298,8 +461,13 @@ const CreatePromotionPage = () => {
                 required
                 value={formData.endDate}
                 onChange={handleChange}
-                className="w-full rounded-xl border border-neutral-300 px-4 py-2.5 text-sm outline-none transition-all focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+                className={`w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition-all ${
+                  errors.endDate
+                    ? "border-accent-red focus:border-accent-red focus:ring-1 focus:ring-accent-red"
+                    : "border-neutral-300 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+                }`}
               />
+              {errors.endDate && <p className="text-xs text-accent-red">{errors.endDate}</p>}
             </div>
           </div>
         </div>

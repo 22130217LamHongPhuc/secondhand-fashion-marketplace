@@ -290,7 +290,10 @@ const ProductsPage = () => {
                   </td>
                   <td className="px-6 py-5">
                     <div className="flex items-center justify-center gap-2">
-                      <button className="flex h-8 w-8 items-center justify-center rounded-lg text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600">
+                      <button 
+                        onClick={() => window.open(`/product/${p.id}`, '_blank')}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600"
+                      >
                         <Eye size={16} />
                       </button>
                       <button

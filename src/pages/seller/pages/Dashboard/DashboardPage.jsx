@@ -304,8 +304,8 @@ const DashboardPage = () => {
         </div>
       </div>
 
-      {/* ── Row 3: Category Revenue + Quick Actions (1:1) ── */}
-      <div className="grid grid-cols-2 gap-6">
+      {/* ── Row 3: Category Revenue ── */}
+      <div className="grid grid-cols-1 gap-6">
         {/* Category Revenue */}
         <div className="rounded-2xl border border-neutral-200 bg-white p-6">
           <h2 className="font-heading text-lg font-bold text-neutral-800">
@@ -353,46 +353,6 @@ const DashboardPage = () => {
                 </div>
               ))}
             </div>
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="rounded-2xl border border-neutral-200 bg-white p-6">
-          <h2 className="font-heading text-lg font-bold text-neutral-800">
-            Hành động nhanh
-          </h2>
-          <p className="mt-1 text-sm text-neutral-400">
-            Quản lý cửa hàng của bạn một cách tối ưu nhất.
-          </p>
-          <div className="mt-5 grid grid-cols-2 gap-4">
-            {/* Card 1 */}
-            <button className="group flex flex-col justify-between rounded-2xl bg-linear-to-br from-brand-primary to-[#8b3a1a] p-5 text-left text-white shadow-lg transition-all hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
-              style={{ minHeight: 150 }}
-            >
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
-                <Image size={20} />
-              </div>
-              <div className="mt-auto">
-                <p className="text-sm font-bold">Đăng sản phẩm mới</p>
-                <p className="mt-1 text-xs leading-relaxed text-white/70">
-                  Bắt đầu giới thiệu bộ sưu tập mới của bạn
-                </p>
-              </div>
-            </button>
-            {/* Card 2 */}
-            <button className="group flex flex-col justify-between rounded-2xl bg-linear-to-br from-brand-secondary to-brand-primary p-5 text-left text-white shadow-lg transition-all hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
-              style={{ minHeight: 150 }}
-            >
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
-                <ClipboardList size={20} />
-              </div>
-              <div className="mt-auto">
-                <p className="text-sm font-bold">Xem danh sách đơn hàng</p>
-                <p className="mt-1 text-xs leading-relaxed text-white/70">
-                  Theo dõi tiến độ giao nhận và thanh toán
-                </p>
-              </div>
-            </button>
           </div>
         </div>
       </div>

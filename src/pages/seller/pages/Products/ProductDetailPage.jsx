@@ -69,7 +69,6 @@ const ProductDetailPage = () => {
 
   const originalDataRef = useRef(null);
   const [images, setImages] = useState([]);
-  const [previewUrls, setPreviewUrls] = useState([]);
 
   useEffect(() => {
     if (isEdit && productData && !originalDataRef.current) {
@@ -87,26 +86,98 @@ const ProductDetailPage = () => {
       };
       originalDataRef.current = formValues;
       setFormData(formValues);
-      setPreviewUrls((productData.images || []).map((img) => img.url));
+      
+      const existingImages = (productData.images || []).map((img) => ({
+        id: img.id || Math.random().toString(36).substring(2, 9) + Date.now(),
+        file: null,
+        previewUrl: img.url,
+        imageUrl: img.url,
+        status: "done",
+        isPrimary: img.isPrimary,
+      }));
+      setImages(existingImages);
+      
       setAttributes(productData.attributes || []);
       setTags(productData.tags || []);
     }
   }, [isEdit, productData]);
 
+  const validateField = (name, value, currentFormData = formData) => {
+    let error = null;
+    switch (name) {
+      case "name":
+        if (!value || !String(value).trim()) error = "Tên sản phẩm không được để trống";
+        else if (value.length > 255) error = "Tên sản phẩm tối đa 255 ký tự";
+        break;
+      case "categoryId":
+        if (!value) error = "Vui lòng chọn danh mục sản phẩm";
+        break;
+      case "basePrice":
+        const baseVal = parseFloat(value);
+        if (value === "" || isNaN(baseVal)) error = "Giá gốc không được để trống";
+        else if (baseVal <= 0) error = "Giá gốc phải lớn hơn 0";
+        break;
+      case "salePrice":
+        if (value !== "" && value !== null && value !== undefined) {
+          const saleVal = parseFloat(value);
+          if (isNaN(saleVal) || saleVal <= 0) error = "Giá khuyến mãi phải lớn hơn 0";
+          else {
+            const currentBase = parseFloat(currentFormData.basePrice);
+            if (!isNaN(currentBase) && saleVal > currentBase) {
+              error = "Giá khuyến mãi phải nhỏ hơn hoặc bằng giá gốc";
+            }
+          }
+        }
+        break;
+      case "stockQuantity":
+        const stockVal = parseInt(value, 10);
+        if (value === "" || isNaN(stockVal)) error = "Số lượng không được để trống";
+        else if (stockVal < 0) error = "Số lượng không được âm";
+        break;
+      case "brand":
+        if (value && value.length > 100) error = "Thương hiệu tối đa 100 ký tự";
+        break;
+      case "originCountry":
+        if (value && value.length > 100) error = "Xuất xứ tối đa 100 ký tự";
+        break;
+      case "description":
+        if (!value || !String(value).trim()) error = "Mô tả sản phẩm không được để trống";
+        else if (value.length < 20) error = "Mô tả sản phẩm phải có ít nhất 20 ký tự";
+        else if (value.length > 5000) error = "Mô tả sản phẩm tối đa 5000 ký tự";
+        break;
+      default:
+        break;
+    }
+    return error;
+  };
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
-
-    if (errors[name]) {
-      setErrors((prev) => {
-        const next = { ...prev };
-        delete next[name];
-        return next;
+    const finalValue = type === "checkbox" ? checked : value;
+    
+    setFormData((prev) => {
+      const nextData = { ...prev, [name]: finalValue };
+      
+      const fieldError = validateField(name, finalValue, nextData);
+      setErrors((prevErrors) => {
+        const nextErrors = { ...prevErrors };
+        if (fieldError) {
+          nextErrors[name] = fieldError;
+        } else {
+          delete nextErrors[name];
+        }
+        
+        // If basePrice changes, re-validate salePrice
+        if (name === "basePrice" && nextData.salePrice) {
+          const saleError = validateField("salePrice", nextData.salePrice, nextData);
+          if (saleError) nextErrors.salePrice = saleError;
+          else delete nextErrors.salePrice;
+        }
+        
+        return nextErrors;
       });
-    }
+      return nextData;
+    });
   };
 
   const handleImageChange = (e) => {
@@ -242,14 +313,26 @@ const ProductDetailPage = () => {
       ),
     );
 
-    const errorKey = `attribute_${index}_${field}`;
-    if (errors[errorKey]) {
-      setErrors((prev) => {
-        const next = { ...prev };
+    setErrors((prev) => {
+      const next = { ...prev };
+      const errorKey = `attribute_${index}_${field}`;
+      
+      let errorMsg = null;
+      if (field === "attrKey") {
+        if (!value.trim()) errorMsg = "Tên thuộc tính không được để trống";
+        else if (value.length > 100) errorMsg = "Tối đa 100 ký tự";
+      } else if (field === "attrValue") {
+        if (!value.trim()) errorMsg = "Giá trị thuộc tính không được để trống";
+        else if (value.length > 255) errorMsg = "Tối đa 255 ký tự";
+      }
+
+      if (errorMsg) {
+        next[errorKey] = errorMsg;
+      } else {
         delete next[errorKey];
-        return next;
-      });
-    }
+      }
+      return next;
+    });
   };
 
   const handleRemoveAttribute = (index) => {
@@ -321,6 +404,10 @@ const ProductDetailPage = () => {
       newErrors.name = "Tên sản phẩm tối đa 255 ký tự";
     }
 
+    if (!formData.categoryId) {
+      newErrors.categoryId = "Vui lòng chọn danh mục sản phẩm";
+    }
+
     const baseVal = parseFloat(formData.basePrice);
     if (formData.basePrice === "" || isNaN(baseVal)) {
       newErrors.basePrice = "Giá gốc không được để trống";
@@ -356,7 +443,11 @@ const ProductDetailPage = () => {
       newErrors.originCountry = "Xuất xứ tối đa 100 ký tự";
     }
 
-    if (formData.description && formData.description.length > 5000) {
+    if (!formData.description || !formData.description.trim()) {
+      newErrors.description = "Mô tả sản phẩm không được để trống";
+    } else if (formData.description.length < 20) {
+      newErrors.description = "Mô tả sản phẩm phải có ít nhất 20 ký tự";
+    } else if (formData.description.length > 5000) {
       newErrors.description = "Mô tả sản phẩm tối đa 5000 ký tự";
     }
 
@@ -387,7 +478,7 @@ const ProductDetailPage = () => {
 
   const isUploading = images.some((img) => img.status === "uploading");
   const hasUploadError = images.some((img) => img.status === "error");
-  const isSubmitDisabled = !isEdit && (isUploading || hasUploadError);
+  const isSubmitDisabled = isUploading || hasUploadError;
 
   const handleSubmit = async () => {
     if (!validateForm()) {
@@ -403,11 +494,28 @@ const ProductDetailPage = () => {
           JSON.stringify(productData.attributes || []);
         const hasTagsChanges =
           JSON.stringify(tags) !== JSON.stringify(productData.tags || []);
+          
+        const currentImages = images
+          .filter((img) => img.status === "done" && img.imageUrl)
+          .map((img, idx) => ({
+            imageUrl: img.imageUrl,
+            sortOrder: idx,
+            isPrimary: img.isPrimary || false,
+          }));
+          
+        const originalImages = (productData.images || []).map((img) => ({
+            imageUrl: img.url,
+            sortOrder: img.sortOrder,
+            isPrimary: img.isPrimary || false,
+        }));
+        
+        const hasImagesChanges = JSON.stringify(currentImages) !== JSON.stringify(originalImages);
 
         if (
           Object.keys(changedFields).length === 0 &&
           !hasAttributesChanges &&
-          !hasTagsChanges
+          !hasTagsChanges &&
+          !hasImagesChanges
         ) {
           toastService.info("Không có thay đổi nào.");
           return;
@@ -421,6 +529,17 @@ const ProductDetailPage = () => {
         }
         if (hasTagsChanges) {
           finalPayload.tags = tags.filter((t) => t.trim());
+        }
+        
+        if (hasImagesChanges) {
+          if (currentImages.length === 0) {
+            toastService.error("Vui lòng giữ lại ít nhất một hình ảnh cho sản phẩm.");
+            return;
+          }
+          if (!currentImages.some((img) => img.isPrimary)) {
+            currentImages[0].isPrimary = true;
+          }
+          finalPayload.images = currentImages;
         }
 
         await updateProduct({ id, updateData: finalPayload });
@@ -519,50 +638,27 @@ const ProductDetailPage = () => {
             <h2 className="flex items-center gap-2 text-sm font-bold text-neutral-800">
               <ImagePlus size={16} className="text-neutral-500" />
               Hình ảnh sản phẩm{" "}
-              {isEdit ? (
-                <span className="text-xs font-normal text-accent-orange">
-                  (Không hỗ trợ đổi ảnh khi sửa)
-                </span>
-              ) : (
-                <span className="text-xs font-normal text-neutral-500">
-                  (Kéo thả để sắp xếp, click để chọn ảnh chính)
-                </span>
-              )}
+              <span className="text-xs font-normal text-neutral-500">
+                (Kéo thả để sắp xếp, click để chọn ảnh chính)
+              </span>
             </h2>
 
             <div className="mt-5 flex flex-wrap gap-4">
-              {!isEdit && (
-                <label className="flex h-32 w-32 shrink-0 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-neutral-300 bg-neutral-50/50 transition-colors hover:border-brand-primary/40 hover:bg-brand-bg/50">
-                  <Camera size={24} className="text-neutral-300" />
-                  <span className="mt-2 text-[11px] font-medium text-neutral-400">
-                    Thêm ảnh
-                  </span>
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept="image/*"
-                    multiple
-                    onChange={handleImageChange}
-                  />
-                </label>
-              )}
+              <label className="flex h-32 w-32 shrink-0 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-neutral-300 bg-neutral-50/50 transition-colors hover:border-brand-primary/40 hover:bg-brand-bg/50">
+                <Camera size={24} className="text-neutral-300" />
+                <span className="mt-2 text-[11px] font-medium text-neutral-400">
+                  Thêm ảnh
+                </span>
+                <input
+                  type="file"
+                  className="hidden"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageChange}
+                />
+              </label>
 
-              {isEdit
-                ? previewUrls.map((url, idx) => {
-                  return (
-                    <div
-                      key={idx}
-                      className="group relative h-32 w-32 overflow-hidden rounded-xl border border-neutral-200"
-                    >
-                      <img
-                        src={url}
-                        alt={`Preview ${idx + 1}`}
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                  );
-                })
-                : images.map((img, idx) => {
+              {images.map((img, idx) => {
                   const isPrimary = img.isPrimary || false;
                   const isUploading = img.status === "uploading";
                   const isError = img.status === "error";
@@ -682,15 +778,18 @@ const ProductDetailPage = () => {
 
               <div>
                 <label className="text-sm font-semibold text-neutral-700">
-                  Danh mục sản phẩm
+                  Danh mục sản phẩm *
                 </label>
                 <select
                   name="categoryId"
                   value={formData.categoryId}
                   onChange={handleChange}
-                  className="mt-1.5 w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-700 outline-none focus:border-brand-primary/40 focus:bg-white focus:ring-2 focus:ring-brand-primary/10"
+                  className={`mt-1.5 w-full rounded-xl border bg-neutral-50 px-4 py-3 text-sm text-neutral-700 outline-none focus:border-brand-primary/40 focus:bg-white focus:ring-2 focus:ring-brand-primary/10 ${errors.categoryId
+                      ? "border-red-500 focus:ring-red-200"
+                      : "border-neutral-200"
+                    }`}
                 >
-                  <option value="">Chọn danh mục sản phẩm (tùy chọn)</option>
+                  <option value="">Chọn danh mục sản phẩm</option>
                   {loadingCategories ? (
                     <option disabled>Đang tải danh mục...</option>
                   ) : (
@@ -701,6 +800,11 @@ const ProductDetailPage = () => {
                     ))
                   )}
                 </select>
+                {errors.categoryId && (
+                  <p className="mt-1 text-xs text-red-500 font-medium">
+                    {errors.categoryId}
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-5">
@@ -851,7 +955,7 @@ const ProductDetailPage = () => {
 
               <div>
                 <label className="text-sm font-semibold text-neutral-700">
-                  Mô tả sản phẩm
+                  Mô tả sản phẩm *
                 </label>
                 <textarea
                   rows={4}
