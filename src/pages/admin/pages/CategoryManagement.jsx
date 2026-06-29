@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { categoryService } from "../../../services/admin";
+import { toastService } from "@/services/toastService";
+import ConfirmModal from "@/components/common/ConfirmModal";
+import AdminLoader from "@/components/common/AdminLoader";
 import { 
   Plus, 
   Search, 
@@ -31,6 +34,7 @@ export function CategoryManagement() {
   const [formParentId, setFormParentId] = useState("");
   const [formSortOrder, setFormSortOrder] = useState(0);
   const [formIsActive, setFormIsActive] = useState(true);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   const renderCategoryIcon = (name, iconUrl) => {
     const lowerName = (name || "").toLowerCase();
@@ -113,12 +117,7 @@ export function CategoryManagement() {
   );
 
   if (loading) {
-    return (
-      <div className="flex flex-col gap-5 w-full text-stone-855 pb-10 min-h-[50vh] justify-center items-center">
-        <div className="w-10 h-10 border-4 border-[#c85a28]/20 border-t-[#c85a28] rounded-full animate-spin"></div>
-        <h2 className="text-stone-750 text-base font-bold">Đang tải sơ đồ danh mục thực tế từ Database...</h2>
-      </div>
-    );
+    return <AdminLoader />;
   }
 
   const getParentName = (parentId) => {
@@ -166,7 +165,7 @@ export function CategoryManagement() {
   const handleSaveCategory = (e) => {
     e.preventDefault();
     if (!formName.trim() || !formSlug.trim()) {
-      alert("Vui lòng điền đầy đủ tên và slug!");
+      toastService.warning("Vui lòng điền đầy đủ tên và slug!");
       return;
     }
 
@@ -182,17 +181,17 @@ export function CategoryManagement() {
     if (isEditing) {
       categoryService.update(editId, payload)
         .then(() => {
-          alert("Đã cập nhật danh mục thành công!");
+          toastService.success("Đã cập nhật danh mục thành công!");
           fetchCategories();
         })
-        .catch(err => alert("Lỗi khi cập nhật danh mục: " + err.message));
+        .catch(err => toastService.error("Lỗi khi cập nhật danh mục: " + err.message));
     } else {
       categoryService.create(payload)
         .then(() => {
-          alert("Đã tạo mới danh mục thành công!");
+          toastService.success("Đã tạo mới danh mục thành công!");
           fetchCategories();
         })
-        .catch(err => alert("Lỗi khi tạo mới danh mục: " + err.message));
+        .catch(err => toastService.error("Lỗi khi tạo mới danh mục: " + err.message));
     }
 
     setShowFormModal(false);
@@ -201,43 +200,42 @@ export function CategoryManagement() {
   const handleToggleStatus = (id) => {
     const target = categories.find(c => c.id === id);
     if (!target) return;
+    const nextState = !target.isActive;
 
+    // 1. Optimistic update
+    setCategories(prev => prev.map(c => c.id === id ? { ...c, isActive: nextState } : c));
+    toastService.success("Đã cập nhật trạng thái danh mục!");
+
+    // 2. Background API call
     categoryService.update(id, {
       ...target,
-      isActive: !target.isActive
+      isActive: nextState
     })
-      .then(() => {
-        fetchCategories();
-      })
-      .catch(err => alert("Lỗi khi đổi trạng thái danh mục: " + err.message));
+      .catch((err) => {
+        toastService.error("Lỗi khi đổi trạng thái danh mục: " + err.message);
+        // Revert
+        setCategories(prev => prev.map(c => c.id === id ? { ...c, isActive: !nextState } : c));
+      });
   };
 
   const handleDeleteCategory = (id) => {
     const hasChildren = categories.some((c) => c.parentId === id);
     if (hasChildren) {
-      alert("Không thể xóa danh mục cha đang chứa các danh mục con! Vui lòng xóa danh mục con trước.");
+      toastService.warning("Không thể xóa danh mục cha đang chứa các danh mục con! Vui lòng xóa danh mục con trước.");
       return;
     }
 
-    if (window.confirm("Bạn có chắc chắn muốn xóa danh mục này?")) {
-      categoryService.delete(id)
-        .then(() => {
-          alert("Đã xóa danh mục thành công!");
-          fetchCategories();
-        })
-        .catch(err => alert("Lỗi khi xóa danh mục: " + err.message));
-    }
+    setConfirmDeleteId(id);
   };
 
   return (
-    <div className="flex flex-col gap-6 w-full text-stone-850 pb-10 animate-[fadeIn_0.35s_ease-out]">
+    <div className="flex flex-col gap-6 w-full text-stone-800 pb-10 animate-[fadeIn_0.35s_ease-out]">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-2">
         <div>
-          <h1 className="text-3xl font-extrabold text-stone-900 tracking-tight m-0 flex items-center gap-2">
-            Quản lý Danh mục Hệ thống
+          <h1 className="text-xl font-extrabold text-stone-900 tracking-tight m-0 flex items-center gap-2">
+            Quản lý danh mục
           </h1>
-          <p className="text-sm text-stone-500 m-0 mt-1">Cấu hình danh mục sản phẩm 2 lớp (cha - con) để người dùng dễ dàng tìm kiếm và đăng bán đồ cũ.</p>
         </div>
         
         <div className="flex gap-2.5 w-full sm:w-auto">
@@ -347,7 +345,7 @@ export function CategoryManagement() {
                 type="text" 
                 placeholder="Tìm danh mục con..." 
                 value={searchTerm}
-                className="bg-stone-50 border border-stone-200 rounded-xl pl-9 pr-3 py-1.5 text-xs text-stone-750 w-full placeholder-stone-400 outline-none transition-all focus:bg-white focus:border-[#c85a28] focus:ring-2 focus:ring-[#c85a28]/10"
+                className="bg-stone-50 border border-stone-200 rounded-xl pl-9 pr-3 py-1.5 text-xs text-stone-700 w-full placeholder-stone-400 outline-none transition-all focus:bg-white focus:border-[#c85a28] focus:ring-2 focus:ring-[#c85a28]/10"
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
@@ -452,58 +450,45 @@ export function CategoryManagement() {
             <form onSubmit={handleSaveCategory} className="p-6 flex flex-col gap-4 bg-white">
               
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Tên danh mục *</label>
+                <label className="text-[10px] font-bold text-stone-600 uppercase tracking-wider">Tên danh mục *</label>
                 <input 
                   type="text" 
                   placeholder="Ví dụ: Áo thun Nam, Đầm công sở..." 
                   value={formName}
-                  className="bg-white border border-stone-200 rounded-xl p-2.5 text-sm text-stone-850 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5"
+                  className="bg-white border border-stone-200 rounded-xl p-2.5 text-sm text-stone-900 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5"
                   onChange={(e) => handleNameChange(e.target.value)}
                   required
                 />
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Slug (Tự động tạo) *</label>
+                <label className="text-[10px] font-bold text-stone-600 uppercase tracking-wider">Slug (Tự động tạo) *</label>
                 <input 
                   type="text" 
                   placeholder="ao-thun-nam" 
                   value={formSlug}
-                  className="bg-white border border-stone-200 rounded-xl p-2.5 text-sm text-stone-855 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5"
+                  className="bg-white border border-stone-200 rounded-xl p-2.5 text-sm text-stone-900 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5"
                   onChange={(e) => setFormSlug(e.target.value)}
                   required
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Icon hiển thị</label>
-                  <input 
-                    type="text" 
-                    placeholder="Emoji: 🧥, 👟..." 
-                    value={formIcon}
-                    className="bg-white border border-stone-200 rounded-xl p-2.5 text-sm text-stone-850 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5"
-                    onChange={(e) => setFormIcon(e.target.value)}
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Thứ tự hiển thị</label>
-                  <input 
-                    type="number" 
-                    value={formSortOrder}
-                    className="bg-white border border-stone-200 rounded-xl p-2.5 text-sm text-stone-850 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5"
-                    onChange={(e) => setFormSortOrder(e.target.value)}
-                  />
-                </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold text-stone-600 uppercase tracking-wider">Thứ tự hiển thị</label>
+                <input 
+                  type="number" 
+                  value={formSortOrder}
+                  className="bg-white border border-stone-200 rounded-xl p-2.5 text-sm text-stone-900 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5"
+                  onChange={(e) => setFormSortOrder(e.target.value)}
+                />
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Thuộc danh mục cha</label>
+                <label className="text-[10px] font-bold text-stone-600 uppercase tracking-wider">Thuộc danh mục cha</label>
                 <div className="relative">
                   <select 
                     value={formParentId} 
-                    className="appearance-none w-full bg-white border border-stone-200 rounded-xl p-2.5 pr-9 text-sm text-stone-700 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5 cursor-pointer"
+                    className="appearance-none w-full bg-white border border-stone-200 rounded-xl p-2.5 pr-9 text-sm text-stone-900 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5 cursor-pointer"
                     onChange={(e) => setFormParentId(e.target.value)}
                   >
                     <option value="">-- Là Danh mục cha chính --</option>
@@ -515,21 +500,6 @@ export function CategoryManagement() {
                   </select>
                   <ChevronDown className="w-4 h-4 text-stone-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
-              </div>
-
-              <div className="flex flex-col gap-1.5 my-1">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    checked={formIsActive}
-                    className="hidden"
-                    onChange={(e) => setFormIsActive(e.target.checked)}
-                  />
-                  <span className={`relative w-[42px] h-[22px] rounded-[34px] transition-all duration-300 inline-block before:content-[""] before:absolute before:h-4 before:w-4 before:left-[3px] before:bottom-[3px] before:bg-white before:rounded-full before:transition-all before:duration-300 ${
-                    formIsActive ? "bg-emerald-600 before:translate-x-5" : "bg-stone-250"
-                  }`}></span>
-                  <span className="text-xs font-bold text-stone-700">Kích hoạt danh mục này</span>
-                </label>
               </div>
 
               <div className="flex justify-end gap-2.5 mt-4 border-t border-stone-100 pt-4">
@@ -551,6 +521,25 @@ export function CategoryManagement() {
           </div>
         </div>
       )}
+      <ConfirmModal
+        isOpen={confirmDeleteId !== null}
+        onClose={() => setConfirmDeleteId(null)}
+        onConfirm={async () => {
+          if (!confirmDeleteId) return;
+          try {
+            await categoryService.delete(confirmDeleteId);
+            toastService.success("Đã xóa danh mục thành công!");
+            fetchCategories();
+          } catch (err) {
+            toastService.error("Lỗi khi xóa danh mục: " + err.message);
+          }
+        }}
+        title="Xóa danh mục"
+        message={`Bạn có chắc chắn muốn xóa danh mục "${categories.find(c => c.id === confirmDeleteId)?.name || ""}"? Hành động này không thể hoàn tác.`}
+        confirmText="Xóa"
+        cancelText="Hủy"
+        type="danger"
+      />
     </div>
   );
 }

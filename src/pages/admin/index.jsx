@@ -9,7 +9,6 @@ import {
   CategoryManagement,
   ShopManagement,
   CouponManagement,
-  CampaignManagement,
 } from "./pages";
 
 export { AdminLayout };
@@ -88,14 +87,6 @@ export const adminRoutes = [
     element: (
       <AdminLayout>
         <CouponManagement />
-      </AdminLayout>
-    ),
-  },
-  {
-    path: "/admin/campaigns",
-    element: (
-      <AdminLayout>
-        <CampaignManagement />
       </AdminLayout>
     ),
   },

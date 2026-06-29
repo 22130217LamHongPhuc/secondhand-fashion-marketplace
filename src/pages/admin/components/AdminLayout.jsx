@@ -255,25 +255,6 @@ export function AdminLayout({ children }) {
         </svg>
       ),
     },
-    {
-      path: "/admin/campaigns",
-      label: "Chiến dịch Sale",
-      icon: (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-        </svg>
-      ),
-    },
   ];
 
   return (
@@ -371,39 +352,36 @@ export function AdminLayout({ children }) {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
-        {/* Top Bar */}
-        <div className="bg-white/80 backdrop-blur-md py-3.5 px-6 flex justify-between items-center shadow-[0_1px_3px_rgba(0,0,0,0.02)] border-b border-stone-100 sticky top-0 z-40">
-          <div className="flex items-center gap-[15px]">
-            {!sidebarOpen && (
-              <button
-                className="bg-none border-none cursor-pointer text-stone-600 p-1.5 mr-2.5 rounded-lg inline-flex items-center justify-center transition-all duration-200 hover:bg-stone-50 hover:text-[#c85a28] hover:scale-105 active:scale-95"
-                onClick={() => setSidebarOpen(true)}
-                title="Mở rộng menu"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <line x1="3" y1="12" x2="21" y2="12" />
-                  <line x1="3" y1="6" x2="21" y2="6" />
-                  <line x1="3" y1="18" x2="21" y2="18" />
-                </svg>
-              </button>
-            )}
-
-          </div>
-        </div>
+      <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0 relative">
+        {/* Floating Menu Toggle Button when Sidebar is closed */}
+        {!sidebarOpen && (
+          <button
+            className="absolute top-4 left-4 bg-white border border-stone-200 cursor-pointer text-stone-600 p-2 rounded-xl inline-flex items-center justify-center transition-all duration-200 hover:bg-stone-50 hover:text-[#c85a28] shadow-sm hover:scale-105 active:scale-95 z-50"
+            onClick={() => setSidebarOpen(true)}
+            title="Mở rộng menu"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+        )}
 
         {/* Page Content */}
-        <main className="flex-1 p-6 md:p-8 overflow-y-auto bg-[#faf9f6] h-full min-w-0">{children}</main>
+        <main className={`flex-1 p-6 md:p-8 overflow-y-auto bg-[#faf9f6] h-full min-w-0 ${!sidebarOpen ? "pt-16" : ""}`}>
+          {children}
+        </main>
       </div>
     </div>
   );

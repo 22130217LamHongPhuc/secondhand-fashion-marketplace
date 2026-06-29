@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { couponService } from "@/services/admin";
+import { toastService } from "@/services/toastService";
+import ConfirmModal from "@/components/common/ConfirmModal";
+import AdminLoader from "@/components/common/AdminLoader";
 import { 
   Plus, 
   Tag, 
@@ -21,6 +24,7 @@ export function CouponManagement() {
   const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   // Form states
   const [formData, setFormData] = useState({
@@ -92,24 +96,24 @@ export function CouponManagement() {
   };
 
   const handleToggleActive = async (id, currentActive) => {
+    const nextState = !currentActive;
+
+    // 1. Optimistic update
+    setCoupons(prev => prev.map(c => c.id === id ? { ...c, isActive: nextState } : c));
+    toastService.success("Đã cập nhật trạng thái mã giảm giá!");
+
+    // 2. Background API call
     try {
-      await couponService.toggleActive(id, !currentActive);
-      loadCoupons();
+      await couponService.toggleActive(id, nextState);
     } catch (err) {
-      alert("Lỗi khi cập nhật trạng thái: " + err.message);
+      toastService.error("Lỗi khi cập nhật trạng thái: " + err.message);
+      // Revert
+      setCoupons(prev => prev.map(c => c.id === id ? { ...c, isActive: currentActive } : c));
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm("Bạn có chắc muốn xóa mã giảm giá này?")) {
-      try {
-        await couponService.delete(id);
-        alert("Xóa mã giảm giá thành công!");
-        loadCoupons();
-      } catch (err) {
-        alert("Lỗi khi xóa mã giảm giá: " + err.message);
-      }
-    }
+  const handleDelete = (id) => {
+    setConfirmDeleteId(id);
   };
 
   const handleSubmit = async (e) => {
@@ -127,15 +131,15 @@ export function CouponManagement() {
 
       if (editingCoupon) {
         await couponService.update(editingCoupon.id, payload);
-        alert("Cập nhật mã giảm giá thành công!");
+        toastService.success("Cập nhật mã giảm giá thành công!");
       } else {
         await couponService.create(payload);
-        alert("Tạo mã giảm giá mới thành công!");
+        toastService.success("Tạo mã giảm giá mới thành công!");
       }
       setShowModal(false);
       loadCoupons();
     } catch (err) {
-      alert("Lỗi lưu dữ liệu: " + err.message);
+      toastService.error("Lỗi lưu dữ liệu: " + err.message);
     }
   };
 
@@ -150,8 +154,7 @@ export function CouponManagement() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 mb-2">
         <div>
-          <h1 className="text-3xl font-extrabold text-stone-900 tracking-tight m-0">Quản lý Mã Giảm Giá</h1>
-          <p className="text-sm text-stone-500 m-0 mt-1">Cấu hình các chương trình khuyến mại, mã giảm giá toàn sàn hoặc từ người bán.</p>
+          <h1 className="text-xl font-extrabold text-stone-900 tracking-tight m-0">Quản lý mã giảm giá</h1>
         </div>
         <button
           className="flex items-center justify-center gap-2 rounded-xl py-2.5 px-5 text-sm font-bold cursor-pointer transition-all bg-[#c85a28] hover:bg-[#b84c1a] text-white border-none shadow-md shadow-orange-500/10 active:scale-[0.98] w-full sm:w-auto"
@@ -209,10 +212,7 @@ export function CouponManagement() {
       {/* Main Table Card */}
       <div className="bg-white border border-stone-200/80 rounded-2xl shadow-[0_8px_30px_rgba(238,229,219,0.15)] overflow-hidden">
         {loading ? (
-          <div className="flex flex-col gap-3 justify-center items-center py-20">
-            <div className="w-8 h-8 border-4 border-[#c85a28]/25 border-t-[#c85a28] rounded-full animate-spin"></div>
-            <span className="text-sm font-semibold text-stone-500">Đang tải dữ liệu mã giảm giá...</span>
-          </div>
+          <AdminLoader />
         ) : error ? (
           <div className="text-center py-16 text-rose-600 font-bold">Lỗi kết nối: {error}</div>
         ) : coupons.length > 0 ? (
@@ -299,39 +299,53 @@ export function CouponManagement() {
                         )}
                       </div>
                     </td>
-                    {/* Standardized Dropdown Select for Status */}
+                    {/* Standardized Dropdown Select for Status (Admin coupons only) */}
                     <td className="p-4 align-middle text-center">
-                      <select
-                        value={coupon.isActive ? "active" : "inactive"}
-                        onChange={() => handleToggleActive(coupon.id, coupon.isActive)}
-                        className={`py-1 px-3 border rounded-full text-xs font-bold cursor-pointer outline-none transition-all ${
+                      {coupon.createdBy === "ADMIN" ? (
+                        <select
+                          value={coupon.isActive ? "active" : "inactive"}
+                          onChange={() => handleToggleActive(coupon.id, coupon.isActive)}
+                          className={`py-1 px-3 border rounded-full text-xs font-bold cursor-pointer outline-none transition-all ${
+                            coupon.isActive
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                              : "bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100"
+                          }`}
+                        >
+                          <option value="active">Đang chạy</option>
+                          <option value="inactive">Vô hiệu</option>
+                        </select>
+                      ) : (
+                        <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold ${
                           coupon.isActive
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
-                            : "bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100"
-                        }`}
-                      >
-                        <option value="active">Đang chạy</option>
-                        <option value="inactive">Vô hiệu</option>
-                      </select>
+                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                            : "bg-rose-50 text-rose-700 border border-rose-200"
+                        }`}>
+                          {coupon.isActive ? "Đang chạy" : "Vô hiệu"}
+                        </span>
+                      )}
                     </td>
-                    {/* Standardized Action Buttons */}
+                    {/* Standardized Action Buttons (Admin coupons only) */}
                     <td className="p-4 pr-6 align-middle text-center">
-                      <div className="flex gap-1.5 justify-center items-center">
-                        <button
-                          className="p-1.5 rounded-lg text-blue-600 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 active:scale-95 transition-all border-none cursor-pointer flex items-center justify-center"
-                          onClick={() => handleOpenEdit(coupon)}
-                          title="Chỉnh sửa"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          className="p-1.5 rounded-lg text-rose-600 bg-rose-50 hover:bg-rose-100 hover:text-rose-700 active:scale-95 transition-all border-none cursor-pointer flex items-center justify-center"
-                          onClick={() => handleDelete(coupon.id)}
-                          title="Xóa"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+                      {coupon.createdBy === "ADMIN" ? (
+                        <div className="flex gap-1.5 justify-center items-center">
+                          <button
+                            className="p-1.5 rounded-lg text-blue-600 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 active:scale-95 transition-all border-none cursor-pointer flex items-center justify-center"
+                            onClick={() => handleOpenEdit(coupon)}
+                            title="Chỉnh sửa"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            className="p-1.5 rounded-lg text-rose-600 bg-rose-50 hover:bg-rose-100 hover:text-rose-700 active:scale-95 transition-all border-none cursor-pointer flex items-center justify-center"
+                            onClick={() => handleDelete(coupon.id)}
+                            title="Xóa"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-stone-400 font-medium">Chỉ xem</span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -534,6 +548,25 @@ export function CouponManagement() {
           </div>
         </div>
       )}
+      <ConfirmModal
+        isOpen={confirmDeleteId !== null}
+        onClose={() => setConfirmDeleteId(null)}
+        onConfirm={async () => {
+          if (!confirmDeleteId) return;
+          try {
+            await couponService.delete(confirmDeleteId);
+            toastService.success("Xóa mã giảm giá thành công!");
+            loadCoupons();
+          } catch (err) {
+            toastService.error("Lỗi khi xóa mã giảm giá: " + err.message);
+          }
+        }}
+        title="Xóa mã giảm giá"
+        message="Bạn có chắc chắn muốn xóa mã giảm giá này? Hành động này không thể hoàn tác."
+        confirmText="Xóa"
+        cancelText="Hủy"
+        type="danger"
+      />
     </div>
   );
 }

@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { shopService, complaintService } from "../../../services/admin";
+import { toastService } from "@/services/toastService";
+import ConfirmModal from "@/components/common/ConfirmModal";
+import AdminLoader from "@/components/common/AdminLoader";
 import { 
   Store, 
   Search, 
@@ -22,6 +25,7 @@ export function ShopManagement() {
   const [loading, setLoading] = useState(true);
   const [complaints, setComplaints] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [confirmResetShopId, setConfirmResetShopId] = useState(null);
 
   const fetchShops = () => {
     setLoading(true);
@@ -59,12 +63,7 @@ export function ShopManagement() {
   }, [filterType, searchQuery]);
 
   if (loading) {
-    return (
-      <div className="flex flex-col gap-5 w-full text-stone-850 pb-10 min-h-[50vh] justify-center items-center">
-        <div className="w-10 h-10 border-4 border-[#c85a28]/20 border-t-[#c85a28] rounded-full animate-spin"></div>
-        <h2 className="text-stone-750 text-base font-bold">Đang tải danh sách cửa hàng thực tế từ Database...</h2>
-      </div>
-    );
+    return <AdminLoader text="Đang tải dữ liệu..." />;
   }
 
   if (shops.length === 0) {
@@ -114,12 +113,17 @@ export function ShopManagement() {
     if (!shop) return;
     const nextState = !shop.isVerified;
     
+    // 1. Optimistic update
+    setShops(prev => prev.map(s => s.id === id ? { ...s, isVerified: nextState } : s));
+    toastService.success(nextState ? `Đã cấp tích xanh xác thực (Verified) cho shop "${shop.name}"!` : `Đã thu hồi tích xanh của shop "${shop.name}"!`);
+
+    // 2. Background API call
     shopService.toggleVerify(id, nextState)
-      .then(() => {
-        alert(nextState ? `Đã cấp tích xanh xác thực (Verified) cho shop "${shop.name}"!` : `Đã thu hồi tích xanh của shop "${shop.name}"!`);
-        fetchShops();
-      })
-      .catch((err) => alert("Thao tác thất bại: " + err.message));
+      .catch((err) => {
+        toastService.error("Thao tác thất bại: " + err.message);
+        // Revert
+        setShops(prev => prev.map(s => s.id === id ? { ...s, isVerified: !nextState } : s));
+      });
   };
 
   // Action: Toggle Active status (Lock/Unlock)
@@ -128,45 +132,48 @@ export function ShopManagement() {
     if (!shop) return;
     const nextState = !shop.isActive;
 
+    // 1. Optimistic update
+    setShops(prev => prev.map(s => s.id === id ? { ...s, isActive: nextState } : s));
+    toastService.success(nextState ? `Đã mở khóa hoạt động cho shop "${shop.name}"!` : `Đã tạm khóa hoạt động shop "${shop.name}"!`);
+
+    // 2. Background API call
     shopService.toggleActive(id, nextState)
-      .then(() => {
-        alert(nextState ? `Đã mở khóa hoạt động cho shop "${shop.name}"!` : `Đã tạm khóa hoạt động shop "${shop.name}"!`);
-        fetchShops();
-      })
-      .catch((err) => alert("Thao tác thất bại: " + err.message));
+      .catch((err) => {
+        toastService.error("Thao tác thất bại: " + err.message);
+        // Revert
+        setShops(prev => prev.map(s => s.id === id ? { ...s, isActive: !nextState } : s));
+      });
   };
 
   // Action: Add Violation Strike
   const handleAddStrike = (id) => {
     const shop = shops.find((s) => s.id === id);
     if (!shop) return;
+    const nextStrikes = (shop.warningStrikes || 0) + 1;
+    const nextActive = nextStrikes >= 5 ? false : shop.isActive;
 
+    // 1. Optimistic update
+    setShops(prev => prev.map(s => s.id === id ? { ...s, warningStrikes: nextStrikes, isActive: nextActive } : s));
+    let msg = `Đã phạt cảnh cáo thêm 1 điểm lỗi đối với shop "${shop.name}". (Tổng điểm lỗi hiện tại: ${nextStrikes}/5)`;
+    if (nextStrikes >= 5) {
+      msg += `\n⚠️ CỬA HÀNG ĐÃ ĐẠT MỨC TỐI ĐA 5 ĐIỂM LỖI! Hệ thống tự động khóa tài khoản shop vĩnh viễn.`;
+      toastService.error(msg, { duration: 6000 });
+    } else {
+      toastService.warning(msg);
+    }
+
+    // 2. Background API call
     shopService.addStrike(id)
-      .then((updatedShop) => {
-        const nextStrikes = updatedShop.warningStrikes;
-        let msg = `Đã phạt cảnh cáo thêm 1 điểm lỗi đối với shop "${shop.name}". (Tổng điểm lỗi hiện tại: ${nextStrikes}/5)`;
-        if (nextStrikes >= 5) {
-          msg += `\n⚠️ CỬA HÀNG ĐÃ ĐẠT MỨC TỐI ĐA 5 ĐIỂM LỖI! Hệ thống tự động khóa tài khoản shop vĩnh viễn.`;
-        }
-        alert(msg);
-        fetchShops();
-      })
-      .catch((err) => alert("Thao tác thất bại: " + err.message));
+      .catch((err) => {
+        toastService.error("Thao tác thất bại: " + err.message);
+        // Revert
+        setShops(prev => prev.map(s => s.id === id ? { ...s, warningStrikes: shop.warningStrikes, isActive: shop.isActive } : s));
+      });
   };
 
   // Action: Reset Strikes
   const handleResetStrikes = (id) => {
-    const shop = shops.find((s) => s.id === id);
-    if (!shop) return;
-
-    if (window.confirm(`Bạn có chắc chắn muốn xóa tất cả điểm phạt cảnh cáo của shop "${shop.name}"?`)) {
-      shopService.resetStrikes(id)
-        .then(() => {
-          alert("Đã xóa tất cả điểm phạt thành công!");
-          fetchShops();
-        })
-        .catch((err) => alert("Thao tác thất bại: " + err.message));
-    }
+    setConfirmResetShopId(id);
   };
 
   return (
@@ -174,86 +181,103 @@ export function ShopManagement() {
       {/* Page Header */}
       <div className="flex items-center justify-between mb-1">
         <div>
-          <h1 className="text-3xl font-extrabold text-stone-900 tracking-tight m-0 mb-1">Quản lý Cửa hàng & Chế tài</h1>
-          <p className="text-sm text-stone-500 m-0">
-            Cấp tích xanh xác thực cửa hàng uy tín và áp dụng chế tài cảnh cáo/khóa các shop bán hàng giả, lừa đảo.
-          </p>
+          <h1 className="text-xl font-extrabold text-stone-900 tracking-tight m-0">Quản lý cửa hàng</h1>
         </div>
       </div>
 
       {/* Top statistics widgets */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-br from-white to-stone-50/40 border border-stone-200/50 rounded-2xl p-5 flex items-center gap-4 shadow-[0_8px_30px_rgb(238,229,219,0.2)]">
-          <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-blue-50 text-blue-600 shadow-sm">
-            <Store className="w-5 h-5 text-blue-600" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {/* Card 1: Tổng số Shop */}
+        <div className="bg-white border border-stone-200/60 rounded-xl p-3.5 flex items-center justify-between shadow-sm">
+          <div>
+            <div className="text-[10px] font-bold text-stone-400 tracking-wider uppercase">TỔNG SỐ SHOP</div>
+            <div className="text-2xl font-black text-stone-900 mt-1">{totalShops}</div>
           </div>
-          <div className="flex flex-col gap-0.5">
-            <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider">Tổng số Shop</span>
-            <span className="text-base font-black text-stone-800">{totalShops} cửa hàng</span>
-          </div>
-        </div>
-
-        <div className="bg-gradient-to-br from-white to-stone-50/40 border border-stone-200/50 rounded-2xl p-5 flex items-center gap-4 shadow-[0_8px_30px_rgb(238,229,219,0.2)]">
-          <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-emerald-50 text-emerald-600 shadow-sm">
-            <Sparkles className="w-5 h-5 text-emerald-600" />
-          </div>
-          <div className="flex flex-col gap-0.5">
-            <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider">Shop Tích Xanh</span>
-            <span className="text-base font-black text-stone-800">{verifiedShopsCount} xác thực</span>
+          <div className="w-9 h-9 rounded-lg grid place-items-center bg-orange-50 text-[#c85a28]">
+            <Store className="w-5 h-5 text-[#c85a28]" />
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-white to-stone-50/40 border border-stone-200/50 rounded-2xl p-5 flex items-center gap-4 shadow-[0_8px_30px_rgb(238,229,219,0.2)]">
-          <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-rose-50 text-rose-600 shadow-sm">
+        {/* Card 2: Shop Tích Xanh */}
+        <div className="bg-white border border-stone-200/60 rounded-xl p-3.5 flex items-center justify-between shadow-sm">
+          <div>
+            <div className="text-[10px] font-bold text-stone-400 tracking-wider uppercase">SHOP TÍCH XANH</div>
+            <div className="text-2xl font-black text-stone-900 mt-1">{verifiedShopsCount}</div>
+          </div>
+          <div className="w-9 h-9 rounded-lg grid place-items-center bg-emerald-50 text-emerald-750">
+            <Sparkles className="w-5 h-5 text-emerald-750" />
+          </div>
+        </div>
+
+        {/* Card 3: Shop Bị Khóa */}
+        <div className="bg-white border border-stone-200/60 rounded-xl p-3.5 flex items-center justify-between shadow-sm">
+          <div>
+            <div className="text-[10px] font-bold text-stone-400 tracking-wider uppercase">SHOP BỊ KHÓA</div>
+            <div className="text-2xl font-black text-stone-900 mt-1">{lockedShopsCount}</div>
+          </div>
+          <div className="w-9 h-9 rounded-lg grid place-items-center bg-rose-50 text-rose-600">
             <Lock className="w-5 h-5 text-rose-600" />
           </div>
-          <div className="flex flex-col gap-0.5">
-            <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider">Shop bị Khóa</span>
-            <span className="text-base font-black text-stone-800">{lockedShopsCount} tạm khóa</span>
-          </div>
         </div>
 
-        <div className="bg-gradient-to-br from-white to-stone-50/40 border border-stone-200/50 rounded-2xl p-5 flex items-center gap-4 shadow-[0_8px_30px_rgb(238,229,219,0.2)]">
-          <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-amber-50 text-amber-600 shadow-sm">
-            <ShieldAlert className="w-5 h-5 text-amber-600" />
+        {/* Card 4: Điểm cảnh cáo */}
+        <div className="bg-white border border-stone-200/60 rounded-xl p-3.5 flex items-center justify-between shadow-sm">
+          <div>
+            <div className="text-[10px] font-bold text-stone-400 tracking-wider uppercase">WARNING STRIKES</div>
+            <div className="text-2xl font-black text-stone-900 mt-1">{totalStrikes}</div>
           </div>
-          <div className="flex flex-col gap-0.5">
-            <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider">Warning Strikes</span>
-            <span className="text-base font-black text-stone-800">{totalStrikes} điểm phạt</span>
+          <div className="w-9 h-9 rounded-lg grid place-items-center bg-amber-50 text-amber-700">
+            <ShieldAlert className="w-5 h-5 text-amber-700" />
           </div>
         </div>
       </div>
 
       {/* Control Bar (Filters and Search) */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div className="flex bg-stone-100 border border-stone-200 rounded-xl p-1 gap-1">
+      <div className="flex flex-col gap-4">
+        <div className="flex bg-stone-100 border border-stone-200 rounded-xl p-1 gap-1 w-fit flex-wrap">
           <button
-            className={`bg-transparent border-none rounded-lg py-2 px-4 text-[13px] font-bold text-stone-500 cursor-pointer transition-all hover:text-stone-800 ${filterType === "all" ? "bg-white text-stone-900 shadow-sm" : ""}`}
+            className={`border-none rounded-lg py-2 px-4 text-[13px] font-bold cursor-pointer transition-all ${
+              filterType === "all"
+                ? "bg-white text-stone-900 shadow-sm"
+                : "bg-transparent text-stone-500 hover:text-stone-800"
+            }`}
             onClick={() => setFilterType("all")}
           >
             Tất cả cửa hàng
           </button>
           <button
-            className={`bg-transparent border-none rounded-lg py-2 px-4 text-[13px] font-bold text-stone-500 cursor-pointer transition-all hover:text-stone-800 ${filterType === "verified" ? "bg-white text-stone-900 shadow-sm" : ""}`}
+            className={`border-none rounded-lg py-2 px-4 text-[13px] font-bold cursor-pointer transition-all ${
+              filterType === "verified"
+                ? "bg-white text-stone-900 shadow-sm"
+                : "bg-transparent text-stone-500 hover:text-stone-800"
+            }`}
             onClick={() => setFilterType("verified")}
           >
             Shop Tích Xanh
           </button>
           <button
-            className={`bg-transparent border-none rounded-lg py-2 px-4 text-[13px] font-bold text-stone-500 cursor-pointer transition-all hover:text-stone-800 ${filterType === "warning" ? "bg-white text-stone-900 shadow-sm" : ""}`}
+            className={`border-none rounded-lg py-2 px-4 text-[13px] font-bold cursor-pointer transition-all ${
+              filterType === "warning"
+                ? "bg-white text-stone-900 shadow-sm"
+                : "bg-transparent text-stone-500 hover:text-stone-800"
+            }`}
             onClick={() => setFilterType("warning")}
           >
             Có vi phạm
           </button>
           <button
-            className={`bg-transparent border-none rounded-lg py-2 px-4 text-[13px] font-bold text-stone-500 cursor-pointer transition-all hover:text-stone-800 ${filterType === "locked" ? "bg-white text-stone-900 shadow-sm" : ""}`}
+            className={`border-none rounded-lg py-2 px-4 text-[13px] font-bold cursor-pointer transition-all ${
+              filterType === "locked"
+                ? "bg-white text-stone-900 shadow-sm"
+                : "bg-transparent text-stone-500 hover:text-stone-800"
+            }`}
             onClick={() => setFilterType("locked")}
           >
             Bị Khóa
           </button>
         </div>
 
-        <div className="bg-white border border-stone-200 rounded-xl py-2 px-4 flex items-center gap-2.5 w-[260px] shadow-sm focus-within:border-[#c85a28] transition-all">
+        <div className="bg-white border border-stone-200 rounded-xl py-2 px-4 flex items-center gap-2.5 w-full sm:w-[320px] shadow-sm focus-within:border-[#c85a28] transition-all">
           <Search className="w-4 h-4 text-stone-400" />
           <input
             type="text"
@@ -273,8 +297,10 @@ export function ShopManagement() {
             <table className="w-full border-collapse">
               <thead>
                 <tr className="bg-stone-50/80 border-b border-stone-150">
+                  <th className="p-3 text-center text-[11px] font-bold text-stone-500 tracking-wider uppercase w-12">ID</th>
                   <th className="p-3 text-left text-[11px] font-bold text-stone-500 tracking-wider uppercase">Tên cửa hàng</th>
                   <th className="p-3 text-left text-[11px] font-bold text-stone-500 tracking-wider uppercase">Chủ shop</th>
+                  <th className="p-3 text-left text-[11px] font-bold text-stone-500 tracking-wider uppercase">Ngày tham gia</th>
                   <th className="p-3 text-center text-[11px] font-bold text-stone-500 tracking-wider uppercase">Đánh giá</th>
                   <th className="p-3 text-center text-[11px] font-bold text-stone-500 tracking-wider uppercase">Sản phẩm</th>
                   <th className="p-3 text-center text-[11px] font-bold text-stone-500 tracking-wider uppercase">Strikes</th>
@@ -289,16 +315,15 @@ export function ShopManagement() {
                     className={`cursor-pointer border-b border-stone-100/80 transition-all duration-150 hover:bg-stone-50/60 ${selectedShop.id === shop.id ? "bg-orange-50/30" : ""}`}
                     onClick={() => setSelectedShopId(shop.id)}
                   >
+                    <td className="p-3.5 text-[13px] text-stone-600 align-middle text-center font-bold">#{shop.id}</td>
                     <td className="p-3.5 text-[13px] text-stone-800 align-middle">
                       <div className="flex items-center gap-3">
                         <img src={shop.avatarUrl} alt={shop.name} className={`w-9 h-9 rounded-full object-cover border-[1.5px] ${selectedShop.id === shop.id ? "border-[#c85a28]" : "border-stone-200"}`} />
-                        <div className="flex flex-col gap-0.5">
-                          <span className="font-extrabold text-stone-900">{shop.name}</span>
-                          <span className="text-[11px] text-stone-400">Tham gia: {shop.createdDate}</span>
-                        </div>
+                        <span className="font-extrabold text-stone-900">{shop.name}</span>
                       </div>
                     </td>
                     <td className="p-3.5 text-[13px] text-stone-600 align-middle font-bold">{shop.sellerName}</td>
+                    <td className="p-3.5 text-[13px] text-stone-600 align-middle">{shop.createdDate || "Chưa rõ"}</td>
                     <td className="p-3.5 text-[13px] text-stone-800 align-middle text-center">
                       <span className="bg-amber-50 text-amber-700 p-[3px_8px] rounded-lg text-xs font-bold inline-block border border-amber-100">
                         <span className="flex items-center gap-0.5"><Star className="w-3 h-3 text-amber-500 fill-amber-500" /> {shop.ratingAvg}</span>
@@ -314,7 +339,7 @@ export function ShopManagement() {
                     </td>
                     <td className="p-3.5 text-[13px] text-stone-800 align-middle text-center">
                       {shop.isVerified ? (
-                        <span className="bg-blue-50 text-blue-600 p-[3.5px_8px] rounded-lg text-[10px] font-bold border border-blue-100 inline-flex items-center gap-1" title="Đã xác thực">
+                        <span className="bg-blue-50 text-blue-650 p-[3.5px_8px] rounded-lg text-[10px] font-bold border border-blue-100 inline-flex items-center gap-1" title="Đã xác thực">
                           <CheckCircle className="w-3 h-3 text-blue-600 fill-white" /> Tích xanh
                         </span>
                       ) : (
@@ -524,6 +549,24 @@ export function ShopManagement() {
           </div>
         </div>
       </div>
+      <ConfirmModal
+        isOpen={confirmResetShopId !== null}
+        onClose={() => setConfirmResetShopId(null)}
+        onConfirm={() => {
+          if (!confirmResetShopId) return;
+          shopService.resetStrikes(confirmResetShopId)
+            .then(() => {
+              toastService.success("Đã xóa tất cả điểm phạt thành công!");
+              fetchShops();
+            })
+            .catch((err) => toastService.error("Thao tác thất bại: " + err.message));
+        }}
+        title="Xóa điểm phạt"
+        message={`Bạn có chắc chắn muốn xóa tất cả điểm phạt cảnh cáo của shop "${shops.find(s => s.id === confirmResetShopId)?.name || ""}"?`}
+        confirmText="Xóa điểm phạt"
+        cancelText="Hủy"
+        type="warning"
+      />
     </div>
   );
 }

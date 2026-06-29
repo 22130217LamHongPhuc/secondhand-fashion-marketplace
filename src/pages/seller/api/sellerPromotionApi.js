@@ -49,24 +49,6 @@ const sellerPromotionApi = {
   
   deleteCoupon: (id) => {
     return axiosInstance.delete(`${BASE}/coupons/${id}`);
-  },
-
-  // Campaign Management
-  getCampaigns: () => {
-    return axiosInstance.get(`${BASE}/campaigns`);
-  },
-  
-  registerProduct: (campaignId, data) => {
-    return axiosInstance.post(`${BASE}/campaigns/${campaignId}/register`, data);
-  },
-
-  removeProduct: (campaignId, productId) => {
-    return axiosInstance.delete(`${BASE}/campaigns/${campaignId}/products/${productId}`);
-  },
-
-  getCampaignProducts: (campaignId) => {
-    return axiosInstance.get(`${BASE}/campaigns/${campaignId}/products`);
-  }
-};
+  },};
 
 export default sellerPromotionApi;

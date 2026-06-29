@@ -15,6 +15,7 @@ import {
   useDeleteProduct,
 } from "../../hooks";
 import { toastService } from "@/services/toastService";
+import ConfirmModal from "@/components/common/ConfirmModal";
 import { Pagination } from "../../models";
 import TableSkeleton from "../../components/common/TableSkeleton";
 import ErrorState from "../../components/common/ErrorState";
@@ -62,6 +63,7 @@ const ProductsPage = () => {
   const [debouncedKeyword, setDebouncedKeyword] = useState("");
   const [advancedFilters, setAdvancedFilters] = useState({});
   const [sortBy, setSortBy] = useState("newest");
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const navigate = useNavigate();
 
   // Debounce search input
@@ -131,15 +133,8 @@ const ProductsPage = () => {
     setCurrentPage(0);
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa sản phẩm này?")) {
-      try {
-        await deleteProduct(id);
-      } catch (e) {
-        console.log(e);
-        toastService.error("Xóa thất bại!");
-      }
-    }
+  const handleDelete = (id) => {
+    setConfirmDeleteId(id);
   };
 
   return (
@@ -406,6 +401,26 @@ const ProductsPage = () => {
           Tải báo cáo (.csv)
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={confirmDeleteId !== null}
+        onClose={() => setConfirmDeleteId(null)}
+        onConfirm={async () => {
+          if (!confirmDeleteId) return;
+          try {
+            await deleteProduct(confirmDeleteId);
+            toastService.success("Xóa sản phẩm thành công!");
+          } catch (e) {
+            console.error(e);
+            toastService.error("Xóa thất bại!");
+          }
+        }}
+        title="Xóa sản phẩm"
+        message="Bạn có chắc chắn muốn xóa sản phẩm này? Hành động này không thể hoàn tác."
+        confirmText="Xóa"
+        cancelText="Hủy"
+        type="danger"
+      />
     </div>
   );
 };

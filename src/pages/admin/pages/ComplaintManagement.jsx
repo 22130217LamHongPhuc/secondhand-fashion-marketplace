@@ -1,119 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { complaintService, shopService, orderService } from "../../../services/admin";
-
-const MOCK_TICKETS = [
-  {
-    id: 101,
-    sender: "Nguyễn Văn Hùng",
-    senderInitial: "H",
-    senderColor: "#c85a28",
-    subject: "Sản phẩm bị rách vai áo và phai màu nặng",
-    time: "02/06/2026 14:20:15",
-    priority: "CAO",
-    priorityClass: "priority-high",
-    status: "Pending",
-    statusClass: "status-pending",
-    orderId: "ORD_201",
-    orderIdNumerical: 201,
-    shopName: "Vintage Store",
-    shopId: 1,
-    urgent: true,
-    content: "Tôi mua chiếc áo khoác thun vintage này với giá 350.000đ được shop cam kết mới 95%. Tuy nhiên khi nhận hàng áo bị rách một vệt dài 5cm ở vai trái và bạc màu nặng nề ở phần lưng áo. Tôi liên hệ shop qua kênh chat để yêu cầu đổi trả nhưng shop chặn tin nhắn của tôi. Đề nghị ban quản trị sàn hỗ trợ hoàn tiền và xử lý shop.",
-    images: ["https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?auto=format&fit=crop&w=600&q=80"],
-    history: [
-      { time: "02/06/2026 14:20:15", text: "Khiếu nại được tạo bởi Nguyễn Văn Hùng." },
-      { time: "02/06/2026 14:25:00", text: "Hệ thống tự động phân loại khiếu nại mức độ: CAO." }
-    ],
-    rawStatus: "PENDING",
-    rawType: "USER_FEEDBACK",
-    rawSeverity: "HIGH",
-    rawDate: "2026-06-02",
-    resolution: null
-  },
-  {
-    id: 102,
-    sender: "Lê Thị Mai",
-    senderInitial: "M",
-    senderColor: "#2e7d32",
-    subject: "Shop giao sai kích cỡ sản phẩm (Size L thành S)",
-    time: "02/06/2026 11:15:30",
-    priority: "TRUNG BÌNH",
-    priorityClass: "priority-medium",
-    status: "Pending",
-    statusClass: "status-pending",
-    orderId: "ORD_205",
-    orderIdNumerical: 205,
-    shopName: "Trendy Closet",
-    shopId: 2,
-    urgent: false,
-    content: "Tôi đặt mua váy hoa cúc size L nhưng shop giao size S khiến tôi không thể mặc vừa. Tôi muốn đổi lại đúng size L hoặc hoàn lại tiền sản phẩm.",
-    images: ["https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&w=600&q=80"],
-    history: [
-      { time: "02/06/2026 11:15:30", text: "Khiếu nại được tạo bởi Lê Thị Mai." }
-    ],
-    rawStatus: "PENDING",
-    rawType: "USER_FEEDBACK",
-    rawSeverity: "MEDIUM",
-    rawDate: "2026-06-02",
-    resolution: null
-  },
-  {
-    id: 103,
-    sender: "Trần Minh Quân",
-    senderInitial: "Q",
-    senderColor: "#1565c0",
-    subject: "Shop đăng bán sản phẩm hàng giả, hàng nhái Chanel",
-    time: "02/06/2026 09:40:00",
-    priority: "CAO",
-    priorityClass: "priority-high",
-    status: "Pending",
-    statusClass: "status-pending",
-    orderId: "N/A",
-    orderIdNumerical: null,
-    shopName: "Luxury Brand Outlet",
-    shopId: 3,
-    urgent: true,
-    content: "Shop này đăng bán túi xách Chanel secondhand giá 5 triệu đồng và cam kết hàng chính hãng Authentic. Nhưng khi tôi kiểm tra mã code và chất liệu da thì phát hiện đây là hàng Fake loại 2 rẻ tiền từ Quảng Châu. Đề nghị Admin khóa shop và gỡ các sản phẩm nhái hiệu này để bảo vệ người tiêu dùng.",
-    images: ["https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=600&q=80"],
-    history: [
-      { time: "02/06/2026 09:40:00", text: "Báo cáo vi phạm cửa hàng được tạo bởi Trần Minh Quân." }
-    ],
-    rawStatus: "PENDING",
-    rawType: "SHOP_COMPLAINT",
-    rawSeverity: "HIGH",
-    rawDate: "2026-06-02",
-    resolution: null
-  },
-  {
-    id: 104,
-    sender: "Phạm Thanh Thảo",
-    senderInitial: "T",
-    senderColor: "#e65100",
-    subject: "Shop có thái độ chửi bới khách hàng",
-    time: "01/06/2026 16:30:22",
-    priority: "TRUNG BÌNH",
-    priorityClass: "priority-medium",
-    status: "Resolved",
-    statusClass: "status-resolved",
-    orderId: "ORD_190",
-    orderIdNumerical: 190,
-    shopName: "Teen Fashion",
-    shopId: 4,
-    urgent: false,
-    content: "Tôi chỉ vào inbox hỏi kỹ hơn về độ mới của chiếc quần jeans nhưng do không mua nên shop liên tục inbox chửi bới, dùng những lời lẽ vô cùng thô tục xúc phạm tôi. Đề nghị ban quản trị phạt gậy cảnh cáo shop này để chấn chỉnh văn hóa giao tiếp của sàn.",
-    images: [],
-    history: [
-      { time: "01/06/2026 16:30:22", text: "Khiếu nại được tạo bởi Phạm Thanh Thảo." },
-      { time: "01/06/2026 18:00:00", text: "Trạng thái được cập nhật thành: Đã xử lý." },
-      { time: "01/06/2026 18:00:00", text: 'Phản hồi giải quyết: "Đã gửi cảnh cáo phạt gậy vi phạm lần 1 tới shop Teen Fashion do vi phạm quy tắc ứng xử của sàn. Nhắc nhở nghiêm khắc về thái độ chăm sóc khách hàng."' }
-    ],
-    rawStatus: "RESOLVED",
-    rawType: "SHOP_COMPLAINT",
-    rawSeverity: "MEDIUM",
-    rawDate: "2026-06-01",
-    resolution: "Đã gửi cảnh cáo phạt gậy vi phạm lần 1 tới shop Teen Fashion do vi phạm quy tắc ứng xử của sàn. Nhắc nhở nghiêm khắc về thái độ chăm sóc khách hàng."
-  }
-];
+import { complaintService, shopService, orderService, productService } from "../../../services/admin";
+import { toastService } from "@/services/toastService";
+import ConfirmModal from "@/components/common/ConfirmModal";
+import AdminLoader from "@/components/common/AdminLoader";
+import { ClipboardList, AlertCircle, CheckCircle2, Search, Calendar } from "lucide-react";
 
 export function ComplaintManagement() {
   const [activeTab, setActiveTab] = useState("shop-complaint");
@@ -127,6 +17,8 @@ export function ComplaintManagement() {
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [fetchingOrder, setFetchingOrder] = useState(false);
+  const [confirmConfig, setConfirmConfig] = useState(null);
+  const [ticketOrderDetails, setTicketOrderDetails] = useState(null);
 
   const statusLabels = {
     pending: "Chờ giao",
@@ -164,7 +56,7 @@ export function ComplaintManagement() {
         });
         setShowOrderModal(true);
       } else {
-        alert("Không tìm thấy thông tin đơn hàng!");
+        toastService.error("Không tìm thấy thông tin đơn hàng!");
       }
     } catch (err) {
       console.error("Lỗi khi tải chi tiết đơn hàng:", err);
@@ -277,9 +169,6 @@ export function ComplaintManagement() {
         let mapped = [];
         if (res && Array.isArray(res) && res.length > 0) {
           mapped = res.map(mapApiTicketToFrontend);
-        } else {
-          console.log("Không có dữ liệu khiếu nại trong DB, hiển thị Mock Tickets.");
-          mapped = MOCK_TICKETS;
         }
         setTickets(mapped);
         if (mapped.length > 0) {
@@ -292,15 +181,8 @@ export function ComplaintManagement() {
         setLoading(false);
       })
       .catch((err) => {
-        console.error("Lỗi khi lấy dữ liệu khiếu nại thực tế, chuyển sang Mock Tickets:", err);
-        setTickets(MOCK_TICKETS);
-        if (MOCK_TICKETS.length > 0) {
-          if (selectNewId && MOCK_TICKETS.some(t => t.id === selectNewId)) {
-            setSelectedTicketId(selectNewId);
-          } else if (!selectedTicketId || !MOCK_TICKETS.some(t => t.id === selectedTicketId)) {
-            setSelectedTicketId(MOCK_TICKETS[0].id);
-          }
-        }
+        console.error("Lỗi khi lấy dữ liệu khiếu nại:", err);
+        setTickets([]);
         setLoading(false);
       });
   };
@@ -308,6 +190,34 @@ export function ComplaintManagement() {
   useEffect(() => {
     fetchComplaints();
   }, []);
+
+  useEffect(() => {
+    if (selectedTicketId) {
+      const ticket = tickets.find((t) => t.id === selectedTicketId) || tickets[0];
+      if (ticket && ticket.orderIdNumerical) {
+        orderService.getById(ticket.orderIdNumerical)
+          .then((res) => {
+            setTicketOrderDetails(res?.data || res);
+          })
+          .catch(() => setTicketOrderDetails(null));
+        return;
+      }
+    }
+    setTicketOrderDetails(null);
+  }, [selectedTicketId, tickets]);
+
+  const handleLockProduct = async (productId, productName) => {
+    if (!productId) {
+      toastService.error("Không tìm thấy ID sản phẩm để khóa!");
+      return;
+    }
+    try {
+      await productService.toggleActive(productId, false);
+      toastService.success(`Đã khóa sản phẩm "${productName}" thành công!`);
+    } catch (err) {
+      toastService.error("Lỗi khi khóa sản phẩm: " + err.message);
+    }
+  };
 
   const filteredTickets = tickets.filter((ticket) => {
     const tabType = "SHOP_COMPLAINT";
@@ -335,13 +245,13 @@ export function ComplaintManagement() {
 
   const handleSendResponse = () => {
     if (!responseText.trim()) {
-      alert("Vui lòng nhập nội dung phản hồi!");
+      toastService.warning("Vui lòng nhập nội dung phản hồi!");
       return;
     }
     
     complaintService.updateStatus(selectedTicket.id, "RESOLVED", responseText)
       .then(() => {
-        alert("Đã gửi phản hồi và giải quyết khiếu nại!");
+        toastService.success("Đã gửi phản hồi và giải quyết khiếu nại!");
         const currentId = selectedTicket.id;
         setResponseText("");
         fetchComplaints(currentId);
@@ -364,14 +274,14 @@ export function ComplaintManagement() {
           }
           return t;
         }));
-        alert("Đã gửi phản hồi và giải quyết khiếu nại (Chế độ mô phỏng)!");
+        toastService.success("Đã gửi phản hồi và giải quyết khiếu nại (Chế độ mô phỏng)!");
         setResponseText("");
       });
   };
 
   const handleBanShop = () => {
     if (!selectedTicket.shopId) {
-      alert("Khiếu nại này không liên kết với Shop nào!");
+      toastService.error("Khiếu nại này không liên kết với Shop nào!");
       return;
     }
     
@@ -382,7 +292,7 @@ export function ComplaintManagement() {
         return complaintService.updateStatus(selectedTicket.id, "RESOLVED", `Phạt gậy cảnh cáo (warning strike) gửi tới Shop do vi phạm. Nội dung: ${reason}`);
       })
       .then(() => {
-        alert(`Đã phạt cảnh cáo gậy phạt thành công cho shop "${selectedTicket.shopName}"!`);
+        toastService.success(`Đã phạt cảnh cáo gậy phạt thành công cho shop "${selectedTicket.shopName}"!`);
         const currentId = selectedTicket.id;
         setResponseText("");
         fetchComplaints(currentId);
@@ -405,54 +315,66 @@ export function ComplaintManagement() {
           }
           return t;
         }));
-        alert(`Đã phạt cảnh cáo gậy phạt thành công cho shop "${selectedTicket.shopName}" (Chế độ mô phỏng)!`);
+        toastService.success(`Đã phạt cảnh cáo gậy phạt thành công cho shop "${selectedTicket.shopName}" (Chế độ mô phỏng)!`);
         setResponseText("");
       });
   };
   
   const handleToggleShopActive = () => {
     if (!selectedTicket.shopId) {
-      alert("Khiếu nại này không liên kết với Shop nào!");
+      toastService.error("Khiếu nại này không liên kết với Shop nào!");
       return;
     }
     const newStatus = !selectedTicket.shopActive;
     const actionLabel = newStatus ? "mở khóa" : "khóa";
-    if (!window.confirm(`Bạn có chắc chắn muốn ${actionLabel} cửa hàng "${selectedTicket.shopName}"?`)) {
-      return;
-    }
-    shopService.toggleActive(selectedTicket.shopId, newStatus)
-      .then(() => {
-        alert(`Đã ${actionLabel} cửa hàng thành công!`);
-        fetchComplaints(selectedTicket.id);
-      })
-      .catch((err) => {
-        console.error("Lỗi khi thay đổi trạng thái hoạt động của shop:", err);
-        alert(`Không thể ${actionLabel} cửa hàng!`);
-      });
+    
+    setConfirmConfig({
+      title: `${newStatus ? "Mở khóa" : "Khóa"} cửa hàng`,
+      message: `Bạn có chắc chắn muốn ${actionLabel} cửa hàng "${selectedTicket.shopName}"?`,
+      confirmText: newStatus ? "Mở khóa" : "Khóa",
+      cancelText: "Hủy",
+      type: newStatus ? "info" : "danger",
+      onConfirm: async () => {
+        try {
+          await shopService.toggleActive(selectedTicket.shopId, newStatus);
+          toastService.success(`Đã ${actionLabel} cửa hàng thành công!`);
+          fetchComplaints(selectedTicket.id);
+        } catch (err) {
+          console.error("Lỗi khi thay đổi trạng thái hoạt động của shop:", err);
+          toastService.error(`Không thể ${actionLabel} cửa hàng!`);
+        }
+      }
+    });
   };
 
   const handleResetShopStrikes = () => {
     if (!selectedTicket.shopId) {
-      alert("Khiếu nại này không liên kết với Shop nào!");
+      toastService.error("Khiếu nại này không liên kết với Shop nào!");
       return;
     }
-    if (!window.confirm(`Bạn có chắc chắn muốn xóa tất cả gậy phạt của cửa hàng "${selectedTicket.shopName}"?`)) {
-      return;
-    }
-    shopService.resetStrikes(selectedTicket.shopId)
-      .then(() => {
-        alert("Đã xóa tất cả gậy phạt thành công!");
-        fetchComplaints(selectedTicket.id);
-      })
-      .catch((err) => {
-        console.error("Lỗi khi xóa gậy phạt shop:", err);
-        alert("Không thể xóa gậy phạt!");
-      });
+    
+    setConfirmConfig({
+      title: "Xóa gậy phạt",
+      message: `Bạn có chắc chắn muốn xóa tất cả gậy phạt của cửa hàng "${selectedTicket.shopName}"?`,
+      confirmText: "Xóa hết",
+      cancelText: "Hủy",
+      type: "warning",
+      onConfirm: async () => {
+        try {
+          await shopService.resetStrikes(selectedTicket.shopId);
+          toastService.success("Đã xóa tất cả gậy phạt thành công!");
+          fetchComplaints(selectedTicket.id);
+        } catch (err) {
+          console.error("Lỗi khi xóa gậy phạt shop:", err);
+          toastService.error("Không thể xóa gậy phạt!");
+        }
+      }
+    });
   };
 
   const handleApproveRefund = () => {
     if (!selectedTicket.orderIdNumerical) {
-      alert("Khiếu nại này không liên kết với đơn hàng nào!");
+      toastService.error("Khiếu nại này không liên kết với đơn hàng nào!");
       return;
     }
 
@@ -463,7 +385,7 @@ export function ComplaintManagement() {
         return complaintService.updateStatus(selectedTicket.id, "RESOLVED", `Đã duyệt hoàn tiền cho khách và hủy đơn hàng. Lý do: ${reason}`);
       })
       .then(() => {
-        alert("Đã chấp nhận phê duyệt hoàn tiền và hủy đơn hàng thành công!");
+        toastService.success("Đã chấp nhận phê duyệt hoàn tiền và hủy đơn hàng thành công!");
         const currentId = selectedTicket.id;
         setResponseText("");
         fetchComplaints(currentId);
@@ -486,7 +408,7 @@ export function ComplaintManagement() {
           }
           return t;
         }));
-        alert("Đã chấp nhận phê duyệt hoàn tiền và hủy đơn hàng thành công (Chế độ mô phỏng)!");
+        toastService.success("Đã chấp nhận phê duyệt hoàn tiền và hủy đơn hàng thành công (Chế độ mô phỏng)!");
         setResponseText("");
       });
   };
@@ -496,13 +418,13 @@ export function ComplaintManagement() {
     
     complaintService.updateStatus(selectedTicket.id, "REJECTED", reason)
       .then(() => {
-        alert("Đã đóng và từ chối xử lý khiếu nại!");
+        toastService.success("Đã đóng và từ chối xử lý khiếu nại!");
         const currentId = selectedTicket.id;
         setResponseText("");
         fetchComplaints(currentId);
       })
       .catch((err) => {
-        console.warn("API failed, simulating ticket rejection locally:", err);
+        console.warn("API failed, simulating ticket rejection locally:", reason);
         setTickets(prev => prev.map(t => {
           if (t.id === selectedTicket.id) {
             const updatedHistory = [...t.history];
@@ -519,17 +441,13 @@ export function ComplaintManagement() {
           }
           return t;
         }));
-        alert("Đã đóng và từ chối xử lý khiếu nại (Chế độ mô phỏng)!");
+        toastService.success("Đã đóng và từ chối xử lý khiếu nại (Chế độ mô phỏng)!");
         setResponseText("");
       });
   };
 
   if (loading && tickets.length === 0) {
-    return (
-      <div className="flex flex-col gap-5 w-full text-[#3e2723] pb-10 min-h-[50vh] justify-center items-center">
-        <h2 className="text-[#3e2723] text-xl font-bold">Đang tải dữ liệu khiếu nại thực tế từ Database...</h2>
-      </div>
-    );
+    return <AdminLoader />;
   }
 
   // Priority Badge Helper
@@ -567,8 +485,7 @@ export function ComplaintManagement() {
       {/* Top Title & Export */}
       <div className="flex items-center justify-between mb-2.5">
         <div>
-          <h1 className="text-[26px] font-extrabold text-[#3e2723] m-0 mb-1.5">Quản lý phản hồi & khiếu nại</h1>
-          <p className="text-sm text-[#8b7d6a] m-0">Theo dõi và xử lý các vấn đề từ cộng đồng Tiệm Cũ.</p>
+          <h1 className="text-xl font-extrabold text-[#3e2723] m-0">Quản lý khiếu nại</h1>
         </div>
         <button className="bg-[#c5e1a5] text-[#33691e] border border-[#aed581] rounded-lg py-2 px-4 text-[13px] font-bold flex items-center gap-2 cursor-pointer transition-all hover:bg-[#b2db8d] hover:-translate-y-[1px] active:scale-[0.97]">
           <svg
@@ -591,60 +508,84 @@ export function ComplaintManagement() {
       </div>
 
       {/* Stats Cards Dashboard */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
-        <div className="bg-white border border-[#ebdcb9] rounded-2xl p-5 shadow-[0_4px_12px_rgba(139,90,60,0.02)] flex flex-col gap-1 border-l-4 border-l-[#8b7d6a]">
-          <span className="text-[11px] font-extrabold tracking-widest text-[#8b7d6a] uppercase">Tổng đơn khiếu nại</span>
-          <span className="text-2xl font-black text-[#3e2723] mt-1">{tickets.length}</span>
-          <span className="text-xs text-[#8b7d6a] mt-1">Đơn giao dịch bị khiếu nại trên toàn hệ thống</span>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-4">
+        {/* Card 1: Tổng đơn khiếu nại */}
+        <div className="bg-white border border-stone-200/60 rounded-xl p-3.5 flex items-center justify-between shadow-sm">
+          <div>
+            <div className="text-[10px] font-bold text-stone-400 tracking-wider uppercase">TỔNG ĐƠN KHIẾU NẠI</div>
+            <div className="text-2xl font-black text-stone-900 mt-1">{tickets.length}</div>
+          </div>
+          <div className="w-9 h-9 rounded-lg grid place-items-center bg-stone-50 text-stone-600">
+            <ClipboardList className="w-5 h-5 text-stone-600" />
+          </div>
         </div>
-        <div className="bg-white border border-[#ebdcb9] rounded-2xl p-5 shadow-[0_4px_12px_rgba(139,90,60,0.02)] flex flex-col gap-1 border-l-4 border-l-[#c62828]">
-          <span className="text-[11px] font-extrabold tracking-widest text-[#c62828] uppercase">Cần xử lý</span>
-          <span className="text-2xl font-black text-[#c62828] mt-1">
-            {tickets.filter(t => t.rawStatus === "PENDING").length}
-          </span>
-          <span className="text-xs text-[#8b7d6a] mt-1">Khiếu nại đang chờ xác minh & giải quyết</span>
+
+        {/* Card 2: Cần xử lý */}
+        <div className="bg-white border border-stone-200/60 rounded-xl p-3.5 flex items-center justify-between shadow-sm">
+          <div>
+            <div className="text-[10px] font-bold text-stone-400 tracking-wider uppercase">CẦN XỬ LÝ</div>
+            <div className="text-2xl font-black text-rose-600 mt-1">
+              {tickets.filter(t => t.rawStatus === "PENDING").length}
+            </div>
+          </div>
+          <div className="w-9 h-9 rounded-lg grid place-items-center bg-rose-50 text-rose-600">
+            <AlertCircle className="w-5 h-5 text-rose-600" />
+          </div>
         </div>
-        <div className="bg-white border border-[#ebdcb9] rounded-2xl p-5 shadow-[0_4px_12px_rgba(139,90,60,0.02)] flex flex-col gap-1 border-l-4 border-l-[#2e7d32]">
-          <span className="text-[11px] font-extrabold tracking-widest text-[#2e7d32] uppercase">Đã xử lý</span>
-          <span className="text-2xl font-black text-[#2e7d32] mt-1">
-            {tickets.filter(t => t.rawStatus !== "PENDING").length}
-          </span>
-          <span className="text-xs text-[#8b7d6a] mt-1">Đơn khiếu nại đã giải quyết / từ chối</span>
+
+        {/* Card 3: Đã xử lý */}
+        <div className="bg-white border border-stone-200/60 rounded-xl p-3.5 flex items-center justify-between shadow-sm">
+          <div>
+            <div className="text-[10px] font-bold text-stone-400 tracking-wider uppercase">ĐÃ XỬ LÝ</div>
+            <div className="text-2xl font-black text-emerald-700 mt-1">
+              {tickets.filter(t => t.rawStatus !== "PENDING").length}
+            </div>
+          </div>
+          <div className="w-9 h-9 rounded-lg grid place-items-center bg-emerald-50 text-emerald-755">
+            <CheckCircle2 className="w-5 h-5 text-emerald-755" />
+          </div>
         </div>
       </div>
 
       {/* Tabs & Filters Bar */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div></div>
-
-        <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3 mb-5">
+        {/* Search Input */}
+        <div className="relative max-w-md w-full">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
           <input
             type="text"
-            className="bg-white text-[#3e2723] border border-[#ebdcb9] py-2 px-3 rounded-lg text-[13px] outline-none min-w-[220px] transition-all focus:border-[#c85a28] focus:shadow-[0_0_0_3px_rgba(200,90,40,0.08)] placeholder:text-[#8b7d6a]/70"
             placeholder="Tìm theo Tên, Tiêu đề, Nội dung..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-stone-200 rounded-xl text-sm focus:outline-none focus:border-[#c85a28] focus:ring-1 focus:ring-[#c85a28] transition-all text-stone-800 placeholder-stone-400 shadow-sm"
           />
+        </div>
 
+        {/* Date Filter */}
+        <div className="relative w-full sm:w-[180px]">
+          <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
           <input
-            className="bg-white border border-[#ebdcb9] rounded-lg py-2 px-3 text-[13px] text-[#3e2723] outline-none"
             type="date"
             value={dateFilter}
             onChange={(e) => setDateFilter(e.target.value)}
+            onClick={(e) => e.target.showPicker?.()}
+            onFocus={(e) => e.target.showPicker?.()}
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-stone-200 rounded-xl text-sm focus:outline-none focus:border-[#c85a28] focus:ring-1 focus:ring-[#c85a28] transition-all text-stone-800 font-bold cursor-pointer shadow-sm"
           />
-
-          {(dateFilter || searchQuery) && (
-            <button 
-              className="ml-2 py-2 px-3 bg-[#e0d5c1] border-none rounded-lg cursor-pointer font-medium text-[#3e2723] hover:bg-[#d5caaf]"
-              onClick={() => {
-                setDateFilter("");
-                setSearchQuery("");
-              }}
-            >
-              Xóa bộ lọc
-            </button>
-          )}
         </div>
+
+        {/* Clear Filters */}
+        {(dateFilter || searchQuery) && (
+          <button 
+            className="py-2.5 px-4 bg-stone-100 border border-stone-200 rounded-xl cursor-pointer text-sm font-bold text-stone-600 hover:bg-stone-200 hover:text-stone-800 transition-all shadow-sm"
+            onClick={() => {
+              setDateFilter("");
+              setSearchQuery("");
+            }}
+          >
+            Xóa bộ lọc
+          </button>
+        )}
       </div>
 
       {/* Complaints Data Table */}
@@ -828,6 +769,17 @@ export function ComplaintManagement() {
                           }`} onClick={handleToggleShopActive} title={selectedTicket.shopActive ? "Khóa cửa hàng" : "Mở khóa cửa hàng"}>
                             {selectedTicket.shopActive ? "Khóa Shop" : "Mở khóa Shop"}
                           </button>
+
+                          {ticketOrderDetails?.items?.map((item, idx) => (
+                            <button
+                              key={idx}
+                              className="bg-[#ffebee] text-[#c62828] border border-[#ffcdd2] rounded-xl py-2.5 px-4 text-[13px] font-bold cursor-pointer transition-all hover:bg-[#ffd8d8]"
+                              onClick={() => handleLockProduct(item.productId || item.id, item.productName)}
+                              title={`Khóa sản phẩm ${item.productName}`}
+                            >
+                              Khóa sản phẩm: {item.productName}
+                            </button>
+                          ))}
                           {selectedTicket.shopWarningStrikes > 0 && (
                             <button className="bg-[#e0f7fa] text-[#006064] border border-[#b2ebf2] rounded-xl py-2.5 px-4 text-[13px] font-bold cursor-pointer transition-all hover:bg-[#b2ebf2]" onClick={handleResetShopStrikes} title="Xóa toàn bộ gậy phạt">
                               Xóa gậy phạt
@@ -899,6 +851,20 @@ export function ComplaintManagement() {
                       Mã đơn hàng: <span className="text-[#c85a28] font-bold cursor-pointer underline transition-colors hover:text-[#a04018]" onClick={() => handleViewOrderDetails(selectedTicket.orderIdNumerical)} title="Click để xem chi tiết đơn hàng">{selectedTicket.orderId}</span><br />
                       Phương thức: <span className="uppercase">Thanh toán khi nhận hàng (COD)</span>
                     </div>
+                    {ticketOrderDetails?.items && ticketOrderDetails.items.length > 0 && (
+                      <div className="mt-3 bg-[#faf5eb] border border-[#f3ebd8] rounded-xl p-3 flex flex-col gap-2">
+                        <div className="text-[10px] font-extrabold text-[#8b5a3c] uppercase tracking-wider mb-1">Sản phẩm trong đơn:</div>
+                        <div className="flex flex-col gap-2 max-h-[180px] overflow-y-auto pr-1">
+                          {ticketOrderDetails.items.map((item, idx) => (
+                            <div key={idx} className="flex justify-between items-center text-xs border-b border-[#f0e5cb] last:border-none pb-2 last:pb-0 gap-2">
+                              <span className="font-bold text-[#3e2723] truncate max-w-[200px]" title={item.productName}>
+                                {item.productName}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -985,10 +951,18 @@ export function ComplaintManagement() {
                   <tbody>
                     {selectedOrder.items?.map((item, idx) => (
                       <tr key={idx}>
-                        <td className="p-2.5 border-b border-[#faf6eb] text-[#3e2723]">{item.productName}</td>
-                        <td className="p-2.5 border-b border-[#faf6eb] text-[#3e2723]">{item.price?.toLocaleString("vi-VN")} đ</td>
-                        <td className="p-2.5 border-b border-[#faf6eb] text-[#3e2723]">{item.quantity}</td>
-                        <td className="p-2.5 border-b border-[#faf6eb] text-[#c85a28] font-bold">
+                        <td className="p-2.5 border-b border-[#faf6eb] text-[#3e2723] align-middle">
+                          <div className="font-bold">{item.productName}</div>
+                          <button
+                            onClick={() => handleLockProduct(item.productId || item.id, item.productName)}
+                            className="mt-1 text-[9px] bg-rose-50 text-[#c62828] border border-[#ffcdd2] rounded-lg px-2 py-0.5 font-bold cursor-pointer hover:bg-[#ffebee] transition-colors"
+                          >
+                            Khóa sản phẩm
+                          </button>
+                        </td>
+                        <td className="p-2.5 border-b border-[#faf6eb] text-[#3e2723] align-middle">{item.price?.toLocaleString("vi-VN")} đ</td>
+                        <td className="p-2.5 border-b border-[#faf6eb] text-[#3e2723] align-middle">{item.quantity}</td>
+                        <td className="p-2.5 border-b border-[#faf6eb] text-[#c85a28] font-bold align-middle">
                           {(item.price * item.quantity)?.toLocaleString("vi-VN")} đ
                         </td>
                       </tr>
@@ -1022,6 +996,21 @@ export function ComplaintManagement() {
           </div>
         </div>
       )}
+      <ConfirmModal
+        isOpen={confirmConfig !== null}
+        onClose={() => setConfirmConfig(null)}
+        onConfirm={async () => {
+          if (confirmConfig?.onConfirm) {
+            await confirmConfig.onConfirm();
+          }
+          setConfirmConfig(null);
+        }}
+        title={confirmConfig?.title || ""}
+        message={confirmConfig?.message || ""}
+        confirmText={confirmConfig?.confirmText || "Xác nhận"}
+        cancelText={confirmConfig?.cancelText || "Hủy"}
+        type={confirmConfig?.type || "danger"}
+      />
     </div>
   );
 }
