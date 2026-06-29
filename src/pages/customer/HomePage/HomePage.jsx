@@ -14,9 +14,11 @@ export default function HomePage() {
   const [featuredShops, setFeaturedShops] = useState([]);
   const [campaigns, setCampaigns] = useState([]);
   const [coupons, setCoupons] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
+    setLoading(true);
 
     const load = async () => {
       const [
@@ -78,6 +80,8 @@ export default function HomePage() {
         console.error("Failed to load coupons", couponsResult.reason);
         setCoupons([]);
       }
+
+      setLoading(false);
     };
 
     load();
@@ -91,15 +95,15 @@ export default function HomePage() {
       <div className="mx-auto max-w-7xl">
         <HeroBanner />
 
-        <PromotionsSection campaigns={campaigns} coupons={coupons} />
+        <PromotionsSection campaigns={campaigns} coupons={coupons} loading={loading} />
 
-        <CategoryList categories={categories} />
+        <CategoryList categories={categories} loading={loading} />
 
-        <DealSection products={hotDeals} />
+        <DealSection products={hotDeals} loading={loading} />
 
-        <NewArrivalSection products={newArrivals} />
+        <NewArrivalSection products={newArrivals} loading={loading} />
 
-        <FeaturedShopSection shops={featuredShops} />
+        <FeaturedShopSection shops={featuredShops} loading={loading} />
       </div>
     </main>
   );

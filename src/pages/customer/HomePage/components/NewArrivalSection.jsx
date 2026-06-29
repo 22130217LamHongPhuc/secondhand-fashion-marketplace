@@ -1,7 +1,26 @@
 import ProductCard from "./ProductCard";
+import ProductCardSkeleton from "./ProductCardSkeleton";
 import { newArrivalProducts as fallbackNewArrivalProducts } from "../data";
 
-export default function NewArrivalSection({ products }) {
+export default function NewArrivalSection({ products, loading }) {
+  if (loading) {
+    return (
+      <section className="mt-12">
+        <div className="mb-6 flex items-end justify-between">
+          <div>
+            <div className="h-3 w-20 rounded bg-[#eee8c9] animate-pulse" />
+            <div className="mt-2 h-8 w-48 rounded bg-[#eee8c9] animate-pulse" />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <ProductCardSkeleton key={index} />
+          ))}
+        </div>
+      </section>
+    );
+  }
   const resolvedProducts = Array.isArray(products)
     ? products
     : fallbackNewArrivalProducts;

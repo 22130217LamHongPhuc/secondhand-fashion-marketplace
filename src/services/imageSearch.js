@@ -1,7 +1,5 @@
-import { http } from "@/services/http";
+import { env } from "@/config/env";
 
-const API_BASE =
-  "http://localhost:8000/api/image-search/search-by-image?limit=10";
 export async function searchProductsByImage({ file, limit = 10 }) {
   if (!file) {
     throw new Error("Missing file");
@@ -10,7 +8,14 @@ export async function searchProductsByImage({ file, limit = 10 }) {
   const formData = new FormData();
   formData.append("file", file);
 
-  const res = await fetch(API_BASE, {
+  let baseUrl = env.apiBaseUrl || window.location.origin;
+  if (baseUrl.includes("localhost:8080")) {
+    baseUrl = "http://localhost:8000";
+  }
+
+  const url = `${baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl}/api/image-search/search-by-image?limit=${limit}`;
+
+  const res = await fetch(url, {
     method: "POST",
     body: formData,
   });

@@ -138,7 +138,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
         const formData = new FormData();
         formData.append("file", avatarFile);
 
-        const baseUrl = env.apiBaseUrl || "http://localhost:8080";
+        const baseUrl = env.apiBaseUrl || window.location.origin;
         const uploadRes = await fetch(`${baseUrl}/api/images`, {
           method: "POST",
           body: formData,
