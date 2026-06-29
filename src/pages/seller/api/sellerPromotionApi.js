@@ -1,9 +1,40 @@
 import axiosInstance from "@/config/axios";
 
 const BASE = "/api/seller/promotions";
+const PROMO_BASE = "/api/v1/seller/promotions";
 
 const sellerPromotionApi = {
-  // Coupon Management
+  // === Shop Promotion API (new) ===
+  getPromotions: (params = {}) => {
+    const { keyword, fromDate, toDate, minPrice, maxPrice, sortBy, page = 0, size = 10 } = params;
+    const queryParams = { page, size };
+    if (keyword) queryParams.keyword = keyword;
+    if (fromDate) queryParams.fromDate = fromDate;
+    if (toDate) queryParams.toDate = toDate;
+    if (minPrice !== undefined && minPrice !== null) queryParams.minPrice = minPrice;
+    if (maxPrice !== undefined && maxPrice !== null) queryParams.maxPrice = maxPrice;
+    if (sortBy) queryParams.sortBy = sortBy;
+    
+    return axiosInstance.get(PROMO_BASE, { params: queryParams });
+  },
+  
+  getPromotionDetail: (id) => {
+    return axiosInstance.get(`${PROMO_BASE}/${id}`);
+  },
+  
+  createPromotion: (data) => {
+    return axiosInstance.post(PROMO_BASE, data);
+  },
+  
+  updatePromotion: (id, data) => {
+    return axiosInstance.put(`${PROMO_BASE}/${id}`, data);
+  },
+  
+  changeStatus: (id, status) => {
+    return axiosInstance.patch(`${PROMO_BASE}/${id}/status`, null, { params: { status } });
+  },
+
+  // === Coupon Management (Old) ===
   getCoupons: () => {
     return axiosInstance.get(`${BASE}/coupons`);
   },

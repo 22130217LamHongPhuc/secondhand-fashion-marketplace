@@ -19,9 +19,11 @@ import {
   useSellerCategories,
 } from "../../hooks";
 import { imageApi } from "../../api";
+import sellerProductApi from "../../api/sellerProductApi";
 import { toastService } from "@/services/toastService";
 import ErrorState from "../../components/common/ErrorState";
 import ToggleSwitch from "../../components/common/ToggleSwitch";
+import CloneDataAutocomplete from "../../components/common/CloneDataAutocomplete";
 
 const conditionOptions = ["NEW", "LIKE_NEW", "GOOD", "FAIR"];
 const conditionLabels = {
@@ -472,6 +474,43 @@ const ProductDetailPage = () => {
       <h1 className="font-heading text-3xl font-bold text-neutral-800">
         {isEdit ? "Sửa thông tin sản phẩm" : "Thông tin sản phẩm mới"}
       </h1>
+
+      {!isEdit && (
+        <CloneDataAutocomplete
+          fetchOptions={async (keyword) => {
+            const res = await sellerProductApi.getAll({ keyword });
+            const items = res?.data?.data?.content || [];
+            return items.map(p => ({
+              id: p.id,
+              title: p.name,
+              subtitle: `Giá: ${p.formattedPrice}`,
+              image: p.thumbnailUrl || null,
+            }));
+          }}
+          fetchDetail={async (id) => {
+            const res = await sellerProductApi.getById(id);
+            return res?.data?.data || res?.data;
+          }}
+          onSelectData={(data) => {
+            setFormData({
+              name: data.name || "",
+              categoryId: data.categoryId || "",
+              basePrice: data.basePrice || "",
+              salePrice: data.salePrice || "",
+              brand: data.brand || "",
+              condition: data.condition || "GOOD",
+              description: data.description || "",
+              stockQuantity: data.stockQuantity || 1,
+              originCountry: data.originCountry || "",
+              isActive: true,
+            });
+            setAttributes(data.attributes || []);
+            setTags(data.tags || []);
+            // Clone data doesn't clone images for now, or we can just leave images empty since they need re-upload
+            toastService.success("Đã điền dữ liệu từ sản phẩm cũ!");
+          }}
+        />
+      )}
 
       <div className="grid grid-cols-3 gap-6">
         <div className="col-span-2 space-y-6">

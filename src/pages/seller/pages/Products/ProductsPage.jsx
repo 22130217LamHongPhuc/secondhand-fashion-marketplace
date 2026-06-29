@@ -8,6 +8,7 @@ import {
   FileSpreadsheet,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
 } from "lucide-react";
 import {
   useSellerProductList,
@@ -18,6 +19,7 @@ import { Pagination } from "../../models";
 import TableSkeleton from "../../components/common/TableSkeleton";
 import ErrorState from "../../components/common/ErrorState";
 import EmptyState from "../../components/common/EmptyState";
+import AdvancedFilter from "../../components/common/AdvancedFilter";
 
 const statusTabs = [
   { label: "Tất cả", id: "all" },
@@ -58,6 +60,8 @@ const ProductsPage = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [searchInput, setSearchInput] = useState("");
   const [debouncedKeyword, setDebouncedKeyword] = useState("");
+  const [advancedFilters, setAdvancedFilters] = useState({});
+  const [sortBy, setSortBy] = useState("newest");
   const navigate = useNavigate();
 
   // Debounce search input
@@ -72,6 +76,7 @@ const ProductsPage = () => {
 
   const queryParams = {
     page: currentPage,
+    sortBy,
   };
   if (debouncedKeyword.trim()) {
     queryParams.keyword = debouncedKeyword.trim();
@@ -81,6 +86,11 @@ const ProductsPage = () => {
   } else if (activeTab === 2) {
     queryParams.isActive = false;
   }
+
+  if (advancedFilters.fromDate) queryParams.fromDate = advancedFilters.fromDate;
+  if (advancedFilters.toDate) queryParams.toDate = advancedFilters.toDate;
+  if (advancedFilters.minPrice !== undefined) queryParams.minPrice = advancedFilters.minPrice;
+  if (advancedFilters.maxPrice !== undefined) queryParams.maxPrice = advancedFilters.maxPrice;
 
   const {
     data,
@@ -96,7 +106,7 @@ const ProductsPage = () => {
     if (total <= 5) {
       return Array.from({ length: total }, (_, i) => i);
     }
-    
+
     let start = 0;
     if (currentPage <= 1) {
       start = 0;
@@ -105,7 +115,7 @@ const ProductsPage = () => {
     } else {
       start = currentPage;
     }
-    
+
     const pages = [start, start + 1, start + 2];
     if (start + 2 < total - 1) {
       pages.push("...");
@@ -157,22 +167,43 @@ const ProductsPage = () => {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1">
+        <div className="flex gap-1 flex-1">
           {statusTabs.map((tab, i) => (
             <div
               key={tab.id}
               onClick={() => handleTabChange(i)}
-              className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all ${
-                activeTab === i
+              className={`flex items-center cursor-pointer gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all ${activeTab === i
                   ? "bg-accent-yellow text-gray-600 shadow-md"
                   : "text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700"
-              }`}
+                }`}
             >
               {tab.label}
             </div>
           ))}
         </div>
+
+        {/* Sort By Dropdown */}
+        <div className="relative">
+          <select
+            value={sortBy}
+            onChange={(e) => {
+              setSortBy(e.target.value);
+              setCurrentPage(0);
+            }}
+            className="appearance-none rounded-xl border border-neutral-200 bg-white px-4 py-2.5 pr-10 text-sm font-medium text-neutral-600 outline-none transition-all hover:bg-neutral-50 focus:border-brand-primary/40 focus:ring-2 focus:ring-brand-primary/10 cursor-pointer"
+          >
+            <option value="newest">Mới nhất</option>
+            <option value="oldest">Cũ nhất</option>
+            <option value="price_asc">Giá tăng dần</option>
+            <option value="price_desc">Giá giảm dần</option>
+          </select>
+          <div className="pointer-events-none absolute right-3 top-7 -translate-y-1/2 text-neutral-400">
+            <ChevronDown size={16} />
+          </div>
+        </div>
       </div>
+
+      <AdvancedFilter onApply={(filters) => { setAdvancedFilters(filters); setCurrentPage(0); }} />
 
       {/* Data Area */}
       {loading ? (
@@ -312,11 +343,10 @@ const ProductsPage = () => {
                       <div
                         key={n}
                         onClick={() => setCurrentPage(n)}
-                        className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold transition-colors hover:bg-neutral-150 cursor-pointer ${
-                          currentPage === n
+                        className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold transition-colors hover:bg-neutral-150 cursor-pointer ${currentPage === n
                             ? "bg-accent-yellow shadow-lg text-gray-700 font-bold"
                             : "text-neutral-500 hover:bg-neutral-100"
-                        }`}
+                          }`}
                       >
                         {n + 1}
                       </div>

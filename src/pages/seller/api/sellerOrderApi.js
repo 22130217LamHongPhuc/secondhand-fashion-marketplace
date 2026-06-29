@@ -17,31 +17,22 @@ const sellerOrderApi = {
   },
 
   /**
-   * 3. Lay danh sach don hang theo trang thai
-   * GET /api/seller/orders?status=PENDING&page=0&orderCode=ABC
+   * 3. Tim kiem don hang
+   * GET /api/seller/orders
    */
-  getByStatus: (params = {}) => {
-    const { status, orderCode, page = 0 } = params;
+  searchOrders: (params = {}) => {
+    const { status, orderCode, fromDate, toDate, minPrice, maxPrice, sortBy, page = 0 } = params;
     const queryParams = { page };
-    if ((!status || status === "ALL") && !orderCode) {
-      return axiosInstance.get(`${BASE}/all`, { params: queryParams });
-    }
-    if (status && status !== "ALL") {
-      queryParams.status = status;
-    }
-    if (orderCode) {
-      queryParams.orderCode = orderCode;
-    }
-    return axiosInstance.get(`${BASE}`, { params: queryParams });
-  },
+    
+    if (status && status !== "ALL") queryParams.status = status;
+    if (orderCode) queryParams.orderCode = orderCode;
+    if (fromDate) queryParams.fromDate = fromDate;
+    if (toDate) queryParams.toDate = toDate;
+    if (minPrice !== undefined && minPrice !== null) queryParams.minPrice = minPrice;
+    if (maxPrice !== undefined && maxPrice !== null) queryParams.maxPrice = maxPrice;
+    if (sortBy) queryParams.sortBy = sortBy;
 
-  /**
-   * 4. Lay danh sach don hang thang hien tai
-   * GET /api/seller/orders/current-month?page=0
-   */
-  getCurrentMonth: (params = {}) => {
-    const { page = 0 } = params;
-    return axiosInstance.get(`${BASE}/current-month`, { params: { page } });
+    return axiosInstance.get(BASE, { params: queryParams });
   },
 
   /**

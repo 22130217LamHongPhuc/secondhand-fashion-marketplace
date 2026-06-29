@@ -16,7 +16,7 @@ const sellerProductApi = {
    * GET /api/seller/products?keyword=&isActive=&page=0
    */
   getAll: (params = {}) => {
-    const { keyword, isActive, page = 0 } = params;
+    const { keyword, isActive, fromDate, toDate, minPrice, maxPrice, sortBy, page = 0 } = params;
     const queryParams = { page };
     if (keyword) {
       queryParams.keyword = keyword;
@@ -24,6 +24,11 @@ const sellerProductApi = {
     if (isActive !== undefined && isActive !== null) {
       queryParams.isActive = isActive;
     }
+    if (fromDate) queryParams.fromDate = fromDate;
+    if (toDate) queryParams.toDate = toDate;
+    if (minPrice !== undefined && minPrice !== null) queryParams.minPrice = minPrice;
+    if (maxPrice !== undefined && maxPrice !== null) queryParams.maxPrice = maxPrice;
+    if (sortBy) queryParams.sortBy = sortBy;
     return axiosInstance.get(BASE, {
       params: queryParams,
     });

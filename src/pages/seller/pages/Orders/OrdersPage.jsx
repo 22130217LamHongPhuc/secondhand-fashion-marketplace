@@ -9,6 +9,7 @@ import {
   ChevronRight,
   Check,
   Search,
+  ChevronDown,
 } from "lucide-react";
 import {
   useSellerOrdersByStatus,
@@ -22,6 +23,7 @@ import { Pagination } from "../../models";
 import TableSkeleton from "../../components/common/TableSkeleton";
 import ErrorState from "../../components/common/ErrorState";
 import EmptyState from "../../components/common/EmptyState";
+import AdvancedFilter from "../../components/common/AdvancedFilter";
 
 const statusTabs = [
   { label: "Tất cả", id: "ALL", icon: null },
@@ -66,6 +68,8 @@ const OrdersPage = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [searchInput, setSearchInput] = useState("");
   const [debouncedOrderCode, setDebouncedOrderCode] = useState("");
+  const [advancedFilters, setAdvancedFilters] = useState({});
+  const [sortBy, setSortBy] = useState("newest");
 
   // Debounce search input
   useEffect(() => {
@@ -79,6 +83,7 @@ const OrdersPage = () => {
 
   const queryParams = {
     page: currentPage,
+    sortBy,
   };
   const activeStatus = statusTabs[activeTab].id;
   if (activeStatus !== "ALL") {
@@ -87,6 +92,11 @@ const OrdersPage = () => {
   if (debouncedOrderCode) {
     queryParams.orderCode = debouncedOrderCode;
   }
+
+  if (advancedFilters.fromDate) queryParams.fromDate = advancedFilters.fromDate;
+  if (advancedFilters.toDate) queryParams.toDate = advancedFilters.toDate;
+  if (advancedFilters.minPrice !== undefined) queryParams.minPrice = advancedFilters.minPrice;
+  if (advancedFilters.maxPrice !== undefined) queryParams.maxPrice = advancedFilters.maxPrice;
 
   const {
     data,
@@ -101,7 +111,7 @@ const OrdersPage = () => {
     if (total <= 5) {
       return Array.from({ length: total }, (_, i) => i);
     }
-    
+
     let start = 0;
     if (currentPage <= 1) {
       start = 0;
@@ -110,7 +120,7 @@ const OrdersPage = () => {
     } else {
       start = currentPage;
     }
-    
+
     const pages = [start, start + 1, start + 2];
     if (start + 2 < total - 1) {
       pages.push("...");
@@ -174,7 +184,7 @@ const OrdersPage = () => {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1">
+        <div className="flex gap-1 flex-1">
           {statusTabs.map((tab, i) => {
             const Icon = tab.icon;
             const isActive = activeTab === i;
@@ -194,7 +204,29 @@ const OrdersPage = () => {
             );
           })}
         </div>
+
+        {/* Sort By Dropdown */}
+        <div className="relative">
+          <select
+            value={sortBy}
+            onChange={(e) => {
+              setSortBy(e.target.value);
+              setCurrentPage(0);
+            }}
+            className="appearance-none rounded-xl border border-neutral-200 bg-white px-4 py-2.5 pr-10 text-sm font-medium text-neutral-600 outline-none transition-all hover:bg-neutral-50 focus:border-brand-primary/40 focus:ring-2 focus:ring-brand-primary/10 cursor-pointer"
+          >
+            <option value="newest">Mới nhất</option>
+            <option value="oldest">Cũ nhất</option>
+            <option value="price_asc">Giá tăng dần</option>
+            <option value="price_desc">Giá giảm dần</option>
+          </select>
+          <div className="pointer-events-none absolute right-3 top-7 -translate-y-1/2 text-neutral-400">
+            <ChevronDown size={16} />
+          </div>
+        </div>
       </div>
+
+      <AdvancedFilter onApply={(filters) => { setAdvancedFilters(filters); setCurrentPage(0); }} />
 
       {/* Data Area */}
       {loading ? (
@@ -340,11 +372,10 @@ const OrdersPage = () => {
                       <div
                         key={n}
                         onClick={() => setCurrentPage(n)}
-                        className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold transition-colors hover:bg-neutral-150 cursor-pointer ${
-                          currentPage === n
+                        className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold transition-colors hover:bg-neutral-150 cursor-pointer ${currentPage === n
                             ? "bg-accent-yellow shadow-lg text-gray-700 font-bold"
                             : "text-neutral-500 hover:bg-neutral-100"
-                        }`}
+                          }`}
                       >
                         {n + 1}
                       </div>

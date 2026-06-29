@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Bell, ImageUp, MessageCircle, ReceiptText, Search, ShoppingCart, User, LogOut, X, Shield, AlertCircle } from "lucide-react";
+import { Bell, ImageUp, MessageCircle, ReceiptText, Search, ShoppingCart, User, LogOut, X, Shield, AlertCircle, Store } from "lucide-react";
 import { Outlet, useNavigate } from "react-router-dom";
 import AuthModal from "./AuthModal";
 import CustomerChatWidget from "./CustomerChatWidget";
@@ -71,14 +71,14 @@ export default function CustomerLayout() {
       const isResolved = data.status === "RESOLVED";
       const statusLabel = isResolved ? "được giải quyết" : "bị từ chối";
       const message = `Khiếu nại #${data.complaintId} của bạn đã ${statusLabel}. Chi tiết: ${data.resolution || ""}`;
-      
+
       // Show toast
       if (isResolved) {
         toastService.success(message, { autoClose: 7000 });
       } else {
         toastService.info(message, { autoClose: 7000 });
       }
-      
+
       // Add notification to list
       const newNotif = {
         id: Date.now(),
@@ -356,9 +356,8 @@ export default function CustomerLayout() {
                           onClick={() => {
                             setNotifications(prev => prev.map(item => item.id === n.id ? { ...item, read: true } : item));
                           }}
-                          className={`flex flex-col gap-1 p-3 rounded-xl transition duration-150 cursor-pointer mb-1 ${
-                            n.read ? "bg-white hover:bg-[#faf7e7]" : "bg-[#faf7e7]/70 hover:bg-[#faf7e7]"
-                          }`}
+                          className={`flex flex-col gap-1 p-3 rounded-xl transition duration-150 cursor-pointer mb-1 ${n.read ? "bg-white hover:bg-[#faf7e7]" : "bg-[#faf7e7]/70 hover:bg-[#faf7e7]"
+                            }`}
                         >
                           <div className="flex justify-between items-center">
                             <span className="text-xs font-extrabold text-[#3f3b2f] flex items-center gap-1.5">
@@ -459,11 +458,10 @@ export default function CustomerLayout() {
                                   {conversation.productName}
                                 </p>
                               )}
-                              <p className={`mt-1 truncate text-xs ${
-                                conversation.customerUnreadCount > 0
+                              <p className={`mt-1 truncate text-xs ${conversation.customerUnreadCount > 0
                                   ? "font-bold text-[#3f3b2f]"
                                   : "font-normal text-[#9c927b]"
-                              }`}>
+                                }`}>
                                 {conversation.lastMessagePreview || "Chưa có tin nhắn"}
                               </p>
                             </div>
@@ -533,9 +531,9 @@ export default function CustomerLayout() {
                         </p>
                       )}
                     </div>
-                    
+
                     <hr className="my-1.5 border-[#faf7e7]" />
-                    
+
                     <button
                       onClick={() => {
                         setIsDropdownOpen(false);
@@ -558,17 +556,24 @@ export default function CustomerLayout() {
                       Khiếu nại của tôi
                     </button>
 
-                    {/* Admin/Seller link - show for ADMIN or SELLER role */}
-                    {(user.role === "ADMIN" || user.role === "SELLER" || user.roleId === 3 || user.roleId === 2) && (
+                    {/* Seller Dashboard link - show for all logged in users */}
+                    <button
+                      onClick={() => {
+                        setIsDropdownOpen(false);
+                        navigate("/seller/dashboard");
+                      }}
+                      className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-bold text-[#706b5c] hover:bg-[#faf7e7] hover:text-[#b84a25] transition cursor-pointer"
+                    >
+                      <Store size={15} />
+                      Cửa hàng
+                    </button>
+
+                    {/* Admin link - show for ADMIN role */}
+                    {(user.role === "ADMIN" || user.roleId === 3) && (
                       <button
                         onClick={() => {
                           setIsDropdownOpen(false);
-                          // Navigate to admin page if ADMIN (roleId 3), seller page if SELLER (roleId 2)
-                          if (user.role === "ADMIN" || user.roleId === 3) {
-                            navigate("/admin");
-                          } else if (user.role === "SELLER" || user.roleId === 2) {
-                            navigate("/seller");
-                          }
+                          navigate("/admin");
                         }}
                         className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-bold text-[#706b5c] hover:bg-[#faf7e7] hover:text-[#b84a25] transition cursor-pointer"
                       >
@@ -576,7 +581,7 @@ export default function CustomerLayout() {
                         Trang quản trị
                       </button>
                     )}
-                    
+
                     <button
                       onClick={() => {
                         setIsDropdownOpen(false);

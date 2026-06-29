@@ -31,3 +31,10 @@ export {
 } from "./useSellerShop";
 
 export * from "./sellerQueryKeys";
+
+export {
+  useSellerPromotionList,
+  useCreatePromotion,
+  useUpdatePromotion,
+  useChangePromotionStatus,
+} from "./useSellerPromotions";
