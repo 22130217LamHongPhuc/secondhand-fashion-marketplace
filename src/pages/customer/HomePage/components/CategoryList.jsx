@@ -1,8 +1,36 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { categories as fallbackCategories } from "../data";
 
-export default function CategoryList({ categories }) {
+export default function CategoryList({ categories, loading }) {
   const navigate = useNavigate();
+  const [showAll, setShowAll] = useState(false);
+
+  if (loading) {
+    return (
+      <section className="mt-8">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <div className="h-3 w-20 rounded bg-[#eee8c9] animate-pulse" />
+            <div className="mt-2 h-7 w-56 rounded bg-[#eee8c9] animate-pulse" />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <div
+              key={index}
+              className="rounded-3xl bg-white p-5 text-left shadow-sm ring-1 ring-black/5 flex flex-col items-start"
+            >
+              <div className="h-12 w-12 rounded-2xl bg-[#eee8c9] animate-pulse" />
+              <div className="mt-4 h-4 w-20 rounded bg-[#eee8c9] animate-pulse" />
+              <div className="mt-2 h-3 w-16 rounded bg-[#eee8c9] animate-pulse" />
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
 
   const resolvedCategories = Array.isArray(categories)
     ? categories
@@ -18,6 +46,8 @@ export default function CategoryList({ categories }) {
       icon: category?.icon ?? fallbackIcon,
     };
   });
+
+  const visibleCategories = showAll ? withIcons : withIcons.slice(0, 12);
 
   const handleViewCategory = (id) => {
     navigate(`/products?categoryIds=${id}`);
@@ -35,13 +65,18 @@ export default function CategoryList({ categories }) {
           </h2>
         </div>
 
-        <button className="hidden text-sm font-bold text-[#c65a2e] hover:underline sm:block">
-          Xem tất cả →
-        </button>
+        {withIcons.length > 12 && (
+          <button
+            onClick={() => setShowAll(!showAll)}
+            className="text-sm font-bold text-[#c65a2e] hover:underline cursor-pointer"
+          >
+            {showAll ? "Thu gọn ↑" : "Xem tất cả →"}
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-        {withIcons.map((category) => {
+        {visibleCategories.map((category) => {
           const Icon = category.icon;
           const iconUrl =
             typeof category?.iconUrl === "string" && category.iconUrl.trim()

@@ -2,8 +2,44 @@ import { Star } from "lucide-react";
 import { featuredShops as fallbackFeaturedShops } from "../data";
 import { useNavigate } from "react-router-dom";
 
-export default function FeaturedShopSection({ shops }) {
+export default function FeaturedShopSection({ shops, loading }) {
   const navigate = useNavigate();
+
+  if (loading) {
+    return (
+      <section className="mt-12">
+        <div className="mb-6">
+          <div className="h-3 w-20 rounded bg-[#eee8c9] animate-pulse" />
+          <div className="mt-2 h-8 w-56 rounded bg-[#eee8c9] animate-pulse" />
+        </div>
+
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <article
+              key={index}
+              className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-black/5"
+            >
+              <div className="h-40 bg-[#eee8c9] animate-pulse" />
+              <div className="p-5 space-y-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 space-y-2">
+                    <div className="h-5 w-1/2 rounded bg-[#eee8c9] animate-pulse" />
+                    <div className="h-3 w-full rounded bg-[#eee8c9] animate-pulse animate-pulse" />
+                    <div className="h-3 w-3/4 rounded bg-[#eee8c9] animate-pulse" />
+                  </div>
+                  <div className="h-7 w-12 rounded-full bg-[#eee8c9] animate-pulse shrink-0" />
+                </div>
+                <div className="mt-5 flex items-center justify-between pt-2">
+                  <div className="h-4 w-20 rounded bg-[#eee8c9] animate-pulse" />
+                  <div className="h-9 w-24 rounded-full bg-[#eee8c9] animate-pulse" />
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+    );
+  }
 
   const resolvedShops = Array.isArray(shops) ? shops : fallbackFeaturedShops;
 

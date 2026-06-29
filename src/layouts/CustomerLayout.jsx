@@ -117,6 +117,12 @@ export default function CustomerLayout() {
   }, []);
 
   useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setChatConversations([]);
+      return;
+    }
+
     let isMounted = true;
     chatMockService.getConversations("CUSTOMER")
       .then((conversations) => {
@@ -134,7 +140,7 @@ export default function CustomerLayout() {
       isMounted = false;
       unsubscribe();
     };
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     const loadUser = async () => {

@@ -3,6 +3,7 @@ import {
   ProductGallery,
   ProductInfoPanel,
   SimilarProducts,
+  ProductDetailSkeleton,
 } from "./components";
 import WriteReviewModal from "./components/WriteReviewModal";
 import { reviewService } from "@/services/reviewService";
@@ -334,11 +335,7 @@ export default function ProductDetailPage() {
   }, [product]);
 
   if (loading) {
-    return (
-      <div className="py-10 text-sm font-semibold text-[#7c7565]">
-        Đang tải chi tiết sản phẩm...
-      </div>
-    );
+    return <ProductDetailSkeleton />;
   }
 
   if (error || !product || !infoProduct) {

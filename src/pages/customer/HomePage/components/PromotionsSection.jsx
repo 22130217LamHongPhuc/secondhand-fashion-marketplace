@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Gift, Tag, Sparkles, Clock, Check, Calendar, ArrowRight } from "lucide-react";
 import { toastService } from "@/services/toastService";
 
-export default function PromotionsSection({ campaigns = [], coupons = [] }) {
+export default function PromotionsSection({ campaigns = [], coupons = [], loading }) {
   const [savedCoupons, setSavedCoupons] = useState([]);
   const [savedCampaigns, setSavedCampaigns] = useState([]);
 
@@ -44,6 +44,83 @@ export default function PromotionsSection({ campaigns = [], coupons = [] }) {
   };
 
   const hasPromotions = campaigns.length > 0 || coupons.length > 0;
+
+  if (loading) {
+    return (
+      <div className="mt-10 space-y-12">
+        {/* Campaigns Skeleton */}
+        <section>
+          <div className="mb-6 flex items-end justify-between">
+            <div>
+              <div className="mb-1 flex items-center gap-2">
+                <span className="h-[2px] w-8 rounded-full bg-[#c65a2e]" />
+                <div className="h-3 w-16 rounded bg-[#eee8c9] animate-pulse" />
+              </div>
+              <div className="mt-1 h-8 w-60 rounded bg-[#eee8c9] animate-pulse" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            {Array.from({ length: 2 }).map((_, index) => (
+              <div
+                key={index}
+                className="group relative overflow-hidden rounded-2xl border border-[#e8dfd5] bg-white shadow-sm"
+              >
+                <div className="relative h-48 w-full bg-[#eee8c9] animate-pulse" />
+                <div className="p-6 space-y-3">
+                  <div className="h-5 w-1/2 rounded bg-[#eee8c9] animate-pulse" />
+                  <div className="h-3.5 w-full rounded bg-[#eee8c9] animate-pulse" />
+                  <div className="h-3.5 w-3/4 rounded bg-[#eee8c9] animate-pulse" />
+                  <div className="mt-4 pt-4 border-t border-[#f2ece4] flex items-center justify-between">
+                    <div className="h-4 w-28 rounded bg-[#eee8c9] animate-pulse" />
+                    <div className="h-8 w-28 rounded-xl bg-[#eee8c9] animate-pulse" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Coupons Skeleton */}
+        <section>
+          <div className="mb-6 flex items-end justify-between">
+            <div>
+              <div className="mb-1 flex items-center gap-2">
+                <span className="h-[2px] w-8 rounded-full bg-[#c65a2e]" />
+                <div className="h-3 w-16 rounded bg-[#eee8c9] animate-pulse" />
+              </div>
+              <div className="mt-1 h-8 w-60 rounded bg-[#eee8c9] animate-pulse" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <div
+                key={index}
+                className="flex items-stretch overflow-hidden rounded-2xl border border-[#e8dfd5] bg-white shadow-sm h-36"
+              >
+                {/* Left voucher stub skeleton */}
+                <div className="w-28 bg-[#eee8c9] animate-pulse shrink-0 relative flex items-center justify-center">
+                  <div className="absolute top-1/2 -right-2 h-4 w-4 -translate-y-1/2 rounded-full bg-[#fbfae6] border-l border-[#e8dfd5]" />
+                </div>
+                {/* Right voucher body skeleton */}
+                <div className="flex-1 p-5 flex flex-col justify-between pl-6 space-y-2 relative">
+                  <div className="absolute top-1/2 -left-2 h-4 w-4 -translate-y-1/2 rounded-full bg-[#fbfae6] border-r border-[#e8dfd5]" />
+                  <div className="h-4 w-16 rounded bg-[#eee8c9] animate-pulse" />
+                  <div className="h-4 w-3/4 rounded bg-[#eee8c9] animate-pulse" />
+                  <div className="h-3 w-5/6 rounded bg-[#eee8c9] animate-pulse" />
+                  <div className="mt-4 flex items-center justify-between border-t border-[#f2ece4] pt-3">
+                    <div className="h-3 w-12 rounded bg-[#eee8c9] animate-pulse" />
+                    <div className="h-6 w-16 rounded-lg bg-[#eee8c9] animate-pulse" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+    );
+  }
 
   if (!hasPromotions) return null;
 
