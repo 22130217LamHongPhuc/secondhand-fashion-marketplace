@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 const fallbackAvatar =
   "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=80&q=80";
@@ -7,6 +7,63 @@ const fallbackAvatar =
 export function AdminLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const location = useLocation();
+  const navigate = useNavigate();
+  const [authorized, setAuthorized] = useState(false);
+  const [forbidden, setForbidden] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const storedUser = localStorage.getItem("user");
+
+    if (!token || !storedUser) {
+      navigate("/?login=true", { replace: true });
+      return;
+    }
+
+    try {
+      const user = JSON.parse(storedUser);
+      const isAdmin = 
+        String(user.role).toUpperCase() === "ADMIN" || 
+        Number(user.roleId) === 3;
+
+      if (!isAdmin) {
+        setForbidden(true);
+        return;
+      }
+      setAuthorized(true);
+    } catch (error) {
+      console.error("Error parsing user info:", error);
+      navigate("/?login=true", { replace: true });
+    }
+  }, [navigate]);
+
+  if (forbidden) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#faf9f6] px-4 text-center">
+        <div className="max-w-md p-8 bg-white border border-[#e7dfbd] rounded-2xl shadow-lg">
+          <span className="inline-flex p-3 rounded-full bg-red-50 text-red-500 mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </span>
+          <h2 className="text-xl font-extrabold text-stone-900 mb-2">Không có quyền truy cập</h2>
+          <p className="text-sm text-stone-600 mb-6">Bạn không có quyền truy cập vào trang quản trị này. Vui lòng quay lại trang chủ.</p>
+          <button 
+            onClick={() => navigate("/")}
+            className="px-6 py-2.5 bg-[#c85a28] hover:bg-[#b84c1a] text-white font-bold text-sm rounded-xl transition-all shadow-md cursor-pointer"
+          >
+            Quay lại trang chủ
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!authorized) {
+    return null;
+  }
 
   const isActive = (path) => location.pathname === path;
 
@@ -223,11 +280,10 @@ export function AdminLayout({ children }) {
     <div className="flex h-full w-full bg-[#faf9f6]">
       {/* Sidebar */}
       <aside
-        className={`bg-stone-950 text-stone-400 flex flex-col transition-all duration-300 ease-in-out shadow-[4px_0_24px_rgba(0,0,0,0.15)] border-r border-stone-900 overflow-hidden fixed md:relative h-screen md:h-full z-[1000] md:z-auto ${
-          sidebarOpen
+        className={`bg-stone-950 text-stone-400 flex flex-col transition-all duration-300 ease-in-out shadow-[4px_0_24px_rgba(0,0,0,0.15)] border-r border-stone-900 overflow-hidden fixed md:relative h-screen md:h-full z-[1000] md:z-auto ${sidebarOpen
             ? "w-[220px] translate-x-0"
             : "w-0 border-r-0 -translate-x-full md:translate-x-0 md:w-0 shadow-none"
-        }`}
+          }`}
       >
         <div className="p-5 border-b border-stone-900">
           <div className="flex justify-between items-center">
@@ -268,11 +324,10 @@ export function AdminLayout({ children }) {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center gap-3.5 py-3 px-4 text-sm font-semibold transition-all duration-200 cursor-pointer ${
-                  active
+                className={`flex items-center gap-3.5 py-3 px-4 text-sm font-semibold transition-all duration-200 cursor-pointer ${active
                     ? "bg-[#c85a28] text-white rounded-xl mx-3 shadow-[0_4px_12px_rgba(200,90,40,0.25)]"
                     : "text-stone-400 hover:bg-stone-900 hover:text-stone-100 rounded-xl mx-3"
-                }`}
+                  }`}
               >
                 <span className={`min-w-[18px] inline-flex items-center justify-center transition-transform duration-200 ${active ? "scale-110 text-white" : "text-stone-500 group-hover:text-stone-200"}`}>{item.icon}</span>
                 {sidebarOpen && <span className="whitespace-nowrap overflow-hidden flex-1">{item.label}</span>}
@@ -283,6 +338,11 @@ export function AdminLayout({ children }) {
 
         <div className="p-4 border-t border-stone-900 flex flex-col gap-2">
           <button
+            onClick={() => {
+              localStorage.removeItem("token");
+              localStorage.removeItem("user");
+              navigate("/", { replace: true });
+            }}
             className="w-full py-3 px-4 bg-[#c85a28] hover:bg-[#b84c1a] text-white border-none rounded-xl cursor-pointer font-bold text-sm transition-all duration-200 shadow-md shadow-orange-950/20 active:scale-[0.98]"
             title="Đăng xuất"
           >
@@ -338,7 +398,7 @@ export function AdminLayout({ children }) {
                 </svg>
               </button>
             )}
-            
+
           </div>
         </div>
 

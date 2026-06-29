@@ -4,71 +4,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { cartService } from "@/services/cartService";
 import { customerOrderService } from "@/services/customerOrder";
 import { userService } from "@/services/user";
-import { customerShopService } from "@/services/customerShop";
 import { toastService } from "@/services/toastService";
-import { env } from "@/config/env";
-
-const ghnFetch = async (path, options = {}) => {
-  const response = await fetch(`${env.ghnBaseUrl}${path}`, {
-    ...options,
-    headers: {
-      Token: env.ghnToken,
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-    },
-  });
-
-  const payload = await response.json();
-
-  if (!response.ok || payload.code !== 200) {
-    throw new Error(payload.message || "GHN API error");
-  }
-
-  return payload.data;
-};
-
-let effectiveGhnShopIdPromise;
-
-const getEffectiveGhnShopId = async () => {
-  if (!effectiveGhnShopIdPromise) {
-    effectiveGhnShopIdPromise = ghnFetch("/v2/shop/all", {
-      method: "POST",
-      body: JSON.stringify({
-        offset: 0,
-        limit: 50,
-        client_phone: "",
-      }),
-    }).then((data) => {
-      const shops = data?.shops || [];
-      const configuredShop = shops.find(
-        (shop) => String(shop._id) === String(env.ghnShopId),
-      );
-
-      if (configuredShop) {
-        return String(configuredShop._id);
-      }
-
-      const firstActiveShop = shops.find((shop) => shop.status === 1) || shops[0];
-
-      if (!firstActiveShop?._id) {
-        throw new Error("GHN token không có shop/store hợp lệ.");
-      }
-
-      console.warn(
-        "VITE_GHN_SHOP_ID không nằm trong danh sách shop của token. Tạm dùng GHN shop đầu tiên.",
-        {
-          configuredShopId: env.ghnShopId,
-          effectiveShopId: firstActiveShop._id,
-          shops,
-        },
-      );
-
-      return String(firstActiveShop._id);
-    });
-  }
-
-  return effectiveGhnShopIdPromise;
-};
+import { shippingService } from "@/services/shippingService";
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
@@ -84,7 +21,6 @@ export default function CheckoutPage() {
   // GHN Address & Dynamic Shipping Fee States
   const [shippingFee, setShippingFee] = useState(0);
   const [calculatingShip, setCalculatingShip] = useState(false);
-  const [shopAddresses, setShopAddresses] = useState({});
 
   // Initialize checkout items based on state, or fallback to full cart, or redirect
   useEffect(() => {
@@ -168,43 +104,7 @@ export default function CheckoutPage() {
 
   const shopsCount = Object.keys(groupedItems).length;
 
-  // Load shop addresses (province_id, district_id, ward_code) for shipping calculation
-  useEffect(() => {
-    if (itemsToBuy.length === 0) return;
-
-    const fetchShopAddresses = async () => {
-      const uniqueShopIds = [...new Set(itemsToBuy.map(item => item.shopId).filter(Boolean))];
-      const newAddresses = { ...shopAddresses };
-      let updated = false;
-
-      for (const shopId of uniqueShopIds) {
-        if (!newAddresses[shopId]) {
-          try {
-            const shopData = await customerShopService.getById(shopId);
-            const shopInfo = shopData?.shop || shopData;
-            if (shopInfo) {
-              newAddresses[shopId] = {
-                provinceId: shopInfo.provinceId,
-                districtId: shopInfo.districtId,
-                wardCode: shopInfo.wardCode,
-              };
-              updated = true;
-            }
-          } catch (e) {
-            console.error("Error fetching shop address for shop " + shopId, e);
-          }
-        }
-      }
-
-      if (updated) {
-        setShopAddresses(newAddresses);
-      }
-    };
-
-    fetchShopAddresses();
-  }, [itemsToBuy]);
-
-  // Calculate dynamic shipping fee using GHN API
+  // Calculate dynamic shipping fee through backend GHN integration
   useEffect(() => {
     if (itemsToBuy.length === 0) return;
 
@@ -216,98 +116,30 @@ export default function CheckoutPage() {
     const calculateTotalShippingFee = async () => {
       setCalculatingShip(true);
       try {
-        const toDistrictId = Number(shippingAddress.districtId);
-        const toWardCode = shippingAddress.wardCode ? String(shippingAddress.wardCode) : "";
+        const quote = await shippingService.quoteFee({
+          customerId: user?.userId,
+          shippingAddressId: shippingAddress.id,
+          items: itemsToBuy.map(item => ({
+            productId: item.id,
+            quantity: item.quantity || 1,
+          })),
+        });
 
-        if (!toDistrictId || !toWardCode) {
-          console.warn("Thiếu districtId/wardCode của địa chỉ giao hàng, dùng phí fallback.", shippingAddress);
-          setShippingFee(shopsCount * 30000);
-          return;
+        if (quote?.fallbackUsed) {
+          console.warn(quote.message || "Một số phí vận chuyển đang dùng phí mặc định.");
         }
 
-        let totalFee = 0;
-        const effectiveGhnShopId = await getEffectiveGhnShopId();
-        
-        for (const [shopId, group] of Object.entries(groupedItems)) {
-          const shopAddr = shopAddresses[shopId];
-          const fromDistrictId = Number(shopAddr?.districtId);
-          const fromWardCode = shopAddr?.wardCode ? String(shopAddr.wardCode) : "";
-
-          if (!fromDistrictId || !fromWardCode) {
-            console.warn("Thiếu districtId/wardCode của shop, dùng phí fallback.", {
-              shopId,
-              shopAddr,
-            });
-            totalFee += 30000;
-            continue;
-          }
-          
-          let totalWeight = 0;
-          let totalHeight = 0;
-          let shopSubtotal = 0;
-
-          group.items.forEach(item => {
-            const qty = item.quantity || 1;
-            totalWeight += (item.weight || 500) * qty;
-            totalHeight += (item.height || 5) * qty;
-            shopSubtotal += item.price * qty;
-          });
-
-          try {
-            const response = await fetch(`${env.ghnBaseUrl}/v2/shipping-order/fee`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "Token": env.ghnToken,
-                "ShopId": effectiveGhnShopId
-              },
-              body: JSON.stringify({
-                from_district_id: fromDistrictId,
-                from_ward_code: fromWardCode,
-                service_id: null,
-                service_type_id: 2, // Standard Shipping
-                to_district_id: toDistrictId,
-                to_ward_code: toWardCode,
-                height: totalHeight,
-                length: 20,
-                weight: totalWeight,
-                width: 15,
-                insurance_value: shopSubtotal,
-                cod_failed_amount: 0
-              })
-            });
-
-            const resData = await response.json();
-            if (resData.code === 200 && resData.data?.total) {
-              totalFee += resData.data.total;
-            } else {
-              console.warn("GHN fee API fallback at checkout", {
-                marketplaceShopId: shopId,
-                ghnShopId: effectiveGhnShopId,
-                fromDistrictId,
-                fromWardCode,
-                toDistrictId,
-                toWardCode,
-                resData,
-              });
-              totalFee += 30000; // Fallback per shop
-            }
-          } catch (e) {
-            console.error("Error calling GHN shipping API", e);
-            totalFee += 30000;
-          }
-        }
-        
-        setShippingFee(totalFee);
+        setShippingFee(Number(quote?.totalFee) || shopsCount * 30000);
       } catch (err) {
         console.error("Error calculating total shipping fee", err);
+        setShippingFee(shopsCount * 30000);
       } finally {
         setCalculatingShip(false);
       }
     };
 
     calculateTotalShippingFee();
-  }, [shippingAddress, shopAddresses, itemsToBuy]);
+  }, [shippingAddress, itemsToBuy, shopsCount, user?.userId]);
 
   const handleCheckout = async () => {
     if (!user) {

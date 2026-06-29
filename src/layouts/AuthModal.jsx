@@ -39,7 +39,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
   // Countdown timer for Verification OTP code
   useEffect(() => {
     if (step !== "verify" || timeLeft <= 0) return;
-    
+
     const interval = setInterval(() => {
       setTimeLeft((prev) => prev - 1);
     }, 1000);
@@ -99,7 +99,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
     try {
       setIsLoading(true);
       const res = await authService.login({ email, password });
-      
+
       // Save data
       if (res?.data?.token) {
         localStorage.setItem("token", res.data.token);
@@ -278,7 +278,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
     try {
       setIsLoading(true);
       const res = await authService.googleLogin({ idToken });
-      
+
       if (res?.data?.token) {
         localStorage.setItem("token", res.data.token);
         localStorage.setItem("user", JSON.stringify(res.data));
@@ -305,7 +305,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-fade-in">
       <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-[#e7dfbd] bg-[#f6f4dd] p-6 shadow-xl transition-all duration-300">
-        
+
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -327,21 +327,19 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
             <div className="flex border-b border-[#e7dfbd] mb-6">
               <button
                 onClick={() => handleTabChange("login")}
-                className={`flex-1 pb-2 text-center text-sm font-extrabold transition-all border-b-2 ${
-                  activeTab === "login"
+                className={`flex-1 pb-2 text-center text-sm font-extrabold transition-all border-b-2 ${activeTab === "login"
                     ? "border-[#b84a25] text-[#b84a25]"
                     : "border-transparent text-[#706b5c] hover:text-[#3f3b2f]"
-                }`}
+                  }`}
               >
                 Đăng nhập
               </button>
               <button
                 onClick={() => handleTabChange("register")}
-                className={`flex-1 pb-2 text-center text-sm font-extrabold transition-all border-b-2 ${
-                  activeTab === "register"
+                className={`flex-1 pb-2 text-center text-sm font-extrabold transition-all border-b-2 ${activeTab === "register"
                     ? "border-[#b84a25] text-[#b84a25]"
                     : "border-transparent text-[#706b5c] hover:text-[#3f3b2f]"
-                }`}
+                  }`}
               >
                 Đăng ký
               </button>
@@ -427,7 +425,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
               </form>
             ) : (
               <form onSubmit={handleRegisterSubmit} className="space-y-3 max-h-[55vh] overflow-y-auto pr-1">
-                
+
                 {/* Avatar Picker UI */}
                 <div className="flex flex-col items-center space-y-2 mb-4">
                   <label className="text-xs font-semibold text-[#3f3b2f] self-start">Ảnh đại diện (Avatar)</label>
