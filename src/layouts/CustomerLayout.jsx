@@ -177,6 +177,14 @@ export default function CustomerLayout() {
     };
   }, []);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("login") === "true") {
+      setIsAuthModalOpen(true);
+      navigate("/", { replace: true });
+    }
+  }, [navigate]);
+
   const handleSearch = () => {
     console.log(
       "Tính năng tìm kiếm đang được phát triển. Vui lòng quay lại sau!",

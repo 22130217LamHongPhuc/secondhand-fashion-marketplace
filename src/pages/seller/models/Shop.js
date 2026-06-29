@@ -17,6 +17,9 @@ export default class Shop {
     this.wardCode = raw.wardCode ?? "";
     this.wardName = raw.wardName ?? "";
     this.addressDetail = raw.addressDetail ?? "";
+    this.isActive = raw.isActive ?? true;
+    this.isVerified = raw.isVerified ?? false;
+    this.warningStrikes = raw.warningStrikes ?? 0;
   }
 
   static fromApi(raw) {
