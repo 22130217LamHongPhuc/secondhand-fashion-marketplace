@@ -28,6 +28,7 @@ const sellerProductApi = {
     if (toDate) queryParams.toDate = toDate;
     if (minPrice !== undefined && minPrice !== null) queryParams.minPrice = minPrice;
     if (maxPrice !== undefined && maxPrice !== null) queryParams.maxPrice = maxPrice;
+    if (sortBy) queryParams.sortBy = sortBy;
     return axiosInstance.get(BASE, {
       params: queryParams,
     });

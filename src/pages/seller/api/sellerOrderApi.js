@@ -21,7 +21,7 @@ const sellerOrderApi = {
    * GET /api/seller/orders
    */
   searchOrders: (params = {}) => {
-    const { status, orderCode, fromDate, toDate, minPrice, maxPrice, page = 0 } = params;
+    const { status, orderCode, fromDate, toDate, minPrice, maxPrice, sortBy, page = 0 } = params;
     const queryParams = { page };
     
     if (status && status !== "ALL") queryParams.status = status;
@@ -30,6 +30,7 @@ const sellerOrderApi = {
     if (toDate) queryParams.toDate = toDate;
     if (minPrice !== undefined && minPrice !== null) queryParams.minPrice = minPrice;
     if (maxPrice !== undefined && maxPrice !== null) queryParams.maxPrice = maxPrice;
+    if (sortBy) queryParams.sortBy = sortBy;
 
     return axiosInstance.get(BASE, { params: queryParams });
   },

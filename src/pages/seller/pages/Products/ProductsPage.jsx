@@ -8,6 +8,7 @@ import {
   FileSpreadsheet,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
 } from "lucide-react";
 import {
   useSellerProductList,
@@ -60,6 +61,7 @@ const ProductsPage = () => {
   const [searchInput, setSearchInput] = useState("");
   const [debouncedKeyword, setDebouncedKeyword] = useState("");
   const [advancedFilters, setAdvancedFilters] = useState({});
+  const [sortBy, setSortBy] = useState("newest");
   const navigate = useNavigate();
 
   // Debounce search input
@@ -74,6 +76,7 @@ const ProductsPage = () => {
 
   const queryParams = {
     page: currentPage,
+    sortBy,
   };
   if (debouncedKeyword.trim()) {
     queryParams.keyword = debouncedKeyword.trim();
@@ -164,12 +167,12 @@ const ProductsPage = () => {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1">
+        <div className="flex gap-1 flex-1">
           {statusTabs.map((tab, i) => (
             <div
               key={tab.id}
               onClick={() => handleTabChange(i)}
-              className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all ${
+              className={`flex items-center cursor-pointer gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all ${
                 activeTab === i
                   ? "bg-accent-yellow text-gray-600 shadow-md"
                   : "text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700"
@@ -178,6 +181,26 @@ const ProductsPage = () => {
               {tab.label}
             </div>
           ))}
+        </div>
+
+        {/* Sort By Dropdown */}
+        <div className="relative">
+          <select
+            value={sortBy}
+            onChange={(e) => {
+              setSortBy(e.target.value);
+              setCurrentPage(0);
+            }}
+            className="appearance-none rounded-xl border border-neutral-200 bg-white px-4 py-2.5 pr-10 text-sm font-medium text-neutral-600 outline-none transition-all hover:bg-neutral-50 focus:border-brand-primary/40 focus:ring-2 focus:ring-brand-primary/10 cursor-pointer"
+          >
+            <option value="newest">Mới nhất</option>
+            <option value="oldest">Cũ nhất</option>
+            <option value="price_asc">Giá tăng dần</option>
+            <option value="price_desc">Giá giảm dần</option>
+          </select>
+          <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400">
+            <ChevronDown size={16} />
+          </div>
         </div>
       </div>
 

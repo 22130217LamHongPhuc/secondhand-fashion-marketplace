@@ -5,7 +5,8 @@ import {
   Plus,
   Pencil,
   Calendar,
-  Tag
+  Tag,
+  ChevronDown
 } from "lucide-react";
 import { useSellerPromotionList, useChangePromotionStatus } from "../../hooks";
 import { toastService } from "@/services/toastService";
@@ -52,6 +53,7 @@ const ShopPromotionsPage = () => {
   const [searchInput, setSearchInput] = useState("");
   const [debouncedKeyword, setDebouncedKeyword] = useState("");
   const [advancedFilters, setAdvancedFilters] = useState({});
+  const [sortBy, setSortBy] = useState("newest");
   const navigate = useNavigate();
 
   // Debounce search input
@@ -67,6 +69,7 @@ const ShopPromotionsPage = () => {
   const queryParams = {
     page: currentPage,
     size: 12,
+    sortBy,
   };
   // Note: Backend might need to support keyword search later, but we pass it anyway
   if (debouncedKeyword.trim()) {
@@ -151,7 +154,7 @@ const ShopPromotionsPage = () => {
 
       {/* Search */}
       <div className="flex items-center gap-4">
-        <div className="relative w-full max-w-md">
+        <div className="relative w-full max-w-md flex-1">
           <Search
             size={16}
             className="absolute left-3.5 top-7 -translate-y-1/2 text-neutral-400"
@@ -163,6 +166,26 @@ const ShopPromotionsPage = () => {
             placeholder="Tìm kiếm theo mã..."
             className="w-full rounded-full border border-neutral-200 bg-white py-2.5 pl-10 pr-4 text-sm outline-none transition-all focus:border-brand-primary/40 focus:ring-2 focus:ring-brand-primary/10"
           />
+        </div>
+
+        {/* Sort By Dropdown */}
+        <div className="relative">
+          <select
+            value={sortBy}
+            onChange={(e) => {
+              setSortBy(e.target.value);
+              setCurrentPage(0);
+            }}
+            className="appearance-none rounded-xl border border-neutral-200 bg-white px-4 py-2.5 pr-10 text-sm font-medium text-neutral-600 outline-none transition-all hover:bg-neutral-50 focus:border-brand-primary/40 focus:ring-2 focus:ring-brand-primary/10 cursor-pointer"
+          >
+            <option value="newest">Mới nhất</option>
+            <option value="oldest">Cũ nhất</option>
+            <option value="price_asc">Giá tăng dần</option>
+            <option value="price_desc">Giá giảm dần</option>
+          </select>
+          <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400">
+            <ChevronDown size={16} />
+          </div>
         </div>
       </div>
 
