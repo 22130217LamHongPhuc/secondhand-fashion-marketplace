@@ -13,6 +13,7 @@ import {
 import sellerPromotionApi from "../../api/sellerPromotionApi";
 import sellerProductApi from "../../api/sellerProductApi";
 import { toastService } from "@/services/toastService";
+import AdvancedFilter from "../../components/common/AdvancedFilter";
 
 const PromotionsPage = () => {
   const [activeTab, setActiveTab] = useState("coupons"); // "coupons" or "campaigns"
@@ -34,6 +35,7 @@ const PromotionsPage = () => {
     startDate: "",
     endDate: "",
   });
+  const [couponFilters, setCouponFilters] = useState({});
 
   // Campaigns states
   const [campaigns, setCampaigns] = useState([]);
@@ -57,13 +59,14 @@ const PromotionsPage = () => {
     } else {
       loadCampaigns();
     }
-  }, [activeTab]);
+  }, [activeTab, couponFilters]);
 
   const loadCoupons = async () => {
     try {
       setLoadingCoupons(true);
-      const res = await sellerPromotionApi.getCoupons();
-      const rawData = res?.data?.data || res?.data || res;
+      // Lấy danh sách coupons (bây giờ dùng chung API getPromotions)
+      const res = await sellerPromotionApi.getPromotions(couponFilters);
+      const rawData = res?.data?.data?.content || res?.data?.data || res?.data || res;
       setCoupons(Array.isArray(rawData) ? rawData : []);
     } catch (err) {
       toastService.error("Không thể tải danh sách mã giảm giá");
@@ -262,6 +265,10 @@ const PromotionsPage = () => {
           <span>Chiến dịch của Sàn</span>
         </button>
       </div>
+
+      {activeTab === "coupons" && (
+        <AdvancedFilter onApply={(filters) => setCouponFilters(filters)} />
+      )}
 
       {/* TABS CONTENT */}
       {activeTab === "coupons" ? (

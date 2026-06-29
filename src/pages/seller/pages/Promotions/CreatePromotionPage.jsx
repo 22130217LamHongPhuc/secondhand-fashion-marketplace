@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import { toastService } from "@/services/toastService";
 import { useCreatePromotion } from "../../hooks";
+import CloneDataAutocomplete from "../../components/common/CloneDataAutocomplete";
+import sellerPromotionApi from "../../api/sellerPromotionApi";
 
 const CreatePromotionPage = () => {
   const navigate = useNavigate();
@@ -76,6 +78,38 @@ const CreatePromotionPage = () => {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        <CloneDataAutocomplete
+          fetchOptions={async (keyword) => {
+            const res = await sellerPromotionApi.getPromotions({ keyword });
+            const items = res?.data?.data?.content || [];
+            return items.map(p => ({
+              id: p.id,
+              title: p.name,
+              subtitle: `Mã: ${p.code} - Giảm: ${p.discountValue}`,
+            }));
+          }}
+          fetchDetail={async (id) => {
+            const res = await sellerPromotionApi.getPromotionDetail(id);
+            return res?.data?.data || res?.data;
+          }}
+          onSelectData={(data) => {
+            setFormData({
+              code: "", // Usually we shouldn't clone the exact code to avoid duplicate constraint
+              name: data.name || "",
+              description: data.description || "",
+              discountType: data.discountType || "FIXED_AMOUNT",
+              discountValue: data.discountValue || "",
+              maxDiscountAmount: data.maxDiscountAmount || "",
+              minOrderValue: data.minOrderValue || "0",
+              minOrderItems: data.minOrderItems || "1",
+              quantity: data.quantity || "",
+              startDate: data.startDate ? data.startDate.substring(0, 16) : "",
+              endDate: data.endDate ? data.endDate.substring(0, 16) : "",
+            });
+            toastService.success("Đã sao chép dữ liệu khuyến mãi cũ. Vui lòng nhập mã code mới!");
+          }}
+        />
+
         {/* Thông tin cơ bản */}
         <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
           <h2 className="mb-4 text-lg font-bold text-neutral-800">Thông tin cơ bản</h2>

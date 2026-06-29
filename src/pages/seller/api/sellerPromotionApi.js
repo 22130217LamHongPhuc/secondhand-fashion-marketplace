@@ -6,7 +6,19 @@ const PROMO_BASE = "/api/v1/seller/promotions";
 const sellerPromotionApi = {
   // === Shop Promotion API (new) ===
   getPromotions: (params = {}) => {
-    return axiosInstance.get(PROMO_BASE, { params });
+    const { keyword, fromDate, toDate, minPrice, maxPrice, page = 0, size = 10 } = params;
+    const queryParams = { page, size };
+    if (keyword) queryParams.keyword = keyword;
+    if (fromDate) queryParams.fromDate = fromDate;
+    if (toDate) queryParams.toDate = toDate;
+    if (minPrice !== undefined && minPrice !== null) queryParams.minPrice = minPrice;
+    if (maxPrice !== undefined && maxPrice !== null) queryParams.maxPrice = maxPrice;
+    
+    return axiosInstance.get(PROMO_BASE, { params: queryParams });
+  },
+  
+  getPromotionDetail: (id) => {
+    return axiosInstance.get(`${PROMO_BASE}/${id}`);
   },
   
   createPromotion: (data) => {

@@ -18,6 +18,7 @@ import { Pagination } from "../../models";
 import TableSkeleton from "../../components/common/TableSkeleton";
 import ErrorState from "../../components/common/ErrorState";
 import EmptyState from "../../components/common/EmptyState";
+import AdvancedFilter from "../../components/common/AdvancedFilter";
 
 const statusTabs = [
   { label: "Tất cả", id: "all" },
@@ -58,6 +59,7 @@ const ProductsPage = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [searchInput, setSearchInput] = useState("");
   const [debouncedKeyword, setDebouncedKeyword] = useState("");
+  const [advancedFilters, setAdvancedFilters] = useState({});
   const navigate = useNavigate();
 
   // Debounce search input
@@ -81,6 +83,11 @@ const ProductsPage = () => {
   } else if (activeTab === 2) {
     queryParams.isActive = false;
   }
+  
+  if (advancedFilters.fromDate) queryParams.fromDate = advancedFilters.fromDate;
+  if (advancedFilters.toDate) queryParams.toDate = advancedFilters.toDate;
+  if (advancedFilters.minPrice !== undefined) queryParams.minPrice = advancedFilters.minPrice;
+  if (advancedFilters.maxPrice !== undefined) queryParams.maxPrice = advancedFilters.maxPrice;
 
   const {
     data,
@@ -173,6 +180,8 @@ const ProductsPage = () => {
           ))}
         </div>
       </div>
+
+      <AdvancedFilter onApply={(filters) => { setAdvancedFilters(filters); setCurrentPage(0); }} />
 
       {/* Data Area */}
       {loading ? (

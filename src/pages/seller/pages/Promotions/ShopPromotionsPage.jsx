@@ -14,6 +14,7 @@ import TableSkeleton from "../../components/common/TableSkeleton";
 import ErrorState from "../../components/common/ErrorState";
 import EmptyState from "../../components/common/EmptyState";
 import ToggleSwitch from "../../components/common/ToggleSwitch";
+import AdvancedFilter from "../../components/common/AdvancedFilter";
 
 const StatusBadge = ({ status }) => {
   const config = {
@@ -50,6 +51,7 @@ const ShopPromotionsPage = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [searchInput, setSearchInput] = useState("");
   const [debouncedKeyword, setDebouncedKeyword] = useState("");
+  const [advancedFilters, setAdvancedFilters] = useState({});
   const navigate = useNavigate();
 
   // Debounce search input
@@ -70,6 +72,11 @@ const ShopPromotionsPage = () => {
   if (debouncedKeyword.trim()) {
     queryParams.keyword = debouncedKeyword.trim();
   }
+  
+  if (advancedFilters.fromDate) queryParams.fromDate = advancedFilters.fromDate;
+  if (advancedFilters.toDate) queryParams.toDate = advancedFilters.toDate;
+  if (advancedFilters.minPrice !== undefined) queryParams.minPrice = advancedFilters.minPrice;
+  if (advancedFilters.maxPrice !== undefined) queryParams.maxPrice = advancedFilters.maxPrice;
 
   const { data, isLoading: loading, error } = useSellerPromotionList(queryParams);
   const { mutateAsync: changeStatus } = useChangePromotionStatus();
@@ -158,6 +165,8 @@ const ShopPromotionsPage = () => {
           />
         </div>
       </div>
+
+      <AdvancedFilter onApply={(filters) => { setAdvancedFilters(filters); setCurrentPage(0); }} />
 
       {/* Data Area */}
       {loading ? (
