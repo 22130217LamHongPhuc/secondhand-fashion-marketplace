@@ -279,45 +279,5 @@ export const couponService = {
   },
 };
 
-// Campaign Management
-export const campaignService = {
-  getAll: async () => {
-    return http("/api/admin/promotions/campaigns");
-  },
-  getById: async (id) => {
-    return http(`/api/admin/promotions/campaigns/${id}`);
-  },
-  create: async (data) => {
-    return http("/api/admin/promotions/campaigns", {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
-  },
-  update: async (id, data) => {
-    return http(`/api/admin/promotions/campaigns/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(data),
-    });
-  },
-  delete: async (id) => {
-    return http(`/api/admin/promotions/campaigns/${id}`, {
-      method: "DELETE",
-    });
-  },
-  toggleActive: async (id, active) => {
-    return http(`/api/admin/promotions/campaigns/${id}/active?active=${active}`, {
-      method: "PATCH",
-    });
-  },
-  getProducts: async (campaignId) => {
-    return http(`/api/admin/promotions/campaigns/${campaignId}/products`);
-  },
-  updateProductStatus: async (campaignId, productId, status) => {
-    return http(`/api/admin/promotions/campaigns/${campaignId}/products/${productId}/status`, {
-      method: "PATCH",
-      body: JSON.stringify({ status }),
-    });
-  },
-};
 
 

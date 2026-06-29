@@ -1,20 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { productService, categoryService } from "@/services/admin";
-import { 
-  Plus, 
-  Search, 
-  Pencil, 
-  Trash2, 
-  X, 
-  ChevronDown, 
-  ChevronLeft, 
-  ChevronRight, 
-  Package, 
-  Tag, 
-  Layers, 
-  Store, 
-  Clock, 
-  AlertTriangle, 
+import { toastService } from "@/services/toastService";
+import ConfirmModal from "@/components/common/ConfirmModal";
+import AdminLoader from "@/components/common/AdminLoader";
+import {
+  Eye,
+  Search,
+  X,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Package,
+  Tag,
+  Layers,
+  Store,
+  Clock,
+  AlertTriangle,
   CheckCircle,
   HelpCircle
 } from "lucide-react";
@@ -33,7 +34,16 @@ const getConditionLabel = (cond) => {
 };
 
 const normalizeProduct = (product) => {
-  const primaryImage = product?.images?.[0]?.url || product?.image || FALLBACK_IMAGE;
+  const getPrimaryImage = (p) => {
+    if (Array.isArray(p?.images) && p.images.length > 0) {
+      const first = p.images[0];
+      if (typeof first === "string") return first;
+      if (first && typeof first === "object" && first.url) return first.url;
+    }
+    return p?.image || FALLBACK_IMAGE;
+  };
+
+  const primaryImage = getPrimaryImage(product);
   const categoryName = product?.category?.name || product?.categoryName || product?.category || "Chưa phân loại";
   const priceValue = product?.salePrice ?? product?.basePrice ?? product?.price ?? 0;
   const stockValue = product?.stockQuantity ?? product?.stock ?? 0;
@@ -65,9 +75,11 @@ export function ProductManagement() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [sortFilter, setSortFilter] = useState("newest");
   const [searchTerm, setSearchTerm] = useState("");
+  const [shopFilter, setShopFilter] = useState("all");
 
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -133,6 +145,16 @@ export function ProductManagement() {
     return names;
   };
 
+  const uniqueShops = useMemo(() => {
+    const shopsSet = new Set();
+    products.forEach((product) => {
+      if (product.sellerName) {
+        shopsSet.add(product.sellerName);
+      }
+    });
+    return Array.from(shopsSet);
+  }, [products]);
+
   const filteredProducts = products
     .filter((product) => {
       const searchValue = searchTerm.trim().toLowerCase();
@@ -145,8 +167,7 @@ export function ProductManagement() {
       const matchesTab =
         activeTab === "all" ||
         (activeTab === "selling" && product.status === "selling") ||
-        (activeTab === "pending" && product.status === "pending") ||
-        (activeTab === "violation" && product.status === "violation");
+        (activeTab === "pending" && product.status === "pending");
 
       const matchesCategory = (() => {
         if (categoryFilter === "all") return true;
@@ -154,7 +175,9 @@ export function ProductManagement() {
         return allowedCategories.includes(product.category);
       })();
 
-      return matchesSearch && matchesTab && matchesCategory;
+      const matchesShop = shopFilter === "all" || product.sellerName === shopFilter;
+
+      return matchesSearch && matchesTab && matchesCategory && matchesShop;
     })
     .sort((a, b) => {
       if (sortFilter === "price-asc") return a.price - b.price;
@@ -165,7 +188,6 @@ export function ProductManagement() {
   const totalCount = products.length;
   const sellingCount = products.filter((product) => product.status === "selling").length;
   const pendingCount = products.filter((product) => product.status === "pending").length;
-  const violationCount = products.filter((product) => product.status === "violation").length;
 
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / ITEMS_PER_PAGE));
   const currentPage = Math.min(page, totalPages);
@@ -179,6 +201,23 @@ export function ProductManagement() {
 
   const handleOpenModal = (product = null) => {
     if (product) {
+      const getProductImageUrls = (p) => {
+        if (!p) return "";
+        if (Array.isArray(p.images) && p.images.length > 0) {
+          const urls = p.images
+            .map((img) => {
+              if (typeof img === "string") return img;
+              if (img && typeof img === "object" && img.url) return img.url;
+              return null;
+            })
+            .filter(Boolean);
+          if (urls.length > 0) {
+            return urls.join("\n");
+          }
+        }
+        return p.image || "";
+      };
+
       setEditingProduct(product);
       setFormData({
         name: product.name || "",
@@ -191,7 +230,7 @@ export function ProductManagement() {
         stockQuantity: product.stockQuantity || product.stock || "",
         categoryId: product.category?.id || product.categoryId || 1,
         shopId: product.shop?.id || product.shopId || 1,
-        imageUrls: product.images?.map(i => i.url).join("\n") || product.image || "",
+        imageUrls: getProductImageUrls(product),
       });
     } else {
       setEditingProduct(null);
@@ -237,66 +276,54 @@ export function ProductManagement() {
 
       if (editingProduct) {
         await productService.update(editingProduct.id, payload);
-        alert("Cập nhật sản phẩm thành công!");
+        toastService.success("Cập nhật sản phẩm thành công!");
       } else {
         await productService.create(payload);
-        alert("Tạo sản phẩm thành công!");
+        toastService.success("Tạo sản phẩm thành công!");
       }
       handleCloseModal();
       loadProducts();
     } catch (err) {
-      alert("Lỗi: " + err.message);
+      toastService.error("Lỗi: " + err.message);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa sản phẩm này?")) {
-      try {
-        await productService.delete(id);
-        alert("Xóa sản phẩm thành công!");
-        loadProducts();
-      } catch (err) {
-        alert("Lỗi: " + err.message);
-      }
-    }
+  const handleDelete = (id) => {
+    setConfirmDeleteId(id);
   };
 
   const handleToggleStatus = async (id, isActiveVal) => {
+    // 1. Optimistic update
+    setProducts(prev => prev.map(p => p.id === id ? { ...p, isActive: isActiveVal } : p));
+    toastService.success("Đã cập nhật trạng thái sản phẩm thành công!");
+
+    // 2. Background API call
     try {
       await productService.toggleActive(id, isActiveVal);
-      alert("Đã cập nhật trạng thái sản phẩm thành công!");
-      loadProducts();
     } catch (err) {
-      alert("Lỗi khi đổi trạng thái sản phẩm: " + err.message);
+      toastService.error("Lỗi khi đổi trạng thái sản phẩm: " + err.message);
+      // Revert
+      setProducts(prev => prev.map(p => p.id === id ? { ...p, isActive: !isActiveVal } : p));
     }
   };
 
   return (
     <div className="flex flex-col min-h-full animate-[fadeIn_0.3s_ease] text-stone-800 pb-10">
-      
+
       {/* Page Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-5 mb-6">
         <div>
-          <h1 className="text-3xl font-extrabold text-stone-900 tracking-tight m-0">Quản trị sản phẩm</h1>
-          <p className="text-sm text-stone-500 m-0 mt-1">Xem thông tin sản phẩm, xét duyệt trạng thái, xóa hoặc sửa sản phẩm trên hệ thống.</p>
+          <h1 className="text-xl font-extrabold text-stone-900 tracking-tight m-0">Quản trị sản phẩm</h1>
         </div>
-        <button
-          className="flex items-center justify-center gap-2 rounded-xl py-2.5 px-5 text-sm font-bold cursor-pointer transition-all bg-[#c85a28] hover:bg-[#b84c1a] text-white border-none shadow-md shadow-orange-500/10 active:scale-[0.98] w-full md:w-auto"
-          type="button"
-          onClick={() => handleOpenModal()}
-        >
-          <Plus className="w-4 h-4" />
-          <span>Tạo Sản Phẩm</span>
-        </button>
       </div>
 
       {/* Tabs list for Statuses */}
-      <div className="flex gap-2.5 flex-wrap mb-5">
+      <div className="flex bg-stone-100 border border-stone-200 rounded-xl p-1 gap-1 w-fit flex-wrap mb-4">
         <button
-          className={`border rounded-xl py-2 px-4 text-xs font-bold cursor-pointer transition-all ${
+          className={`border-none rounded-lg py-2 px-4 text-[13px] font-bold cursor-pointer transition-all ${
             activeTab === "all"
-              ? "bg-[#c85a28]/10 text-[#c85a28] border-[#c85a28]/35 shadow-sm"
-              : "bg-white text-stone-500 border-stone-200 hover:bg-stone-50"
+              ? "bg-white text-stone-900 shadow-sm"
+              : "bg-transparent text-stone-500 hover:text-stone-800"
           }`}
           onClick={() => {
             setActiveTab("all");
@@ -306,10 +333,10 @@ export function ProductManagement() {
           Tất cả <span className="ml-1 opacity-70">({totalCount})</span>
         </button>
         <button
-          className={`border rounded-xl py-2 px-4 text-xs font-bold cursor-pointer transition-all ${
+          className={`border-none rounded-lg py-2 px-4 text-[13px] font-bold cursor-pointer transition-all ${
             activeTab === "selling"
-              ? "bg-[#c85a28]/10 text-[#c85a28] border-[#c85a28]/35 shadow-sm"
-              : "bg-white text-stone-500 border-stone-200 hover:bg-stone-50"
+              ? "bg-white text-stone-900 shadow-sm"
+              : "bg-transparent text-stone-500 hover:text-stone-800"
           }`}
           onClick={() => {
             setActiveTab("selling");
@@ -319,78 +346,88 @@ export function ProductManagement() {
           Đang bán <span className="ml-1 opacity-70">({sellingCount})</span>
         </button>
         <button
-          className={`border rounded-xl py-2 px-4 text-xs font-bold cursor-pointer transition-all ${
+          className={`border-none rounded-lg py-2 px-4 text-[13px] font-bold cursor-pointer transition-all ${
             activeTab === "pending"
-              ? "bg-[#c85a28]/10 text-[#c85a28] border-[#c85a28]/35 shadow-sm"
-              : "bg-white text-stone-500 border-stone-200 hover:bg-stone-50"
+              ? "bg-white text-stone-900 shadow-sm"
+              : "bg-transparent text-stone-500 hover:text-stone-800"
           }`}
           onClick={() => {
             setActiveTab("pending");
             setPage(1);
           }}
         >
-          Chờ duyệt <span className="ml-1 opacity-70">({pendingCount})</span>
-        </button>
-        <button
-          className={`border rounded-xl py-2 px-4 text-xs font-bold cursor-pointer transition-all ${
-            activeTab === "violation"
-              ? "bg-[#c85a28]/10 text-[#c85a28] border-[#c85a28]/35 shadow-sm"
-              : "bg-white text-stone-500 border-stone-200 hover:bg-stone-50"
-          }`}
-          onClick={() => {
-            setActiveTab("violation");
-            setPage(1);
-          }}
-        >
-          Vi phạm <span className="ml-1 opacity-70">({violationCount})</span>
+          Đang khóa <span className="ml-1 opacity-70">({pendingCount})</span>
         </button>
       </div>
 
       {/* Control Bar (Filters and Search) */}
-      <div className="flex flex-col md:flex-row gap-4 items-center mb-6">
-        <div className="w-full md:flex-1 relative">
-          <Search className="w-4 h-4 text-stone-400 absolute left-4 top-1/2 -translate-y-1/2" />
+      <div className="flex flex-wrap items-center gap-3 mb-6">
+        {/* Search Input */}
+        <div className="relative max-w-md w-full">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
           <input
             type="text"
             placeholder="Tìm kiếm theo tên sản phẩm, mã SKU..."
             value={searchTerm}
-            className="w-full py-2.5 pl-12 pr-4 border border-stone-200 rounded-2xl text-[13px] bg-white transition-all outline-none focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5 shadow-sm placeholder-stone-400"
             onChange={(e) => {
               setSearchTerm(e.target.value);
               setPage(1);
             }}
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-stone-200 rounded-xl text-sm focus:outline-none focus:border-[#c85a28] focus:ring-1 focus:ring-[#c85a28] transition-all text-stone-800 placeholder-stone-400 shadow-sm"
           />
         </div>
-        <div className="w-full md:w-[200px] relative">
+
+        {/* Sort Dropdown */}
+        <div className="relative w-full sm:w-[180px]">
+          <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
           <select
             value={sortFilter}
             onChange={(e) => {
               setSortFilter(e.target.value);
               setPage(1);
             }}
-            className="w-full py-2.5 pr-10 pl-4 border border-stone-200 rounded-2xl bg-white text-stone-750 font-bold text-[13px] cursor-pointer appearance-none outline-none transition-all hover:border-[#c85a28] focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5 shadow-sm"
+            className="w-full pr-10 pl-4 py-2.5 bg-white border border-stone-200 rounded-xl text-sm focus:outline-none focus:border-[#c85a28] focus:ring-1 focus:ring-[#c85a28] transition-all text-stone-800 font-bold appearance-none cursor-pointer shadow-sm"
           >
             <option value="newest">Mới nhất</option>
             <option value="price-asc">Giá tăng dần</option>
             <option value="price-desc">Giá giảm dần</option>
           </select>
-          <ChevronDown className="w-4 h-4 text-stone-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+        </div>
+
+        {/* Shop Filter Dropdown */}
+        <div className="relative w-full sm:w-[200px]">
+          <Store className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
+          <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
+          <select
+            value={shopFilter}
+            onChange={(e) => {
+              setShopFilter(e.target.value);
+              setPage(1);
+            }}
+            className="w-full pr-10 pl-10 py-2.5 bg-white border border-stone-200 rounded-xl text-sm focus:outline-none focus:border-[#c85a28] focus:ring-1 focus:ring-[#c85a28] transition-all text-stone-800 font-bold appearance-none cursor-pointer shadow-sm"
+          >
+            <option value="all">Tất cả cửa hàng</option>
+            {uniqueShops.map((shopName) => (
+              <option key={shopName} value={shopName}>
+                {shopName}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
       {/* Horizontal Category Filter Pills */}
-      <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-none mb-4.5">
+      <div className="flex flex-wrap gap-2 mb-5">
         <button
           type="button"
           onClick={() => {
             setCategoryFilter("all");
             setPage(1);
           }}
-          className={`py-1.5 px-4 rounded-full border text-xs font-bold cursor-pointer transition-all whitespace-nowrap ${
-            categoryFilter === "all"
-              ? "bg-[#c85a28] text-white border-[#c85a28] shadow-sm"
-              : "bg-white text-stone-500 border-stone-200 hover:bg-stone-50"
-          }`}
+          className={`py-1.5 px-4 rounded-full border text-xs font-bold cursor-pointer transition-all whitespace-nowrap ${categoryFilter === "all"
+            ? "bg-[#c85a28] text-white border-[#c85a28] shadow-sm"
+            : "bg-white text-stone-500 border-stone-200 hover:bg-stone-50"
+            }`}
         >
           Tất cả danh mục
         </button>
@@ -403,11 +440,10 @@ export function ProductManagement() {
               setCategoryFilter(cat.name);
               setPage(1);
             }}
-            className={`py-1.5 px-4 rounded-full border text-xs font-bold cursor-pointer transition-all whitespace-nowrap ${
-              categoryFilter === cat.name
-                ? "bg-[#c85a28] text-white border-[#c85a28] shadow-sm"
-                : "bg-white text-stone-500 border-stone-200 hover:bg-stone-50"
-            }`}
+            className={`py-1.5 px-4 rounded-full border text-xs font-bold cursor-pointer transition-all whitespace-nowrap ${categoryFilter === cat.name
+              ? "bg-[#c85a28] text-white border-[#c85a28] shadow-sm"
+              : "bg-white text-stone-500 border-stone-200 hover:bg-stone-50"
+              }`}
           >
             {cat.name}
           </button>
@@ -417,10 +453,7 @@ export function ProductManagement() {
       {/* Products Table Card */}
       <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(238,229,219,0.2)] p-6 border border-stone-200/50 flex-1 min-h-0 flex flex-col">
         {loading ? (
-          <div className="text-center py-16 text-stone-400 text-sm font-semibold flex flex-col items-center justify-center gap-3">
-            <div className="w-8 h-8 rounded-full border-4 border-stone-200 border-t-[#c85a28] animate-spin"></div>
-            <span>Đang tải dữ liệu sản phẩm...</span>
-          </div>
+          <AdminLoader text="Đang tải dữ liệu..." />
         ) : error ? (
           <div className="text-center py-16 text-sm text-rose-600 font-bold bg-rose-50/50 rounded-xl border border-rose-100">Lỗi kết nối: {error}</div>
         ) : filteredProducts.length > 0 ? (
@@ -443,10 +476,10 @@ export function ProductManagement() {
                   {pagedProducts.map((product) => (
                     <tr key={product.id} className="hover:bg-stone-50/40 transition-colors">
                       <td className="p-3.5 align-middle">
-                        <img 
-                          src={product.image} 
-                          alt={product.name} 
-                          className="w-12 h-12 object-cover rounded-xl border border-stone-200/60 shadow-sm shrink-0" 
+                        <img
+                          src={product.image}
+                          alt={product.name}
+                          className="w-12 h-12 object-cover rounded-xl border border-stone-200/60 shadow-sm shrink-0"
                           onError={(e) => { e.target.src = FALLBACK_IMAGE; }}
                         />
                       </td>
@@ -498,11 +531,10 @@ export function ProductManagement() {
                         <select
                           value={product.isActive ? "active" : "inactive"}
                           onChange={(e) => handleToggleStatus(product.id, e.target.value === "active")}
-                          className={`py-1 px-3 border rounded-full text-xs font-bold cursor-pointer outline-none transition-all ${
-                            product.isActive
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
-                              : "bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100"
-                          }`}
+                          className={`py-1 px-3 border rounded-full text-xs font-bold cursor-pointer outline-none transition-all ${product.isActive
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                            : "bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100"
+                            }`}
                         >
                           <option value="active">Đang bán</option>
                           <option value="inactive">Khóa bán</option>
@@ -515,17 +547,9 @@ export function ProductManagement() {
                             className="p-1.5 rounded-lg text-blue-600 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 active:scale-95 transition-all border-none cursor-pointer flex items-center justify-center"
                             type="button"
                             onClick={() => handleOpenModal(product)}
-                            title="Sửa sản phẩm"
+                            title="Xem chi tiết"
                           >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            className="p-1.5 rounded-lg text-rose-600 bg-rose-50 hover:bg-rose-100 hover:text-rose-700 active:scale-95 transition-all border-none cursor-pointer flex items-center justify-center"
-                            type="button"
-                            onClick={() => handleDelete(product.id)}
-                            title="Xóa sản phẩm"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Eye className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </td>
@@ -550,16 +574,15 @@ export function ProductManagement() {
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
-                
+
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map((pNum) => (
                   <button
                     key={pNum}
                     onClick={() => setPage(pNum)}
-                    className={`w-9 h-9 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center border ${
-                      currentPage === pNum
-                        ? "bg-[#c85a28] text-white border-[#c85a28] shadow-sm"
-                        : "bg-white text-stone-600 border-stone-200 hover:bg-stone-50"
-                    }`}
+                    className={`w-9 h-9 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center border ${currentPage === pNum
+                      ? "bg-[#c85a28] text-white border-[#c85a28] shadow-sm"
+                      : "bg-white text-stone-600 border-stone-200 hover:bg-stone-50"
+                      }`}
                   >
                     {pNum}
                   </button>
@@ -588,13 +611,13 @@ export function ProductManagement() {
       {showModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center z-[1100] animate-[fadeIn_0.2s_ease-out]">
           <div className="bg-white rounded-2xl w-full max-w-[500px] shadow-2xl border border-stone-200/60 overflow-hidden animate-[scaleIn_0.2s_ease-out] [color-scheme:light]">
-            
+
             {/* Modal Header */}
             <div className="bg-stone-50 p-4 px-6 border-b border-stone-100 flex items-center justify-between">
               <h3 className="m-0 text-base font-extrabold text-stone-900">
-                {editingProduct ? "Chỉnh sửa Sản phẩm" : "Tạo Sản phẩm mới"}
+                Chi tiết Sản phẩm
               </h3>
-              <button 
+              <button
                 className="bg-none border-none text-stone-400 cursor-pointer p-1 rounded-lg hover:bg-stone-200/50 hover:text-stone-900 transition-colors flex items-center justify-center"
                 onClick={handleCloseModal}
               >
@@ -602,18 +625,17 @@ export function ProductManagement() {
               </button>
             </div>
 
-            {/* Modal Form */}
-            <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4 bg-white">
-              
+            {/* Modal Detail Content */}
+            <div className="p-6 flex flex-col gap-4 bg-white">
+
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Tên sản phẩm *</label>
+                <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Tên sản phẩm</label>
                 <input
                   type="text"
                   name="name"
                   value={formData.name}
-                  className="bg-white border border-stone-200 rounded-xl p-2.5 text-sm text-stone-850 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5"
-                  onChange={handleFormChange}
-                  required
+                  className="bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-sm text-stone-500 outline-none cursor-not-allowed"
+                  disabled
                 />
               </div>
 
@@ -622,8 +644,8 @@ export function ProductManagement() {
                 <textarea
                   name="description"
                   value={formData.description}
-                  className="bg-white border border-stone-200 rounded-xl p-2.5 text-sm text-stone-850 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5"
-                  onChange={handleFormChange}
+                  className="bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-sm text-stone-500 outline-none cursor-not-allowed"
+                  disabled
                   rows="3"
                 />
               </div>
@@ -635,8 +657,8 @@ export function ProductManagement() {
                     type="text"
                     name="brand"
                     value={formData.brand}
-                    className="bg-white border border-stone-200 rounded-xl p-2.5 text-sm text-stone-850 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5"
-                    onChange={handleFormChange}
+                    className="bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-sm text-stone-500 outline-none cursor-not-allowed"
+                    disabled
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
@@ -645,91 +667,65 @@ export function ProductManagement() {
                     type="text"
                     name="originCountry"
                     value={formData.originCountry}
-                    className="bg-white border border-stone-200 rounded-xl p-2.5 text-sm text-stone-850 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5"
-                    onChange={handleFormChange}
+                    className="bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-sm text-stone-500 outline-none cursor-not-allowed"
+                    disabled
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Danh mục sản phẩm *</label>
-                  <div className="relative">
-                    <select
-                      name="categoryId"
-                      value={formData.categoryId || ""}
-                      className="appearance-none w-full bg-white border border-stone-200 rounded-xl p-2.5 pr-9 text-sm text-stone-700 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5 cursor-pointer"
-                      onChange={handleFormChange}
-                      required
-                    >
-                      <option value="">-- Chọn danh mục --</option>
-                      {categories.map((cat) => (
-                        <option key={cat.id} value={cat.id}>
-                          {cat.name}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown className="w-4 h-4 text-stone-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
+                  <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Danh mục sản phẩm</label>
+                  <input
+                    type="text"
+                    value={categories.find((cat) => cat.id === formData.categoryId)?.name || "Chưa phân loại"}
+                    className="bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-sm text-stone-500 outline-none cursor-not-allowed"
+                    disabled
+                  />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Cửa hàng (Shop ID) *</label>
+                  <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Cửa hàng (Shop ID)</label>
                   <input
                     type="number"
                     name="shopId"
                     value={formData.shopId}
-                    className="bg-white border border-stone-200 rounded-xl p-2.5 text-sm text-stone-850 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5"
-                    onChange={handleFormChange}
-                    required
-                    min="1"
+                    className="bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-sm text-stone-500 outline-none cursor-not-allowed"
+                    disabled
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Tình trạng *</label>
-                  <div className="relative">
-                    <select
-                      name="condition"
-                      value={formData.condition}
-                      className="appearance-none w-full bg-white border border-stone-200 rounded-xl p-2.5 pr-9 text-sm text-stone-700 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5 cursor-pointer"
-                      onChange={handleFormChange}
-                    >
-                      <option value="NEW">Mới</option>
-                      <option value="LIKE_NEW">Như mới</option>
-                      <option value="GOOD">Tốt</option>
-                      <option value="FAIR">Khá</option>
-                      <option value="POOR">Kém</option>
-                    </select>
-                    <ChevronDown className="w-4 h-4 text-stone-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
+                  <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Tình trạng</label>
+                  <input
+                    type="text"
+                    value={getConditionLabel(formData.condition)}
+                    className="bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-sm text-stone-500 outline-none cursor-not-allowed"
+                    disabled
+                  />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Số lượng kho *</label>
+                  <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Số lượng kho</label>
                   <input
                     type="number"
                     name="stockQuantity"
                     value={formData.stockQuantity}
-                    className="bg-white border border-stone-200 rounded-xl p-2.5 text-sm text-stone-850 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5"
-                    onChange={handleFormChange}
-                    required
-                    min="0"
+                    className="bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-sm text-stone-500 outline-none cursor-not-allowed"
+                    disabled
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Giá gốc *</label>
+                  <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Giá gốc</label>
                   <input
                     type="number"
                     name="basePrice"
                     value={formData.basePrice}
-                    className="bg-white border border-stone-200 rounded-xl p-2.5 text-sm text-stone-855 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5"
-                    onChange={handleFormChange}
-                    required
-                    min="0"
+                    className="bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-sm text-stone-500 outline-none cursor-not-allowed"
+                    disabled
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
@@ -738,41 +734,33 @@ export function ProductManagement() {
                     type="number"
                     name="salePrice"
                     value={formData.salePrice}
-                    className="bg-white border border-stone-200 rounded-xl p-2.5 text-sm text-stone-855 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5"
-                    onChange={handleFormChange}
-                    min="0"
+                    className="bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-sm text-stone-500 outline-none cursor-not-allowed"
+                    disabled
                   />
                 </div>
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Hình ảnh (Mỗi URL một dòng)</label>
+                <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Hình ảnh</label>
                 <textarea
                   name="imageUrls"
                   value={formData.imageUrls}
-                  className="bg-white border border-stone-200 rounded-xl p-2.5 text-sm text-stone-850 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5"
-                  onChange={handleFormChange}
-                  rows="3"
-                  placeholder="https://example.com/img1.jpg&#10;https://example.com/img2.jpg"
+                  className="bg-stone-50 border border-stone-200 rounded-xl p-2.5 text-sm text-stone-500 outline-none cursor-not-allowed"
+                  disabled
+                  rows="8"
                 />
               </div>
 
               <div className="flex justify-end gap-2.5 mt-4 border-t border-stone-100 pt-4">
                 <button
                   type="button"
-                  className="bg-stone-100 hover:bg-stone-200/80 text-stone-700 py-2.5 px-4 text-xs font-bold rounded-xl cursor-pointer transition-all active:scale-[0.98] border-none"
+                  className="bg-stone-900 hover:bg-stone-800 text-white py-2.5 px-6 text-xs font-bold rounded-xl cursor-pointer transition-all active:scale-[0.98] border-none"
                   onClick={handleCloseModal}
                 >
-                  Hủy bỏ
-                </button>
-                <button
-                  type="submit"
-                  className="bg-[#c85a28] hover:bg-[#b84c1a] text-white py-2.5 px-4 text-xs font-bold rounded-xl cursor-pointer transition-all active:scale-[0.98] shadow-sm shadow-orange-700/20 border-none"
-                >
-                  {editingProduct ? "Lưu thay đổi" : "Tạo sản phẩm"}
+                  Đóng
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}

@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 import { userService } from "@/services/admin";
+import { toastService } from "@/services/toastService";
+import ConfirmModal from "@/components/common/ConfirmModal";
+import AdminLoader from "@/components/common/AdminLoader";
 import {
   Users,
   Store,
@@ -26,6 +29,7 @@ export function UserManagement() {
   const [selectedUsers, setSelectedUsers] = useState(new Set());
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   useEffect(() => {
     loadUsers();
@@ -76,50 +80,62 @@ export function UserManagement() {
   };
 
   const handleBanUser = async (userId, reason) => {
+    // 1. Optimistic update
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, isActive: false, status: "banned" } : u));
+    toastService.success("Khóa tài khoản người dùng thành công!");
+
+    // 2. Background API call
     try {
       await userService.ban(userId, reason);
-      alert("Khóa tài khoản người dùng thành công!");
-      loadUsers();
+      const statistics = await userService.getStatistics().catch(() => null);
+      if (statistics) setStats(statistics);
     } catch (err) {
-      alert("Lỗi: " + err.message);
+      toastService.error("Lỗi: " + err.message);
+      // Revert
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, isActive: true, status: "active" } : u));
     }
   };
 
   const handleUnbanUser = async (userId) => {
+    // 1. Optimistic update
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, isActive: true, status: "active" } : u));
+    toastService.success("Mở khóa tài khoản thành công!");
+
+    // 2. Background API call
     try {
       await userService.unban(userId);
-      alert("Mở khóa tài khoản thành công!");
-      loadUsers();
+      const statistics = await userService.getStatistics().catch(() => null);
+      if (statistics) setStats(statistics);
     } catch (err) {
-      alert("Lỗi: " + err.message);
+      toastService.error("Lỗi: " + err.message);
+      // Revert
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, isActive: false, status: "banned" } : u));
     }
   };
 
-  const handleDeleteUser = async (userId) => {
-    if (window.confirm("Bạn chắc chắn muốn xóa người dùng này?")) {
-      try {
-        await userService.delete(userId);
-        alert("Xóa người dùng thành công!");
-        loadUsers();
-      } catch (err) {
-        alert("Lỗi: " + err.message);
-      }
-    }
+  const handleDeleteUser = (userId) => {
+    setConfirmDeleteId(userId);
   };
 
   const handleUpdateRole = async (userId, newRole) => {
+    const formattedRole = newRole.toLowerCase().replace("customer", "buyer");
+    
+    // 1. Optimistic update
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
+    if (selectedUser && selectedUser.id === userId) {
+      setSelectedUser(prev => ({ ...prev, role: formattedRole }));
+    }
+    toastService.success("Cập nhật vai trò người dùng thành công!");
+
+    // 2. Background API call
     try {
       await userService.updateRole(userId, newRole);
-      alert("Cập nhật vai trò người dùng thành công!");
-      if (selectedUser && selectedUser.id === userId) {
-        setSelectedUser(prev => ({
-          ...prev,
-          role: newRole.toLowerCase().replace("customer", "buyer")
-        }));
-      }
-      loadUsers();
+      const statistics = await userService.getStatistics().catch(() => null);
+      if (statistics) setStats(statistics);
     } catch (err) {
-      alert("Lỗi cập nhật vai trò: " + err.message);
+      toastService.error("Lỗi cập nhật vai trò: " + err.message);
+      // Revert on error
+      loadUsers();
     }
   };
 
@@ -164,13 +180,16 @@ export function UserManagement() {
     return base + "bg-[#e9f4d3] text-[#6a9d2e]";
   };
 
+  const renderContent = () => {
+    // We wrap the table content logic in a helper to keep it clean
+  };
+
   return (
     <div className="flex flex-col min-h-full gap-6 animate-[fadeIn_0.3s_ease] text-stone-800">
       {/* Page Header */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-5 mb-1">
         <div>
-          <h1 className="text-3xl font-extrabold text-stone-900 tracking-tight m-0">Quản trị người dùng</h1>
-          <p className="text-sm text-stone-500 mt-1">Quản lý tài khoản khách hàng, người bán và phân quyền vai trò trên hệ thống.</p>
+          <h1 className="text-xl font-extrabold text-stone-900 tracking-tight m-0">Quản trị người dùng</h1>
         </div>
       </div>
 
@@ -218,47 +237,94 @@ export function UserManagement() {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-col md:flex-row gap-4 items-center">
-        <div className="w-full md:flex-1 relative">
-          <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-stone-400">
-            <Search className="w-4.5 h-4.5 text-stone-400" />
-          </div>
+      <div className="flex flex-col gap-4">
+        <div className="flex bg-stone-100 border border-stone-200 rounded-xl p-1 gap-1 w-fit flex-wrap">
+          <button
+            className={`border-none rounded-lg py-2 px-4 text-[13px] font-bold cursor-pointer transition-all ${
+              roleFilter === "all"
+                ? "bg-white text-stone-900 shadow-sm"
+                : "bg-transparent text-stone-500 hover:text-stone-800"
+            }`}
+            onClick={() => {
+              setRoleFilter("all");
+              setPage(1);
+            }}
+          >
+            Tất cả vai trò
+          </button>
+          <button
+            className={`border-none rounded-lg py-2 px-4 text-[13px] font-bold cursor-pointer transition-all ${
+              roleFilter === "buyer"
+                ? "bg-white text-stone-900 shadow-sm"
+                : "bg-transparent text-stone-500 hover:text-stone-800"
+            }`}
+            onClick={() => {
+              setRoleFilter("buyer");
+              setPage(1);
+            }}
+          >
+            Người mua
+          </button>
+          <button
+            className={`border-none rounded-lg py-2 px-4 text-[13px] font-bold cursor-pointer transition-all ${
+              roleFilter === "seller"
+                ? "bg-white text-stone-900 shadow-sm"
+                : "bg-transparent text-stone-500 hover:text-stone-800"
+            }`}
+            onClick={() => {
+              setRoleFilter("seller");
+              setPage(1);
+            }}
+          >
+            Người bán
+          </button>
+          <button
+            className={`border-none rounded-lg py-2 px-4 text-[13px] font-bold cursor-pointer transition-all ${
+              roleFilter === "admin"
+                ? "bg-white text-stone-900 shadow-sm"
+                : "bg-transparent text-stone-500 hover:text-stone-800"
+            }`}
+            onClick={() => {
+              setRoleFilter("admin");
+              setPage(1);
+            }}
+          >
+            Quản trị
+          </button>
+          <button
+            className={`border-none rounded-lg py-2 px-4 text-[13px] font-bold cursor-pointer transition-all ${
+              roleFilter === "locked"
+                ? "bg-white text-stone-900 shadow-sm"
+                : "bg-transparent text-stone-500 hover:text-stone-800"
+            }`}
+            onClick={() => {
+              setRoleFilter("locked");
+              setPage(1);
+            }}
+          >
+            Đã khóa
+          </button>
+        </div>
+
+        <div className="bg-white border border-stone-200 rounded-xl py-2 px-4 flex items-center gap-2.5 w-full sm:w-[320px] shadow-sm focus-within:border-[#c85a28] transition-all">
+          <Search className="w-4 h-4 text-stone-400" />
           <input
             type="text"
-            placeholder="Tìm kiếm theo tên hoặc email người dùng..."
+            placeholder="Tìm kiếm theo tên hoặc email..."
             value={searchTerm}
-            className="w-full py-2.5 pl-12 pr-4 border border-stone-200 rounded-2xl text-[13px] bg-white transition-all outline-none focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5 shadow-sm placeholder-stone-400"
+            className="bg-transparent border-none outline-none text-[13px] text-stone-700 w-full placeholder-stone-400"
             onChange={(e) => {
               setSearchTerm(e.target.value);
               setPage(1);
             }}
           />
         </div>
-        <div className="w-full md:w-[200px] relative">
-          <select
-            value={roleFilter}
-            onChange={(e) => {
-              setRoleFilter(e.target.value);
-              setPage(1);
-            }}
-            className="w-full py-2.5 pr-10 pl-4 border border-stone-200 rounded-2xl bg-white text-stone-705 font-bold text-[13px] cursor-pointer appearance-none outline-none transition-all hover:border-[#c85a28] focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5 shadow-sm"
-          >
-            <option value="all">Tất cả vai trò</option>
-            <option value="buyer">Người mua</option>
-            <option value="seller">Người bán</option>
-            <option value="admin">Quản trị</option>
-          </select>
-          <ChevronDown className="w-4 h-4 text-stone-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
-        </div>
       </div>
 
       {/* Users Table Card */}
       <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(238,229,219,0.2)] p-6 border border-stone-200/50 flex-1 min-h-0">
         {loading ? (
-          <div className="text-center py-16 text-stone-400 text-sm font-semibold flex flex-col items-center justify-center gap-3">
-            <div className="w-8 h-8 rounded-full border-4 border-stone-200 border-t-[#c85a28] animate-spin"></div>
-            <span>Đang tải dữ liệu người dùng...</span>
-          </div>
+          <AdminLoader text="Đang tải dữ liệu..." />
         ) : error ? (
           <div className="text-center py-16 text-sm text-rose-600 font-bold bg-rose-50/50 rounded-xl border border-rose-100">Lỗi kết nối: {error}</div>
         ) : filteredUsersNormalized.length > 0 ? (
@@ -469,6 +535,26 @@ export function UserManagement() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={confirmDeleteId !== null}
+        onClose={() => setConfirmDeleteId(null)}
+        onConfirm={async () => {
+          if (!confirmDeleteId) return;
+          try {
+            await userService.delete(confirmDeleteId);
+            toastService.success("Xóa người dùng thành công!");
+            loadUsers();
+          } catch (err) {
+            toastService.error("Lỗi: " + err.message);
+          }
+        }}
+        title="Xóa người dùng"
+        message="Bạn chắc chắn muốn xóa người dùng này? Hành động này không thể hoàn tác."
+        confirmText="Xóa"
+        cancelText="Hủy"
+        type="danger"
+      />
     </div>
   );
 }
