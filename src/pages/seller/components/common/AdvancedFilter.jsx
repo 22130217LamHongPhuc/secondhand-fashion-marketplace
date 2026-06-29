@@ -24,12 +24,12 @@ const AdvancedFilter = ({ onApply, initialValues = {} }) => {
   const handleApply = () => {
     const formattedFilters = { ...filters };
     if (filters.fromDate && !filters.fromDate.includes("T")) {
-        formattedFilters.fromDate = `${filters.fromDate}T00:00:00`;
+      formattedFilters.fromDate = `${filters.fromDate}T00:00:00`;
     }
     if (filters.toDate && !filters.toDate.includes("T")) {
-        formattedFilters.toDate = `${filters.toDate}T23:59:59`;
+      formattedFilters.toDate = `${filters.toDate}T23:59:59`;
     }
-    
+
     // Convert price to numbers
     if (filters.minPrice !== "") formattedFilters.minPrice = Number(filters.minPrice);
     if (filters.maxPrice !== "") formattedFilters.maxPrice = Number(filters.maxPrice);
@@ -124,12 +124,17 @@ const AdvancedFilter = ({ onApply, initialValues = {} }) => {
               <RotateCcw size={16} />
               Làm mới
             </button>
-            <button
-              onClick={handleApply}
+            <div
               className="rounded-xl bg-brand-primary px-6 py-2 text-sm font-bold text-white shadow-md transition-all hover:bg-brand-dark hover:shadow-lg active:scale-95"
             >
-              Áp dụng
-            </button>
+              <button
+                onClick={handleApply}
+
+              >
+                Áp dụng
+              </button>
+            </div>
+
           </div>
         </div>
       )}

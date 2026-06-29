@@ -483,8 +483,8 @@ const ProductDetailPage = () => {
             return items.map(p => ({
               id: p.id,
               title: p.name,
-              subtitle: `Giá: ${p.basePrice.toLocaleString("vi-VN")} đ`,
-              image: p.images?.[0]?.url || null,
+              subtitle: `Giá: ${p.formattedPrice}`,
+              image: p.thumbnailUrl || null,
             }));
           }}
           fetchDetail={async (id) => {

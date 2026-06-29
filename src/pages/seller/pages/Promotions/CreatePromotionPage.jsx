@@ -81,7 +81,7 @@ const CreatePromotionPage = () => {
         <CloneDataAutocomplete
           fetchOptions={async (keyword) => {
             const res = await sellerPromotionApi.getPromotions({ keyword });
-            const items = res?.data?.data?.content || [];
+            const items = res?.data?.content || [];
             return items.map(p => ({
               id: p.id,
               title: p.name,
@@ -90,7 +90,7 @@ const CreatePromotionPage = () => {
           }}
           fetchDetail={async (id) => {
             const res = await sellerPromotionApi.getPromotionDetail(id);
-            return res?.data?.data || res?.data;
+            return res?.data || null;
           }}
           onSelectData={(data) => {
             setFormData({
@@ -315,7 +315,7 @@ const CreatePromotionPage = () => {
               Hủy
             </button>
           </div>
-          <div className={`rounded-xl bg-brand-primary text-sm font-semibold text-black shadow-md transition-all hover:bg-brand-dark hover:shadow-lg active:scale-[0.98] ${isPending ? "opacity-70 cursor-not-allowed" : ""
+          <div className={`rounded-xl bg-brand-primary text-sm font-semibold text-white shadow-md transition-all hover:bg-brand-dark hover:shadow-lg active:scale-[0.98] ${isPending ? "opacity-70 cursor-not-allowed" : ""
             }`}>
             <button
               type="submit"

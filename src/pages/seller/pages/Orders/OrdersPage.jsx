@@ -92,7 +92,7 @@ const OrdersPage = () => {
   if (debouncedOrderCode) {
     queryParams.orderCode = debouncedOrderCode;
   }
-  
+
   if (advancedFilters.fromDate) queryParams.fromDate = advancedFilters.fromDate;
   if (advancedFilters.toDate) queryParams.toDate = advancedFilters.toDate;
   if (advancedFilters.minPrice !== undefined) queryParams.minPrice = advancedFilters.minPrice;
@@ -111,7 +111,7 @@ const OrdersPage = () => {
     if (total <= 5) {
       return Array.from({ length: total }, (_, i) => i);
     }
-    
+
     let start = 0;
     if (currentPage <= 1) {
       start = 0;
@@ -120,7 +120,7 @@ const OrdersPage = () => {
     } else {
       start = currentPage;
     }
-    
+
     const pages = [start, start + 1, start + 2];
     if (start + 2 < total - 1) {
       pages.push("...");
@@ -220,7 +220,7 @@ const OrdersPage = () => {
             <option value="price_asc">Giá tăng dần</option>
             <option value="price_desc">Giá giảm dần</option>
           </select>
-          <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400">
+          <div className="pointer-events-none absolute right-3 top-7 -translate-y-1/2 text-neutral-400">
             <ChevronDown size={16} />
           </div>
         </div>
@@ -372,11 +372,10 @@ const OrdersPage = () => {
                       <div
                         key={n}
                         onClick={() => setCurrentPage(n)}
-                        className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold transition-colors hover:bg-neutral-150 cursor-pointer ${
-                          currentPage === n
+                        className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold transition-colors hover:bg-neutral-150 cursor-pointer ${currentPage === n
                             ? "bg-accent-yellow shadow-lg text-gray-700 font-bold"
                             : "text-neutral-500 hover:bg-neutral-100"
-                        }`}
+                          }`}
                       >
                         {n + 1}
                       </div>

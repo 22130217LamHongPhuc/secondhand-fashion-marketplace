@@ -8,7 +8,7 @@ export const useSellerOrdersByStatus = (params = {}, options = {}) => {
   return useQuery({
     queryKey: sellerOrderKeys.status(params),
     queryFn: async () => {
-      const res = await sellerOrderApi.getByStatus(params);
+      const res = await sellerOrderApi.searchOrders(params);
       const { data } = res.data;
       return {
         orders: Order.fromApiList(data.content),

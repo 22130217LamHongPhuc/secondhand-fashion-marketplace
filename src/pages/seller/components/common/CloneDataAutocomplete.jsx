@@ -16,8 +16,6 @@ const CloneDataAutocomplete = ({ fetchOptions, fetchDetail, onSelectData, placeh
   const [loading, setLoading] = useState(false);
   const wrapperRef = useRef(null);
 
-  // Fallback if useDebounce is not available, we can implement it here.
-  // Actually, I'll use a simple useEffect debounce to avoid importing missing hooks.
   const [debouncedKeyword, setDebouncedKeyword] = useState("");
 
   useEffect(() => {
@@ -71,7 +69,7 @@ const CloneDataAutocomplete = ({ fetchOptions, fetchDetail, onSelectData, placeh
         <span>Sao chép dữ liệu cũ (Tùy chọn)</span>
       </div>
       <div className="relative">
-        <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400" />
+        <Search size={16} className="absolute left-3.5 top-7 -translate-y-1/2 text-neutral-400" />
         <input
           type="text"
           value={keyword}

@@ -16,7 +16,7 @@ const sellerProductApi = {
    * GET /api/seller/products?keyword=&isActive=&page=0
    */
   getAll: (params = {}) => {
-    const { keyword, isActive, fromDate, toDate, minPrice, maxPrice, page = 0 } = params;
+    const { keyword, isActive, fromDate, toDate, minPrice, maxPrice, sortBy, page = 0 } = params;
     const queryParams = { page };
     if (keyword) {
       queryParams.keyword = keyword;

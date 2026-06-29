@@ -75,7 +75,7 @@ const ShopPromotionsPage = () => {
   if (debouncedKeyword.trim()) {
     queryParams.keyword = debouncedKeyword.trim();
   }
-  
+
   if (advancedFilters.fromDate) queryParams.fromDate = advancedFilters.fromDate;
   if (advancedFilters.toDate) queryParams.toDate = advancedFilters.toDate;
   if (advancedFilters.minPrice !== undefined) queryParams.minPrice = advancedFilters.minPrice;
@@ -183,7 +183,7 @@ const ShopPromotionsPage = () => {
             <option value="price_asc">Giá tăng dần</option>
             <option value="price_desc">Giá giảm dần</option>
           </select>
-          <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400">
+          <div className="pointer-events-none absolute right-3 top-7 -translate-y-1/2 text-neutral-400">
             <ChevronDown size={16} />
           </div>
         </div>
@@ -284,7 +284,7 @@ const ShopPromotionsPage = () => {
               >
                 <button
                   onClick={() => setCurrentPage(page)}
-                  className="flex h-10 w-10 items-center justify-center w-full h-full"
+                  className="flex  items-center justify-center w-full h-full"
                 >
                   {page + 1}
                 </button>
