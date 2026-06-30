@@ -1,10 +1,20 @@
 import { Outlet, Navigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Loader2 } from 'lucide-react';
 import Sidebar from '../components/layout/Sidebar';
 import Header from '../components/layout/Header';
 import { useSellerOrderEvents, useSellerShop } from '../hooks';
 import { useSseSubscription } from '@/hooks';
 
 const SellerLayout = () => {
+  const [isApiLoading, setIsApiLoading] = useState(false);
+
+  useEffect(() => {
+    const handleLoading = (e) => setIsApiLoading(e.detail);
+    window.addEventListener("seller-api-loading", handleLoading);
+    return () => window.removeEventListener("seller-api-loading", handleLoading);
+  }, []);
+
   const { data: shop, isLoading } = useSellerShop();
 
   // Retrieve actual sellerId from logged in user in localStorage
@@ -63,7 +73,16 @@ const SellerLayout = () => {
   }
 
   return (
-    <div className="seller-root flex h-screen overflow-hidden bg-brand-bg">
+    <div className="seller-root flex h-screen overflow-hidden bg-brand-bg relative">
+      {isApiLoading && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
+          <div className="flex flex-col items-center bg-white p-4 rounded-xl shadow-lg">
+            <Loader2 className="h-8 w-8 animate-spin text-brand-primary mb-2" />
+            <span className="text-sm font-semibold text-neutral-700">Đang xử lý...</span>
+          </div>
+        </div>
+      )}
+
       {/* Sidebar */}
       <Sidebar />
 

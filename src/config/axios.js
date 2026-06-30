@@ -17,6 +17,24 @@ const axiosInstance = axios.create({
 });
 
 /* ──────────────────────────────────────────────
+   GLOBAL LOADING FOR SELLER APIS
+   ────────────────────────────────────────────── */
+let activeSellerRequests = 0;
+const handleSellerRequest = (isStarting) => {
+  if (isStarting) {
+    activeSellerRequests++;
+    if (activeSellerRequests === 1) {
+      window.dispatchEvent(new CustomEvent("seller-api-loading", { detail: true }));
+    }
+  } else {
+    activeSellerRequests = Math.max(0, activeSellerRequests - 1);
+    if (activeSellerRequests === 0) {
+      window.dispatchEvent(new CustomEvent("seller-api-loading", { detail: false }));
+    }
+  }
+};
+
+/* ──────────────────────────────────────────────
    REQUEST INTERCEPTOR
    ────────────────────────────────────────────── */
 axiosInstance.interceptors.request.use(
@@ -31,9 +49,18 @@ axiosInstance.interceptors.request.use(
       delete config.headers["content-type"];
     }
 
+    if (config.url?.includes("/seller") && config.method?.toLowerCase() !== "get") {
+      handleSellerRequest(true);
+    }
+
     return config;
   },
-  (error) => Promise.reject(error),
+  (error) => {
+    if (error.config?.url?.includes("/seller") && error.config?.method?.toLowerCase() !== "get") {
+      handleSellerRequest(false);
+    }
+    return Promise.reject(error);
+  }
 );
 
 /* ──────────────────────────────────────────────
@@ -41,10 +68,19 @@ axiosInstance.interceptors.request.use(
    ────────────────────────────────────────────── */
 axiosInstance.interceptors.response.use(
   // Success — return the full axios response so callers can read headers etc.
-  (response) => response,
+  (response) => {
+    if (response.config?.url?.includes("/seller") && response.config?.method?.toLowerCase() !== "get") {
+      handleSellerRequest(false);
+    }
+    return response;
+  },
 
   // Error — normalise into a predictable shape
   (error) => {
+    if (error.config?.url?.includes("/seller") && error.config?.method?.toLowerCase() !== "get") {
+      handleSellerRequest(false);
+    }
+
     if (error.response) {
       // Server responded with a status outside 2xx
       const { status, data } = error.response;

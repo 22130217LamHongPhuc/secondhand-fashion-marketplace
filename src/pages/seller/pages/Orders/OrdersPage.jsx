@@ -19,11 +19,15 @@ import {
   useCancelOrder,
 } from "../../hooks";
 import { toastService } from "@/services/toastService";
+import ShippingSuccessModal from "../../components/common/ShippingSuccessModal";
 import { Pagination } from "../../models";
 import TableSkeleton from "../../components/common/TableSkeleton";
 import ErrorState from "../../components/common/ErrorState";
 import EmptyState from "../../components/common/EmptyState";
 import AdvancedFilter from "../../components/common/AdvancedFilter";
+import { ExportProgressModal } from "../../components/common/ExportProgressModal";
+import { useOrderExport } from "../../hooks";
+import { FileSpreadsheet } from "lucide-react";
 
 const statusTabs = [
   { label: "Tất cả", id: "ALL", icon: null },
@@ -69,7 +73,10 @@ const OrdersPage = () => {
   const [searchInput, setSearchInput] = useState("");
   const [debouncedOrderCode, setDebouncedOrderCode] = useState("");
   const [advancedFilters, setAdvancedFilters] = useState({});
+  const [shippingSuccessData, setShippingSuccessData] = useState(null);
   const [sortBy, setSortBy] = useState("newest");
+
+  const { isExporting, progress, completeData, error: exportError, startExport, resetExport } = useOrderExport();
 
   // Debounce search input
   useEffect(() => {
@@ -141,9 +148,20 @@ const OrdersPage = () => {
 
   const handleAction = async (orderId, actionStr) => {
     try {
-      if (actionStr === "confirm") await confirmOrder(orderId);
-      if (actionStr === "delivery") await startDelivery(orderId);
-      if (actionStr === "complete") await completeOrder(orderId);
+      if (actionStr === "confirm") {
+          await confirmOrder(orderId);
+          toastService.success("Xác nhận đơn thành công");
+      }
+      if (actionStr === "delivery") {
+          const response = await startDelivery(orderId);
+          setShippingSuccessData(response);
+          toastService.success("Đã tạo đơn giao hàng thành công!");
+      }
+      if (actionStr === "complete") {
+          if (!window.confirm("Xác nhận giả lập giao hàng thành công cho đơn này?")) return;
+          await completeOrder(orderId);
+          toastService.success("Đã xác nhận giao hàng thành công!");
+      }
       if (actionStr === "cancel") {
         const reason = window.prompt("Nhập lý do hủy đơn hàng:");
         if (reason === null) return; // User cancelled prompt
@@ -151,9 +169,8 @@ const OrdersPage = () => {
           id: orderId,
           reason: reason || "Người bán hủy đơn",
         });
+        toastService.success("Hủy đơn thành công");
       }
-
-      toastService.success("Thao tác thành công");
     } catch (e) {
       toastService.error("Thao tác thất bại: " + (e?.message || e));
     }
@@ -161,10 +178,12 @@ const OrdersPage = () => {
 
   return (
     <div className="space-y-6">
-      {/* Page Title */}
-      <h1 className="font-heading text-3xl font-bold text-neutral-800">
-        Quản lý đơn hàng
-      </h1>
+      {/* Page Title & Actions */}
+      <div className="flex items-center justify-between">
+        <h1 className="font-heading text-3xl font-bold text-neutral-800">
+          Quản lý đơn hàng
+        </h1>
+      </div>
 
       {/* Search + Filter Tabs */}
       <div className="flex items-center gap-4">
@@ -228,6 +247,14 @@ const OrdersPage = () => {
 
       <AdvancedFilter onApply={(filters) => { setAdvancedFilters(filters); setCurrentPage(0); }} />
 
+      <ExportProgressModal
+        isOpen={isExporting || !!completeData || !!exportError}
+        onClose={resetExport}
+        isExporting={isExporting}
+        progress={progress}
+        completeData={completeData}
+        error={exportError}
+      />
       {/* Data Area */}
       {loading ? (
         <TableSkeleton columns={6} rows={5} />
@@ -333,6 +360,26 @@ const OrdersPage = () => {
                             </button>
                           </>
                         )}
+                        
+                        {o.status === "CONFIRMED" && (
+                          <button
+                            onClick={() => handleAction(o.id, "delivery")}
+                            title="Giao hàng"
+                            className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600 transition-colors hover:bg-blue-100"
+                          >
+                            <Truck size={16} />
+                          </button>
+                        )}
+
+                        {o.status === "SHIPPING" && (
+                          <button
+                            onClick={() => handleAction(o.id, "complete")}
+                            title="Giả lập giao thành công"
+                            className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent-green-light text-accent-green transition-colors hover:bg-accent-green/20"
+                          >
+                            <CircleCheck size={16} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -415,6 +462,76 @@ const OrdersPage = () => {
           )}
         </div>
       )}
+
+      {/* Export Banner */}
+      <div className="flex items-center justify-between rounded-2xl border border-neutral-200 bg-white p-5">
+        <div className="flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-neutral-100">
+            <FileSpreadsheet size={22} className="text-neutral-500" />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-neutral-700">
+              Xuất báo cáo đơn hàng
+            </p>
+            <p className="mt-0.5 text-sm text-neutral-400">
+              Tải xuống file Excel dữ liệu đơn hàng hiện tại.
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-col items-end gap-2">
+          {exportError && (
+            <span className="text-xs text-red-500">{exportError}</span>
+          )}
+          
+          {completeData ? (
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-accent-green font-semibold">
+                Xuất file thành công!
+              </span>
+              <a
+                href={completeData.fileUrl}
+                download
+                onClick={resetExport}
+                className="rounded-xl bg-accent-green px-7 py-3 text-sm font-semibold text-white shadow-md transition-all hover:bg-green-600 hover:shadow-lg active:scale-[0.98] cursor-pointer"
+              >
+                Tải xuống ngay
+              </a>
+            </div>
+          ) : isExporting ? (
+            <div className="flex items-center gap-3">
+              <div className="flex flex-col items-end">
+                <span className="text-xs font-semibold text-brand-primary">
+                  Đang xử lý... {progress?.percent || 0}%
+                </span>
+                <span className="text-[10px] text-neutral-400">
+                  {progress?.processed || 0} / {progress?.total || 0} đơn
+                </span>
+              </div>
+              <div className="h-2 w-32 overflow-hidden rounded-full bg-neutral-100">
+                <div 
+                  className="h-full bg-brand-primary transition-all duration-300"
+                  style={{ width: `${progress?.percent || 0}%` }}
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="flex w-fit items-center justify-center rounded-xl bg-brand-primary px-7 py-3 text-sm font-semibold text-white shadow-md transition-all hover:bg-brand-dark hover:shadow-lg active:scale-[0.98] cursor-pointer">
+              <button
+                onClick={startExport}
+                className="flex items-center gap-2 bg-transparent border-none outline-none text-white cursor-pointer p-0 m-0 w-full h-full"
+              >
+                Tải báo cáo (.excel)
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <ShippingSuccessModal 
+        isOpen={!!shippingSuccessData} 
+        onClose={() => setShippingSuccessData(null)} 
+        shippingInfo={shippingSuccessData}
+      />
     </div>
   );
 };
