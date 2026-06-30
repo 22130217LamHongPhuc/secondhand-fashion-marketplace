@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import ProductGrid from "../ProductListPage/components/ProductGrid";
 import ShopHero from "./components/ShopHero";
+import ShopPromotions from "./components/ShopPromotions";
 import { customerShopService } from "@/services/customerShop";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -130,6 +131,8 @@ export default function ShopPage() {
   return (
     <main className="min-h-screen bg-[#fbfae6] font-sans text-[#3f392f]">
       <ShopHero shop={shop} />
+      
+      {!loading && !error && <ShopPromotions shopId={id} />}
 
       <div className="mx-8 mt-10">
         {loading ? (

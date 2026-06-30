@@ -243,6 +243,9 @@ export default function CustomerLayout() {
     return (first + last).toUpperCase();
   };
 
+  const headerIconButtonClass =
+    "relative flex h-10 w-10 shrink-0 items-center justify-center leading-none text-[#b84a25] transition-opacity hover:opacity-80 [&>svg]:block [&>svg]:shrink-0";
+
   return (
     <div
       className="min-h-screen bg-[#f6f4dd] text-[#3f3b2f]"
@@ -297,14 +300,16 @@ export default function CustomerLayout() {
             </button>
           </nav>
 
-          <div className="flex items-center gap-4 text-[#b84a25]">
-            <button type="button" onClick={handleSearch}>
+          <div className="flex items-center gap-2 text-[#b84a25]">
+            <button type="button" onClick={handleSearch} className={headerIconButtonClass}>
               <Search size={18} />
             </button>
 
             <button
               type="button"
               onClick={() => navigate("/image-search")}
+              className={headerIconButtonClass}
+              aria-label="Tìm kiếm bằng hình ảnh"
               aria-label="Tìm kiếm bằng hình ảnh"
               title="Tìm kiếm bằng hình ảnh"
             >
@@ -315,14 +320,16 @@ export default function CustomerLayout() {
               <button
                 type="button"
                 onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-                className="relative cursor-pointer hover:opacity-80 transition-opacity"
+                className={headerIconButtonClass}
                 aria-label="Thông báo"
                 title="Thông báo"
               >
-                <Bell size={18} />
-                {user && notifications.some(n => !n.read) && (
-                  <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-[#c04f25]" />
-                )}
+                <div className="relative">
+                  <Bell size={18} />
+                  {user && notifications.some(n => !n.read) && (
+                    <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-[#c04f25]" />
+                  )}
+                </div>
               </button>
 
               {isNotificationsOpen && (
@@ -387,16 +394,18 @@ export default function CustomerLayout() {
               <button
                 type="button"
                 onClick={handleOpenChatList}
-                className="relative cursor-pointer hover:opacity-80 transition-opacity"
+                className={headerIconButtonClass}
                 aria-label="Tin nhắn với shop"
                 title="Tin nhắn với shop"
               >
-                <MessageCircle size={18} />
-                {user && totalUnreadCount > 0 && (
-                  <span className="absolute -top-2 -right-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#c04f25] px-1 text-[9px] font-extrabold text-white">
-                    {Math.min(totalUnreadCount, 9)}
-                  </span>
-                )}
+                <div className="relative">
+                  <MessageCircle size={18} />
+                  {user && totalUnreadCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[#c04f25] px-1 text-[8px] font-extrabold text-white">
+                      {Math.min(totalUnreadCount, 9)}
+                    </span>
+                  )}
+                </div>
               </button>
 
               {isChatModalOpen && (
@@ -485,6 +494,7 @@ export default function CustomerLayout() {
               onClick={() => navigate("/orders")}
               aria-label="Lịch sử đơn hàng"
               title="Lịch sử đơn hàng"
+              className={headerIconButtonClass}
             >
               <ReceiptText size={18} />
             </button>
@@ -492,16 +502,18 @@ export default function CustomerLayout() {
             <button
               type="button"
               onClick={() => navigate("/cart")}
-              className="relative cursor-pointer hover:opacity-80 transition-opacity"
+              className={headerIconButtonClass}
               aria-label="Giỏ hàng"
               title="Giỏ hàng"
             >
-              <ShoppingCart size={18} />
-              {cartCount > 0 && (
-                <span className="absolute -top-2 -right-2 flex h-4 w-4 items-center justify-center rounded-full bg-[#c04f25] text-[9px] font-extrabold text-white">
-                  {cartCount}
-                </span>
-              )}
+              <div className="relative">
+                <ShoppingCart size={18} />
+                {cartCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#c04f25] text-[8px] font-extrabold text-white">
+                    {cartCount}
+                  </span>
+                )}
+              </div>
             </button>
 
             {user ? (

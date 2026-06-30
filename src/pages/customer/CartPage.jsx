@@ -5,6 +5,7 @@ import { cartService } from "@/services/cartService";
 import { toastService } from "@/services/toastService";
 import { userService } from "@/services/user";
 import { couponService } from "@/services/couponService";
+import { customerPromotionService } from "@/services/promotionService";
 import { shippingService } from "@/services/shippingService";
 
 const areFeeMapsEqual = (current, next) => {
@@ -31,10 +32,13 @@ export default function CartPage() {
   const [selectedItemIds, setSelectedItemIds] = useState([]);
   const [hasInitializedSelection, setHasInitializedSelection] = useState(false);
   const [ownedCoupons, setOwnedCoupons] = useState([]);
+  const [walletVouchers, setWalletVouchers] = useState([]);
   const [couponCode, setCouponCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [discountAmount, setDiscountAmount] = useState(0);
   const [couponLoading, setCouponLoading] = useState(false);
+  const [shopPromotions, setShopPromotions] = useState([]);
+  const [claimingPromoId, setClaimingPromoId] = useState(null);
 
   // Address states
   const [addresses, setAddresses] = useState([]);
@@ -96,18 +100,20 @@ export default function CartPage() {
     const loadOwnedCoupons = async () => {
       try {
         const available = await couponService.getAvailable();
-        const savedCodes = JSON.parse(localStorage.getItem("savedCoupons") || "[]");
         setOwnedCoupons(
-          available.filter((coupon) =>
-            coupon.isAutoSave || savedCodes.includes(coupon.code),
-          ),
+          available.filter((coupon) => coupon.createdBy === "ADMIN" || !coupon.shopId),
         );
+
+        if (localStorage.getItem("token")) {
+          const walletData = await customerPromotionService.getMyWallet(0, 100);
+          setWalletVouchers(walletData.content || walletData.items || []);
+        }
       } catch (error) {
         console.error("Không thể tải ví mã giảm giá", error);
       }
     };
     loadOwnedCoupons();
-  }, []);
+  }, [user]);
 
   // Initialize selected items based on 'Buy Now' navigation state or select all by default
   useEffect(() => {
@@ -432,16 +438,94 @@ export default function CartPage() {
     };
   }, [selectedAddressId, addresses, selectedItems, selectedShopIds, selectedShopsCount, user?.userId]);
 
+  // Fetch shop promotions for selected shop ids
+  useEffect(() => {
+    if (selectedShopIds.length === 0) {
+      setShopPromotions([]);
+      return;
+    }
+
+    const fetchShopPromos = async () => {
+      try {
+        const promosPromises = selectedShopIds.map(shopId =>
+          customerPromotionService.getShopPromotions(shopId, 0, 50)
+        );
+        const results = await Promise.all(promosPromises);
+        const allPromos = results.flatMap(res => res.content || res.items || []);
+        // filter out duplicate promotions by id
+        const uniquePromos = Array.from(new Map(allPromos.map(p => [p.id, p])).values());
+        setShopPromotions(uniquePromos);
+      } catch (err) {
+        console.error("Error fetching shop promotions", err);
+      }
+    };
+
+    fetchShopPromos();
+  }, [selectedShopIds, walletVouchers]);
+
   // Calculate subtotal for selected items only
   const subtotal = selectedItems.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
   
   // Total payment
   const total = Math.max(0, subtotal + shippingFee - discountAmount);
 
+  const usableWalletVouchers = useMemo(() => {
+    const selectedShopSet = new Set(selectedShopIds.map(String));
+    const now = Date.now();
+
+    return walletVouchers.filter((item) => {
+      const promotion = item?.promotion;
+      if (!promotion) return false;
+
+      const promotionShopId = promotion.shopId || promotion.shop?.id;
+      if (!promotionShopId || !selectedShopSet.has(String(promotionShopId))) {
+        return false;
+      }
+
+      if (item.usageCount >= 1) {
+        return false;
+      }
+
+      if (promotion.status && promotion.status !== "ACTIVE") {
+        return false;
+      }
+
+      if (promotion.startDate && now < new Date(promotion.startDate).getTime()) {
+        return false;
+      }
+
+      if (promotion.endDate && now > new Date(promotion.endDate).getTime()) {
+        return false;
+      }
+
+      if (
+        promotion.quantity != null
+        && promotion.usedQuantity != null
+        && Number(promotion.usedQuantity) >= Number(promotion.quantity)
+      ) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [walletVouchers, selectedShopIds]);
+
   useEffect(() => {
-    setAppliedCoupon(null);
-    setDiscountAmount(0);
-  }, [subtotal]);
+    if (!appliedCoupon) return;
+    
+    const promoShopId = appliedCoupon.shopId || appliedCoupon.shop?.id;
+    const eligibleSubtotal = promoShopId
+      ? selectedItems
+          .filter((item) => String(item.shopId) === String(promoShopId))
+          .reduce((sum, item) => sum + item.price * (item.quantity || 1), 0)
+      : subtotal;
+      
+    if (eligibleSubtotal <= 0 || (appliedCoupon.minOrderValue && eligibleSubtotal < appliedCoupon.minOrderValue)) {
+      setAppliedCoupon(null);
+      setDiscountAmount(0);
+      toastService.info("Mã giảm giá đã bị hủy do thay đổi giỏ hàng không còn đủ điều kiện tối thiểu.");
+    }
+  }, [selectedItems, subtotal, appliedCoupon]);
 
   // Format currency
   const formatPrice = (value) => {
@@ -462,20 +546,38 @@ export default function CartPage() {
       return;
     }
 
-    const coupon = couponHint || ownedCoupons.find((item) => item.code === normalizedCode);
-    const eligibleSubtotal = coupon?.shopId
+    const coupon = couponHint 
+      || ownedCoupons.find((item) => item.code === normalizedCode)
+      || usableWalletVouchers.map(v => v.promotion).find((item) => item?.code === normalizedCode)
+      || shopPromotions.find((item) => item.code === normalizedCode);
+      
+    const promoShopId = coupon?.shopId || coupon?.shop?.id;
+    const eligibleSubtotal = promoShopId
       ? selectedItems
-          .filter((item) => String(item.shopId) === String(coupon.shopId))
+          .filter((item) => String(item.shopId) === String(promoShopId))
           .reduce((sum, item) => sum + item.price * (item.quantity || 1), 0)
       : subtotal;
 
-    if (coupon?.shopId && eligibleSubtotal <= 0) {
+    if (promoShopId && eligibleSubtotal <= 0) {
       toastService.warning("Mã này không áp dụng cho các sản phẩm đã chọn.");
       return;
     }
 
     setCouponLoading(true);
     try {
+      if (promoShopId && coupon?.id) {
+        const isClaimed = walletVouchers.some(item => item.promotion?.id === coupon.id);
+        if (!isClaimed && user) {
+          try {
+            await customerPromotionService.claimPromotion(coupon.id);
+            const walletData = await customerPromotionService.getMyWallet(0, 100);
+            setWalletVouchers(walletData.content || walletData.items || []);
+          } catch (claimErr) {
+            console.warn("Tự động lưu mã giảm giá tiệm thất bại", claimErr);
+          }
+        }
+      }
+
       const validation = await couponService.validate(normalizedCode, eligibleSubtotal);
       if (!validation?.isValid) {
         throw new Error(validation?.message || "Mã giảm giá không hợp lệ");
@@ -493,7 +595,26 @@ export default function CartPage() {
     }
   };
 
-  const handleProceedToCheckout = () => {
+  const handleClaimPromotion = async (promotionId) => {
+    if (!user) {
+      toastService.warning("Vui lòng đăng nhập để lưu mã giảm giá.");
+      return;
+    }
+    setClaimingPromoId(promotionId);
+    try {
+      await customerPromotionService.claimPromotion(promotionId);
+      toastService.success("Lưu mã giảm giá thành công!");
+      // Reload wallet to refresh claimed status
+      const walletData = await customerPromotionService.getMyWallet(0, 100);
+      setWalletVouchers(walletData.content || walletData.items || []);
+    } catch (err) {
+      toastService.error(err.message || "Không thể lưu mã giảm giá.");
+    } finally {
+      setClaimingPromoId(null);
+    }
+  };
+
+  const handleProceedToCheckout = async () => {
     if (!user) {
       toastService.warning("Vui lòng đăng nhập để tiến hành thanh toán.");
       return;
@@ -507,6 +628,40 @@ export default function CartPage() {
     if (!selectedAddressId) {
       toastService.warning("Vui lòng chọn hoặc thêm địa chỉ giao hàng.");
       return;
+    }
+
+    if (appliedCoupon) {
+      const promoShopId = appliedCoupon.shopId || appliedCoupon.shop?.id;
+      const eligibleSubtotal = promoShopId
+        ? selectedItems
+            .filter((item) => String(item.shopId) === String(promoShopId))
+            .reduce((sum, item) => sum + item.price * (item.quantity || 1), 0)
+        : subtotal;
+
+      if (promoShopId && eligibleSubtotal <= 0) {
+        toastService.warning("Mã giảm giá đang dùng không áp dụng cho các sản phẩm đã chọn.");
+        return;
+      }
+
+      setCouponLoading(true);
+      try {
+        const validation = await couponService.validate(appliedCoupon.code, eligibleSubtotal);
+        if (!validation?.isValid) {
+          toastService.error(`Mã giảm giá không còn hợp lệ: ${validation?.message || "Không hợp lệ"}`);
+          setAppliedCoupon(null);
+          setDiscountAmount(0);
+          setCouponLoading(false);
+          return;
+        }
+      } catch (error) {
+        toastService.error(`Mã giảm giá không hợp lệ: ${error.message}`);
+        setAppliedCoupon(null);
+        setDiscountAmount(0);
+        setCouponLoading(false);
+        return;
+      } finally {
+        setCouponLoading(false);
+      }
     }
 
     const selectedAddress = addresses.find(addr => addr.id === selectedAddressId);
@@ -985,7 +1140,7 @@ export default function CartPage() {
 
             {ownedCoupons.length > 0 && (
               <div>
-                <p className="mb-2 text-xs font-semibold text-[#7c7565]">Mã của bạn</p>
+                <p className="mb-2 text-xs font-semibold text-[#7c7565]">Mã hệ thống</p>
                 <div className="max-h-44 space-y-2 overflow-y-auto pr-1">
                   {ownedCoupons.map((coupon) => (
                     <button
@@ -1009,6 +1164,75 @@ export default function CartPage() {
                       </span>
                     </button>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {shopPromotions.length > 0 && (
+              <div className="mt-4">
+                <p className="mb-2 text-xs font-semibold text-[#7c7565]">Voucher từ tiệm</p>
+                <div className="max-h-56 space-y-2 overflow-y-auto pr-1">
+                  {shopPromotions.map((coupon) => {
+                    const claimedItem = walletVouchers.find(item => item.promotion?.id === coupon.id);
+                    const isClaimed = !!claimedItem;
+                    
+                    return (
+                      <div
+                        key={coupon.id}
+                        className={`flex items-center justify-between rounded-xl border p-3 transition ${
+                          appliedCoupon?.code === coupon.code
+                            ? "border-[#b84a25] bg-[#fff7ef]"
+                            : "border-[#eee6d2]"
+                        }`}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-xs font-bold text-[#b84a25]">{coupon.code}</p>
+                            <span className="text-[9px] px-1 bg-[#ffc28f]/30 text-[#6c331b] rounded-sm font-bold">
+                              {coupon.shop?.name || "Tiệm"}
+                            </span>
+                          </div>
+                          <p className="truncate text-xs text-[#7c7565] mt-0.5">{coupon.name}</p>
+                          {coupon.minOrderValue > 0 && (
+                            <p className="text-[10px] text-[#9c927b] mt-0.5">
+                              Đơn tối thiểu: {formatPrice(coupon.minOrderValue)}
+                            </p>
+                          )}
+                        </div>
+                        
+                        <div className="ml-3 flex shrink-0 items-center gap-3">
+                          <span className="text-[11px] font-semibold text-[#3d3a2c]">
+                            {coupon.discountType === "PERCENTAGE"
+                              ? `-${Number(coupon.discountValue)}%`
+                              : `-${formatPrice(coupon.discountValue)}`}
+                          </span>
+                          
+                          {isClaimed ? (
+                            <button
+                              type="button"
+                              onClick={() => handleApplyCoupon(coupon.code, coupon)}
+                              className={`rounded-lg px-3 py-1.5 text-xs font-extrabold transition cursor-pointer ${
+                                appliedCoupon?.code === coupon.code
+                                  ? "bg-[#b84a25] text-white"
+                                  : "bg-[#3d3a2c] text-white hover:opacity-95"
+                              }`}
+                            >
+                              {appliedCoupon?.code === coupon.code ? "Đã dùng" : "Áp dụng"}
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled={claimingPromoId === coupon.id}
+                              onClick={() => handleClaimPromotion(coupon.id)}
+                              className="rounded-lg bg-[#ffc28f] px-3 py-1.5 text-xs font-extrabold text-[#6c331b] hover:bg-[#ffa960] transition cursor-pointer disabled:opacity-50"
+                            >
+                              Lưu mã
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}

@@ -179,6 +179,16 @@ export default function OrderCard({ order, onCancel, onComplaint, onViewComplain
             </p>
             <p className="mt-1 text-xs font-semibold text-[#8a826f]">
               Phí vận chuyển {formatVnd(order.shippingFee)}
+              {order.discountAmount > 0 ? (
+                <>
+                  {" • "}
+                  Giảm giá{" "}
+                  <span className="text-emerald-600 font-bold">
+                    -{formatVnd(order.discountAmount)}
+                  </span>
+                  {order.couponCode ? ` (${order.couponCode})` : ""}
+                </>
+              ) : null}
             </p>
           </div>
 

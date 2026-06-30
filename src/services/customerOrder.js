@@ -24,6 +24,8 @@ function normalizeOrder(order) {
     paymentStatus: order?.paymentStatus || "",
     subtotal: toNumber(order?.subtotal),
     shippingFee: toNumber(order?.shippingFee),
+    discountAmount: toNumber(order?.discountAmount),
+    couponCode: order?.couponCode || null,
     total: toNumber(order?.total),
     itemCount: toNumber(order?.itemCount),
     thumbnailUrl: order?.thumbnailUrl || "",
@@ -80,6 +82,14 @@ function normalizeOrderDetail(order) {
     items: Array.isArray(order?.items) ? order.items.map(normalizeOrderItem) : [],
     subtotal: toNumber(order?.subtotal),
     shippingFee: toNumber(order?.shippingFee),
+    discountAmount: toNumber(order?.discountAmount),
+    couponInfo: order?.couponInfo
+      ? {
+          code: order.couponInfo.code,
+          name: order.couponInfo.name,
+          source: order.couponInfo.source,
+        }
+      : null,
     total: toNumber(order?.total),
     createdAt: order?.createdAt || "",
     updatedAt: order?.updatedAt || "",
