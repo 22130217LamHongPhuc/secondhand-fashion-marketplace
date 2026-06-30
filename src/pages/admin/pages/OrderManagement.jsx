@@ -76,7 +76,10 @@ export function OrderManagement() {
     try {
       setLoading(true);
       const filters = statusFilter !== "all" ? { status: statusFilter } : {};
-      const response = await orderService.getAll(1, 10000, filters).catch(() => null);
+      const response = await orderService.getAll(1, 10000, filters).catch((err) => {
+        setError(err.message || "Không thể kết nối đến máy chủ");
+        return null;
+      });
 
       const rawData = response?.data || response || {};
       const apiOrders = rawData.data || rawData.content || rawData.items || (Array.isArray(rawData) ? rawData : []);
@@ -129,7 +132,7 @@ export function OrderManagement() {
 
       const createdAt = new Date(order.createdAt);
       const today = new Date();
-      
+
       let matchesDate = true;
       if (dateFilter === "today") {
         matchesDate =
@@ -150,10 +153,10 @@ export function OrderManagement() {
       } else if (dateFilter === "custom") {
         const orderDate = new Date(order.createdAt);
         orderDate.setHours(0, 0, 0, 0);
-        
+
         let matchesStart = true;
         let matchesEnd = true;
-        
+
         if (startDate) {
           const start = new Date(startDate);
           start.setHours(0, 0, 0, 0);
@@ -247,9 +250,9 @@ export function OrderManagement() {
             navigate("/admin/orders");
           }}
           readOnly={true}
-          // Admin cannot update status or cancel orders - sellers only
-          // onUpdateStatus={handleUpdateStatus}
-          // onCancelOrder={handleCancelOrder}
+        // Admin cannot update status or cancel orders - sellers only
+        // onUpdateStatus={handleUpdateStatus}
+        // onCancelOrder={handleCancelOrder}
         />
       );
     }
@@ -350,11 +353,10 @@ export function OrderManagement() {
           {statusOptions.map((option) => (
             <button
               key={option.value}
-              className={`border-none rounded-lg py-2 px-4 text-[13px] font-bold cursor-pointer transition-all ${
-                statusFilter === option.value
-                  ? "bg-white text-stone-900 shadow-sm"
-                  : "bg-transparent text-stone-500 hover:text-stone-800"
-              }`}
+              className={`border-none rounded-lg py-2 px-4 text-[13px] font-bold cursor-pointer transition-all ${statusFilter === option.value
+                ? "bg-white text-stone-900 shadow-sm"
+                : "bg-transparent text-stone-500 hover:text-stone-800"
+                }`}
               onClick={() => {
                 setStatusFilter(option.value);
                 setPage(1);
@@ -640,16 +642,15 @@ export function OrderManagement() {
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
-                
+
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map((pNum) => (
                   <button
                     key={pNum}
                     onClick={() => setPage(pNum)}
-                    className={`w-9 h-9 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center border ${
-                      page === pNum
-                        ? "bg-[#c85a28] text-white border-[#c85a28] shadow-sm"
-                        : "bg-white text-stone-600 border-stone-200 hover:bg-stone-50"
-                    }`}
+                    className={`w-9 h-9 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center border ${page === pNum
+                      ? "bg-[#c85a28] text-white border-[#c85a28] shadow-sm"
+                      : "bg-white text-stone-600 border-stone-200 hover:bg-stone-50"
+                      }`}
                   >
                     {pNum}
                   </button>
