@@ -16,6 +16,8 @@ export function AdminLayout({ children }) {
     const storedUser = localStorage.getItem("user");
 
     if (!token || !storedUser) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
       navigate("/?login=true", { replace: true });
       return;
     }
@@ -49,13 +51,25 @@ export function AdminLayout({ children }) {
             </svg>
           </span>
           <h2 className="text-xl font-extrabold text-stone-900 mb-2">Không có quyền truy cập</h2>
-          <p className="text-sm text-stone-600 mb-6">Bạn không có quyền truy cập vào trang quản trị này. Vui lòng quay lại trang chủ.</p>
-          <button 
-            onClick={() => navigate("/")}
-            className="px-6 py-2.5 bg-[#c85a28] hover:bg-[#b84c1a] text-white font-bold text-sm rounded-xl transition-all shadow-md cursor-pointer"
-          >
-            Quay lại trang chủ
-          </button>
+          <p className="text-sm text-stone-600 mb-6">Bạn không có quyền truy cập vào trang quản trị này. Vui lòng quay lại trang chủ hoặc đăng nhập với tài khoản Admin.</p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <button 
+              onClick={() => navigate("/")}
+              className="px-6 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-sm rounded-xl transition-all border border-stone-200 cursor-pointer"
+            >
+              Quay lại trang chủ
+            </button>
+            <button 
+              onClick={() => {
+                localStorage.removeItem("token");
+                localStorage.removeItem("user");
+                navigate("/?login=true", { replace: true });
+              }}
+              className="px-6 py-2.5 bg-[#c85a28] hover:bg-[#b84c1a] text-white font-bold text-sm rounded-xl transition-all shadow-md cursor-pointer"
+            >
+              Đăng nhập tài khoản khác
+            </button>
+          </div>
         </div>
       </div>
     );

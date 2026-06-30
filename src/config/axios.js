@@ -85,10 +85,11 @@ axiosInstance.interceptors.response.use(
       // Server responded with a status outside 2xx
       const { status, data } = error.response;
 
-      // Optional: redirect to login on 401
+      // Clear auth and redirect to login on 401
       if (status === 401) {
         localStorage.removeItem("token");
-        // window.location.href = "/login";
+        localStorage.removeItem("user");
+        window.location.href = "/?login=true";
       }
 
       // Re-throw with the backend error body so hooks can read `message`, `errors`, etc.

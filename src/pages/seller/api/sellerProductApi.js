@@ -16,13 +16,16 @@ const sellerProductApi = {
    * GET /api/seller/products?keyword=&isActive=&page=0
    */
   getAll: (params = {}) => {
-    const { keyword, isActive, fromDate, toDate, minPrice, maxPrice, sortBy, page = 0 } = params;
+    const { keyword, isActive, isApproved, fromDate, toDate, minPrice, maxPrice, sortBy, page = 0 } = params;
     const queryParams = { page };
     if (keyword) {
       queryParams.keyword = keyword;
     }
     if (isActive !== undefined && isActive !== null) {
       queryParams.isActive = isActive;
+    }
+    if (isApproved !== undefined && isApproved !== null) {
+      queryParams.isApproved = isApproved;
     }
     if (fromDate) queryParams.fromDate = fromDate;
     if (toDate) queryParams.toDate = toDate;

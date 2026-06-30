@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 
 export const useAuth = () => {
   const [user, setUser] = useState(() => {
+    const token = localStorage.getItem('token');
     const userStr = localStorage.getItem('user');
-    if (userStr) {
+    if (token && userStr) {
       try {
         return JSON.parse(userStr);
       } catch (e) {
@@ -15,8 +16,9 @@ export const useAuth = () => {
 
   useEffect(() => {
     const handleStorageChange = () => {
+      const token = localStorage.getItem('token');
       const userStr = localStorage.getItem('user');
-      if (userStr) {
+      if (token && userStr) {
         try {
           setUser(JSON.parse(userStr));
         } catch (e) {

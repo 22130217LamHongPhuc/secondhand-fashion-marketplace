@@ -17,7 +17,9 @@ import {
   Clock,
   AlertTriangle,
   CheckCircle,
-  HelpCircle
+  HelpCircle,
+  Lock,
+  Unlock
 } from "lucide-react";
 
 const ITEMS_PER_PAGE = 10;
@@ -57,7 +59,8 @@ const normalizeProduct = (product) => {
     price: Number(priceValue) || 0,
     stock: Number(stockValue) || 0,
     image: primaryImage,
-    status: product?.status || (isActive ? "selling" : "pending"),
+    status: product?.status || (product?.isApproved ? (isActive ? "selling" : "locked") : "pending"),
+    isApproved: product?.isApproved ?? false,
     sellerName,
     sellerMeta,
     sku: product?.sku || `SKU-${String(product?.id ?? "").slice(-3) || "000"}`,
@@ -167,7 +170,8 @@ export function ProductManagement() {
       const matchesTab =
         activeTab === "all" ||
         (activeTab === "selling" && product.status === "selling") ||
-        (activeTab === "pending" && product.status === "pending");
+        (activeTab === "pending" && product.status === "pending") ||
+        (activeTab === "locked" && product.status === "locked");
 
       const matchesCategory = (() => {
         if (categoryFilter === "all") return true;
@@ -188,6 +192,7 @@ export function ProductManagement() {
   const totalCount = products.length;
   const sellingCount = products.filter((product) => product.status === "selling").length;
   const pendingCount = products.filter((product) => product.status === "pending").length;
+  const lockedCount = products.filter((product) => product.status === "locked").length;
 
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / ITEMS_PER_PAGE));
   const currentPage = Math.min(page, totalPages);
@@ -356,7 +361,20 @@ export function ProductManagement() {
             setPage(1);
           }}
         >
-          Đang khóa <span className="ml-1 opacity-70">({pendingCount})</span>
+          Chờ duyệt <span className="ml-1 opacity-70">({pendingCount})</span>
+        </button>
+        <button
+          className={`border-none rounded-lg py-2 px-4 text-[13px] font-bold cursor-pointer transition-all ${
+            activeTab === "locked"
+              ? "bg-white text-stone-900 shadow-sm"
+              : "bg-transparent text-stone-500 hover:text-stone-800"
+          }`}
+          onClick={() => {
+            setActiveTab("locked");
+            setPage(1);
+          }}
+        >
+          Đang khóa <span className="ml-1 opacity-70">({lockedCount})</span>
         </button>
       </div>
 
@@ -469,7 +487,7 @@ export function ProductManagement() {
                     <th className="p-3.5 text-left font-bold text-stone-500 text-[11px] uppercase tracking-wider">Giá bán</th>
                     <th className="p-3.5 text-left font-bold text-stone-500 text-[11px] uppercase tracking-wider">Kho hàng</th>
                     <th className="p-3.5 text-center font-bold text-stone-500 text-[11px] uppercase tracking-wider w-36">Trạng thái</th>
-                    <th className="p-3.5 text-center font-bold text-stone-500 text-[11px] uppercase tracking-wider w-28">Hành động</th>
+                    <th className="p-3.5 text-center font-bold text-stone-500 text-[11px] uppercase tracking-wider w-36">Hành động</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stone-100">
@@ -502,7 +520,7 @@ export function ProductManagement() {
                         </div>
                       </td>
                       <td className="p-3.5 align-middle">
-                        <span className="py-1 px-2.5 rounded-lg bg-stone-50 border border-stone-200/70 text-stone-605 text-xs font-semibold inline-block">
+                        <span className="py-1 px-2.5 rounded-lg bg-stone-50 border border-stone-200/70 text-stone-600 text-xs font-semibold inline-block">
                           {product.category}
                         </span>
                       </td>
@@ -528,20 +546,27 @@ export function ProductManagement() {
                         )}
                       </td>
                       <td className="p-3.5 align-middle text-center">
-                        <select
-                          value={product.isActive ? "active" : "inactive"}
-                          onChange={(e) => handleToggleStatus(product.id, e.target.value === "active")}
-                          className={`py-1 px-3 border rounded-full text-xs font-bold cursor-pointer outline-none transition-all ${product.isActive
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
-                            : "bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100"
-                            }`}
-                        >
-                          <option value="active">Đang bán</option>
-                          <option value="inactive">Khóa bán</option>
-                        </select>
+                        {product.status === "selling" && (
+                          <span className="inline-flex items-center gap-1.5 py-1 px-3.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            Đang bán
+                          </span>
+                        )}
+                        {product.status === "pending" && (
+                          <span className="inline-flex items-center gap-1.5 py-1 px-3.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-100">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                            Chờ duyệt
+                          </span>
+                        )}
+                        {product.status === "locked" && (
+                          <span className="inline-flex items-center gap-1.5 py-1 px-3.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-100">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                            Đang khóa
+                          </span>
+                        )}
                       </td>
                       <td className="p-3.5 align-middle text-center">
-                        <div className="flex gap-1.5 justify-center items-center">
+                        <div className="flex gap-2.5 justify-center items-center">
                           {/* Modern Google Style CRUD icons */}
                           <button
                             className="p-1.5 rounded-lg text-blue-600 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 active:scale-95 transition-all border-none cursor-pointer flex items-center justify-center"
@@ -551,6 +576,40 @@ export function ProductManagement() {
                           >
                             <Eye className="w-3.5 h-3.5" />
                           </button>
+
+                          {product.status === "selling" && (
+                            <button
+                              className="p-1.5 px-2.5 rounded-lg text-rose-650 bg-rose-50 hover:bg-rose-100 hover:text-rose-700 active:scale-95 transition-all border-none cursor-pointer flex items-center justify-center gap-1 text-[11px] font-bold whitespace-nowrap"
+                              type="button"
+                              onClick={() => handleToggleStatus(product.id, false)}
+                              title="Khóa sản phẩm"
+                            >
+                              <Lock className="w-3.5 h-3.5" />
+                              <span>Khóa</span>
+                            </button>
+                          )}
+                          {product.status === "pending" && (
+                            <button
+                              className="p-1.5 px-2.5 rounded-lg text-emerald-650 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-700 active:scale-95 transition-all border-none cursor-pointer flex items-center justify-center gap-1 text-[11px] font-bold whitespace-nowrap"
+                              type="button"
+                              onClick={() => handleToggleStatus(product.id, true)}
+                              title="Duyệt sản phẩm"
+                            >
+                              <CheckCircle className="w-3.5 h-3.5" />
+                              <span>Duyệt</span>
+                            </button>
+                          )}
+                          {product.status === "locked" && (
+                            <button
+                              className="p-1.5 px-2.5 rounded-lg text-blue-650 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 active:scale-95 transition-all border-none cursor-pointer flex items-center justify-center gap-1 text-[11px] font-bold whitespace-nowrap"
+                              type="button"
+                              onClick={() => handleToggleStatus(product.id, true)}
+                              title="Mở khóa sản phẩm"
+                            >
+                              <Unlock className="w-3.5 h-3.5" />
+                              <span>Mở khóa</span>
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -610,10 +669,10 @@ export function ProductManagement() {
       {/* Product Detail Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center z-[1100] animate-[fadeIn_0.2s_ease-out]">
-          <div className="bg-white rounded-2xl w-full max-w-[500px] shadow-2xl border border-stone-200/60 overflow-hidden animate-[scaleIn_0.2s_ease-out] [color-scheme:light]">
+          <div className="bg-white rounded-2xl w-[95%] max-w-[500px] max-h-[90vh] flex flex-col shadow-2xl border border-stone-200/60 overflow-hidden animate-[scaleIn_0.2s_ease-out] [color-scheme:light]">
 
             {/* Modal Header */}
-            <div className="bg-stone-50 p-4 px-6 border-b border-stone-100 flex items-center justify-between">
+            <div className="bg-stone-50 p-4 px-6 border-b border-stone-100 flex items-center justify-between shrink-0">
               <h3 className="m-0 text-base font-extrabold text-stone-900">
                 Chi tiết Sản phẩm
               </h3>
@@ -626,7 +685,7 @@ export function ProductManagement() {
             </div>
 
             {/* Modal Detail Content */}
-            <div className="p-6 flex flex-col gap-4 bg-white">
+            <div className="p-6 flex-1 overflow-y-auto flex flex-col gap-4 bg-white">
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Tên sản phẩm</label>
@@ -750,17 +809,19 @@ export function ProductManagement() {
                   rows="8"
                 />
               </div>
-
-              <div className="flex justify-end gap-2.5 mt-4 border-t border-stone-100 pt-4">
-                <button
-                  type="button"
-                  className="bg-stone-900 hover:bg-stone-800 text-white py-2.5 px-6 text-xs font-bold rounded-xl cursor-pointer transition-all active:scale-[0.98] border-none"
-                  onClick={handleCloseModal}
-                >
-                  Đóng
-                </button>
-              </div>
             </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 px-6 border-t border-stone-100 flex justify-end gap-2.5 bg-stone-50 shrink-0">
+              <button
+                type="button"
+                className="bg-stone-900 hover:bg-stone-800 text-white py-2.5 px-6 text-xs font-bold rounded-xl cursor-pointer transition-all active:scale-[0.98] border-none"
+                onClick={handleCloseModal}
+              >
+                Đóng
+              </button>
+            </div>
+
           </div>
         </div>
       )}
