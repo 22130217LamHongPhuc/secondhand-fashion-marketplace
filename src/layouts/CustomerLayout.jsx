@@ -144,8 +144,9 @@ export default function CustomerLayout() {
 
   useEffect(() => {
     const loadUser = async () => {
+      const token = localStorage.getItem("token");
       const storedUser = localStorage.getItem("user");
-      if (storedUser) {
+      if (token && storedUser) {
         try {
           const parsedUser = JSON.parse(storedUser);
           setUser(parsedUser);
@@ -167,10 +168,15 @@ export default function CustomerLayout() {
         } catch (e) {
           if (e instanceof SyntaxError) {
             localStorage.removeItem("user");
+            localStorage.removeItem("token");
             setUser(null);
           }
         }
       } else {
+        if (!token || !storedUser) {
+          localStorage.removeItem("user");
+          localStorage.removeItem("token");
+        }
         setUser(null);
       }
     };

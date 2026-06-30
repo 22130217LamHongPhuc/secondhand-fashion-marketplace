@@ -28,6 +28,11 @@ export async function http(path, options = {}) {
   });
 
   if (!response.ok) {
+    if (response.status === 401) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      window.location.href = "/?login=true";
+    }
     const text = await response.text().catch(() => "");
     let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
     try {
