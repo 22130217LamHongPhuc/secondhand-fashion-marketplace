@@ -117,6 +117,27 @@ export default function OrderDetailSummary({ order }) {
           <span>Phí vận chuyển</span>
           <span className="text-[#3d3a2c]">{formatVnd(order.shippingFee)}</span>
         </div>
+        {order.discountAmount > 0 && (
+          <div className="flex justify-between gap-4 items-center">
+            <div className="flex flex-col">
+              <span className="flex items-center gap-1.5">
+                Giảm giá
+                {order.couponInfo?.source === "ADMIN_COUPON" && (
+                  <span className="text-[10px] px-1.5 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-sm font-bold">Mã hệ thống</span>
+                )}
+                {(order.couponInfo?.source === "SHOP_COUPON" || order.couponInfo?.source === "SHOP_VOUCHER") && (
+                  <span className="text-[10px] px-1.5 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 rounded-sm font-bold">Voucher tiệm</span>
+                )}
+              </span>
+              {order.couponInfo?.code && (
+                <span className="text-xs text-[#8a826f] mt-0.5 font-normal">
+                  Mã: <strong className="font-extrabold text-[#3d3a2c]">{order.couponInfo.code}</strong> {order.couponInfo.name ? `(${order.couponInfo.name})` : ""}
+                </span>
+              )}
+            </div>
+            <span className="text-emerald-600 font-bold">-{formatVnd(order.discountAmount)}</span>
+          </div>
+        )}
         <div className="border-t border-[#f0e7c8] pt-3">
           <div className="flex justify-between gap-4">
             <span className="text-base font-black text-[#3d3a2c]">

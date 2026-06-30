@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { User, ShoppingBag, Phone, Mail, Camera, Loader2, Wallet, Calendar, ArrowRight, CheckCircle2, ShieldCheck, Clock, CreditCard, MapPin, Plus, X } from "lucide-react";
+import { User, ShoppingBag, Phone, Mail, Camera, Loader2, Wallet, Calendar, ArrowRight, CheckCircle2, ShieldCheck, Clock, CreditCard, MapPin, Plus, X, Ticket } from "lucide-react";
 import { userService } from "@/services/user";
 import { customerOrderService } from "@/services/customerOrder";
+import { customerPromotionService } from "@/services/promotionService";
 import { toastService } from "@/services/toastService";
 import { env } from "@/config/env";
 
@@ -39,6 +40,10 @@ export function Profile() {
   const [addrIsDefault, setAddrIsDefault] = useState(false);
   const [isSavingAddress, setIsSavingAddress] = useState(false);
 
+  // Voucher Wallet states
+  const [vouchers, setVouchers] = useState([]);
+  const [isVouchersLoading, setIsVouchersLoading] = useState(false);
+
   // Check auth and fetch profile details
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -49,6 +54,7 @@ export function Profile() {
         fetchProfile(u.userId);
         fetchRecentOrders(u.userId);
         fetchAddresses(u.userId);
+        fetchVouchers();
       } catch (e) {
         localStorage.removeItem("user");
         setIsProfileLoading(false);
@@ -57,6 +63,18 @@ export function Profile() {
       setIsProfileLoading(false);
     }
   }, []);
+
+  const fetchVouchers = async () => {
+    try {
+      setIsVouchersLoading(true);
+      const res = await customerPromotionService.getMyWallet(0, 100);
+      setVouchers(res.content || res.items || []);
+    } catch (err) {
+      console.error("Failed to load vouchers", err);
+    } finally {
+      setIsVouchersLoading(false);
+    }
+  };
 
   const fetchProfile = async (userId) => {
     try {
@@ -553,6 +571,55 @@ export function Profile() {
                 </span>
               </div>
             </div>
+          </div>
+
+          {/* Ví Voucher Card */}
+          <div className="rounded-3xl border border-[#e7dfbd] bg-white p-6 shadow-sm space-y-4">
+            <h3 className="text-sm font-extrabold uppercase tracking-wider text-[#3d3a2c] border-b border-slate-100 pb-2 flex items-center gap-2">
+              <Ticket size={16} className="text-[#b84a25]" />
+              <span>Ví Voucher của tôi ({vouchers.length})</span>
+            </h3>
+
+            {isVouchersLoading ? (
+              <div className="flex h-20 items-center justify-center">
+                <Loader2 className="animate-spin text-[#b84a25]" size={20} />
+              </div>
+            ) : vouchers.length > 0 ? (
+              <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+                {vouchers.map((item) => {
+                  const promo = item.promotion;
+                  if (!promo) return null;
+                  const isPercent = promo.discountType === "PERCENTAGE";
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex items-stretch rounded-xl border border-[#e7dfbd] bg-[#fffbf2] overflow-hidden text-xs"
+                    >
+                      {/* Left Badge */}
+                      <div className="flex w-16 flex-col items-center justify-center bg-[#fff5eb] border-r border-dashed border-[#e7dfbd] text-center px-1">
+                        <span className="font-extrabold text-[#b84a25]">
+                          {isPercent ? `${Math.round(promo.discountValue)}%` : formatVnd(promo.discountValue).replace(/\s?₫/, "")}
+                        </span>
+                      </div>
+                      {/* Right Details */}
+                      <div className="flex-1 p-2.5 flex flex-col justify-between">
+                        <div>
+                          <p className="font-extrabold text-[#3d3a2c] line-clamp-1">{promo.name}</p>
+                          <p className="text-[10px] text-[#766f60] mt-0.5">Code: <span className="font-bold">{promo.code}</span></p>
+                        </div>
+                        <div className="mt-1 flex items-center justify-between text-[9px] text-[#9c927b] border-t border-dashed border-[#e7dfbd]/40 pt-1">
+                          <span>Đơn tối thiểu: {formatVnd(promo.minOrderValue)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-6 text-xs text-[#766f60] bg-[#fffaf0]/35 rounded-2xl border border-dashed border-[#e7dfbd]">
+                Ví voucher trống. Hãy vào các tiệm để lưu mã nhé!
+              </div>
+            )}
           </div>
         </div>
       </div>
