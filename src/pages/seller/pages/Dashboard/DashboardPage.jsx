@@ -1,16 +1,20 @@
 import { useState } from 'react';
+import { keepPreviousData } from '@tanstack/react-query';
 import { useSellerDashboard } from '../../hooks';
 import {
   ShoppingCart,
-  Image,
-  ClipboardList,
-  MessageSquare,
-  ShoppingBag,
 } from 'lucide-react';
 
 /* ============================================================
    COMPONENT
    ============================================================ */
+const formatMoneyShort = (amount) => {
+  if (!amount) return '0';
+  if (amount >= 1000000) return (amount / 1000000).toFixed(1).replace('.0', '') + 'M';
+  if (amount >= 1000) return (amount / 1000).toFixed(1).replace('.0', '') + 'K';
+  return amount.toLocaleString('vi-VN');
+};
+
 const DashboardPage = () => {
   const [periodMode, setPeriodMode] = useState('preset'); // 'preset' | 'custom'
   const [revenuePeriod, setRevenuePeriod] = useState('30_DAYS');
@@ -25,7 +29,9 @@ const DashboardPage = () => {
     ? { startDate, endDate }
     : { revenuePeriod };
 
-  const { data, isLoading, error } = useSellerDashboard(queryParams);
+  const { data, isLoading, isFetching, error } = useSellerDashboard(queryParams, {
+    placeholderData: keepPreviousData,
+  });
 
   if (isLoading) return <div className="p-8 text-center text-neutral-500">Đang tải dữ liệu...</div>;
   if (error) return <div className="p-8 text-center text-red-500">Lỗi tải dữ liệu. Vui lòng thử lại.</div>;
@@ -33,7 +39,7 @@ const DashboardPage = () => {
   const { summary, revenueChart, categoryBreakdown, recentNotifications } = data || {};
 
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 transition-opacity duration-300 ${isFetching ? 'opacity-60 pointer-events-none' : 'opacity-100'}`}>
       {/* ── Row 1: Stat Cards ── */}
       <div className="grid grid-cols-3 gap-6">
         {/* Card: Doanh thu tổng */}
@@ -152,11 +158,11 @@ const DashboardPage = () => {
         </div>
       </div>
 
-      {/* ── Row 2: Revenue Chart + Notifications (2:1) ── */}
-      <div className="grid grid-cols-3 gap-6">
-        {/* Revenue over time */}
-        <div className="col-span-2 rounded-2xl border border-neutral-200 bg-white p-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      {/* ── Row 2: Revenue & Visitors ── */}
+      <div className="grid grid-cols-1 gap-6">
+        {/* Revenue & Visitors Chart */}
+        <div className="rounded-2xl border border-neutral-200 bg-white p-6">
+          <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
             <h2 className="font-heading text-lg font-bold text-neutral-800">
               Doanh thu theo thời gian
             </h2>
@@ -204,43 +210,33 @@ const DashboardPage = () => {
                 </button>
               </div>
 
-              {/* Tab: Khoảng ngày */}
-              <button
-                onClick={() => {
-                  setPeriodMode('custom');
-                }}
-                className={`rounded-full px-5 py-2 text-xs font-semibold transition-all border border-neutral-200 cursor-pointer ${
-                  periodMode === 'custom'
-                    ? 'bg-accent-yellow border-accent-yellow/40 text-gray-700 shadow-sm'
-                    : 'bg-white text-neutral-500 hover:bg-neutral-50 hover:text-neutral-700'
-                }`}
-              >
-                Khoảng ngày
-              </button>
-
-              {/* Date pickers (only when in custom mode) */}
-              {periodMode === 'custom' && (
-                <div className="flex items-center gap-2 animate-fadeIn">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">Từ</span>
-                    <input
-                      type="date"
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                      className="rounded-lg border border-neutral-200 bg-white px-2.5 py-1 text-xs font-medium text-neutral-600 outline-none focus:border-brand-primary"
-                    />
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">Đến</span>
-                    <input
-                      type="date"
-                      value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
-                      className="rounded-lg border border-neutral-200 bg-white px-2.5 py-1 text-xs font-medium text-neutral-600 outline-none focus:border-brand-primary"
-                    />
-                  </div>
+              {/* Date pickers (always visible next to preset tabs) */}
+              <div className="flex items-center gap-2 ml-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">Từ</span>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => {
+                      setStartDate(e.target.value);
+                      setPeriodMode('custom');
+                    }}
+                    className="rounded-lg border border-neutral-200 bg-white px-2.5 py-1 text-xs font-medium text-neutral-600 outline-none focus:border-brand-primary"
+                  />
                 </div>
-              )}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">Đến</span>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => {
+                      setEndDate(e.target.value);
+                      setPeriodMode('custom');
+                    }}
+                    className="rounded-lg border border-neutral-200 bg-white px-2.5 py-1 text-xs font-medium text-neutral-600 outline-none focus:border-brand-primary"
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
@@ -255,20 +251,30 @@ const DashboardPage = () => {
               return (
                 <div key={item.label} className="flex flex-1 flex-col items-center gap-3">
                   <div className="flex items-end justify-center gap-1.5 w-full">
-                    <div
-                      className="w-7 rounded-t-md transition-all duration-300"
-                      style={{
-                        height: `${Math.max(lightHeight, 2)}px`,
-                        backgroundColor: '#f5dcc8',
-                      }}
-                    />
-                    <div
-                      className="w-7 rounded-t-md transition-all duration-300"
-                      style={{
-                        height: `${Math.max(darkHeight, 2)}px`,
-                        backgroundColor: item.dark > item.light ? '#c75c2e' : '#f0c4a8',
-                      }}
-                    />
+                    <div className="flex flex-col items-center">
+                      {item.light > 0 && (
+                        <span className="text-[9px] font-semibold text-neutral-400 mb-1">{formatMoneyShort(item.light)}</span>
+                      )}
+                      <div
+                        className="w-7 rounded-t-md transition-all duration-300"
+                        style={{
+                          height: `${Math.max(lightHeight, 2)}px`,
+                          backgroundColor: '#f5dcc8',
+                        }}
+                      />
+                    </div>
+                    <div className="flex flex-col items-center">
+                      {item.dark > 0 && (
+                        <span className="text-[9px] font-semibold text-[#c75c2e] mb-1">{formatMoneyShort(item.dark)}</span>
+                      )}
+                      <div
+                        className="w-7 rounded-t-md transition-all duration-300"
+                        style={{
+                          height: `${Math.max(darkHeight, 2)}px`,
+                          backgroundColor: item.dark > item.light ? '#c75c2e' : '#f0c4a8',
+                        }}
+                      />
+                    </div>
                   </div>
                   <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
                     {item.label}
@@ -279,33 +285,9 @@ const DashboardPage = () => {
           </div>
         </div>
 
-        {/* Notifications */}
-        <div className="rounded-2xl border border-neutral-200 bg-white p-6">
-          <h2 className="font-heading text-lg font-bold text-neutral-800">
-            Thông báo mới nhất
-          </h2>
-          <div className="mt-5 space-y-5">
-            {recentNotifications?.map((n) => (
-              <div key={n.id} className="flex gap-3">
-                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${n.type === 'ORDER' ? 'bg-brand-primary' : 'bg-neutral-400'}`}>
-                  {n.type === 'ORDER' ? <ShoppingBag size={18} className="text-white" /> : <MessageSquare size={18} className="text-white" />}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-bold text-neutral-700">{n.title}</p>
-                  <p className="mt-0.5 text-xs leading-relaxed text-neutral-400">{n.desc}</p>
-                  <p className="mt-1.5 text-[11px] text-neutral-300">{n.time}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          <button className="mt-6 w-full rounded-xl border border-neutral-200 py-3 text-sm font-semibold text-neutral-600 transition-colors hover:bg-neutral-50">
-            Xem tất cả
-          </button>
-        </div>
-      </div>
 
-      {/* ── Row 3: Category Revenue + Quick Actions (1:1) ── */}
-      <div className="grid grid-cols-2 gap-6">
+      {/* ── Row 3: Category Revenue ── */}
+      <div className="grid grid-cols-1 gap-6">
         {/* Category Revenue */}
         <div className="rounded-2xl border border-neutral-200 bg-white p-6">
           <h2 className="font-heading text-lg font-bold text-neutral-800">
@@ -355,47 +337,8 @@ const DashboardPage = () => {
             </div>
           </div>
         </div>
-
-        {/* Quick Actions */}
-        <div className="rounded-2xl border border-neutral-200 bg-white p-6">
-          <h2 className="font-heading text-lg font-bold text-neutral-800">
-            Hành động nhanh
-          </h2>
-          <p className="mt-1 text-sm text-neutral-400">
-            Quản lý cửa hàng của bạn một cách tối ưu nhất.
-          </p>
-          <div className="mt-5 grid grid-cols-2 gap-4">
-            {/* Card 1 */}
-            <button className="group flex flex-col justify-between rounded-2xl bg-linear-to-br from-brand-primary to-[#8b3a1a] p-5 text-left text-white shadow-lg transition-all hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
-              style={{ minHeight: 150 }}
-            >
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
-                <Image size={20} />
-              </div>
-              <div className="mt-auto">
-                <p className="text-sm font-bold">Đăng sản phẩm mới</p>
-                <p className="mt-1 text-xs leading-relaxed text-white/70">
-                  Bắt đầu giới thiệu bộ sưu tập mới của bạn
-                </p>
-              </div>
-            </button>
-            {/* Card 2 */}
-            <button className="group flex flex-col justify-between rounded-2xl bg-linear-to-br from-brand-secondary to-brand-primary p-5 text-left text-white shadow-lg transition-all hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
-              style={{ minHeight: 150 }}
-            >
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
-                <ClipboardList size={20} />
-              </div>
-              <div className="mt-auto">
-                <p className="text-sm font-bold">Xem danh sách đơn hàng</p>
-                <p className="mt-1 text-xs leading-relaxed text-white/70">
-                  Theo dõi tiến độ giao nhận và thanh toán
-                </p>
-              </div>
-            </button>
-          </div>
-        </div>
       </div>
+    </div>
     </div>
   );
 };

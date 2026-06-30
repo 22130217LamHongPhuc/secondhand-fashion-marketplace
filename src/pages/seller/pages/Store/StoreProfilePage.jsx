@@ -264,17 +264,9 @@ const StoreProfilePage = () => {
                     <Loader2 className="h-5 w-5 animate-spin text-white" />
                   </div>
                 )}
-                <button
-                  type="button"
-                  disabled={avatarUploading}
-                  onClick={() => avatarInputRef.current?.click()}
-                  className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-brand-primary text-white shadow-md transition-all hover:bg-brand-dark disabled:opacity-50"
-                >
-                  <Pencil size={12} />
-                </button>
               </div>
               {/* Info text + status */}
-              <div>
+              <div className="flex flex-col items-start">
                 <p className="text-sm text-neutral-600">
                   {avatarUploading ? (
                     <span className="text-blue-500 font-medium flex items-center gap-1.5 animate-pulse">
@@ -291,6 +283,19 @@ const StoreProfilePage = () => {
                 {avatarUploading && (
                   <div className="mt-3 h-1.5 w-44 overflow-hidden rounded-full bg-neutral-100">
                     <div className="h-full w-2/3 rounded-full bg-blue-500 animate-pulse" />
+                  </div>
+                )}
+                
+                {!avatarUploading && (
+                  <div className="mt-4 flex w-fit items-center gap-2 rounded-xl bg-brand-primary px-4 py-2 text-sm font-semibold text-white shadow-md transition-all hover:bg-brand-dark hover:shadow-lg cursor-pointer">
+                    <button
+                      type="button"
+                      onClick={() => avatarInputRef.current?.click()}
+                      className="flex items-center gap-2 bg-transparent border-none outline-none text-white cursor-pointer p-0 m-0 w-full h-full"
+                    >
+                      <Camera size={16} />
+                      {avatarPreview ? "Thay đổi ảnh đại diện" : "Chọn ảnh đại diện"}
+                    </button>
                   </div>
                 )}
               </div>
@@ -321,15 +326,17 @@ const StoreProfilePage = () => {
               )}
               {/* Overlay button always visible */}
               <div className="absolute inset-0 flex items-center justify-center">
-                <button
-                  type="button"
-                  disabled={bannerUploading}
-                  onClick={() => bannerInputRef.current?.click()}
-                  className="flex items-center gap-2 rounded-xl bg-white/20 px-5 py-2.5 text-sm font-medium text-white backdrop-blur-md transition-all hover:bg-white/30 disabled:opacity-50"
-                >
-                  <Camera size={16} />
-                  {bannerPreview ? "Thay đổi ảnh bìa" : "Chọn ảnh bìa"}
-                </button>
+                <div className={`flex items-center gap-2 rounded-xl bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:bg-brand-dark hover:shadow-xl cursor-pointer ${bannerUploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                  <button
+                    type="button"
+                    disabled={bannerUploading}
+                    onClick={() => bannerInputRef.current?.click()}
+                    className="flex items-center gap-2 bg-transparent border-none outline-none text-white cursor-pointer p-0 m-0 w-full h-full"
+                  >
+                    <Camera size={16} />
+                    {bannerPreview ? "Thay đổi ảnh bìa" : "Chọn ảnh bìa"}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

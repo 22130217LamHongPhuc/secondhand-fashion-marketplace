@@ -181,7 +181,7 @@ function CommentItem({ comment, isReply = false }) {
 
           <ImageList images={images} />
 
-          {!isReply ? (
+          {(!isReply && !isPreview) ? (
             <button
               type="button"
               className="mt-3 text-xs font-extrabold text-[#b84a25] hover:underline"
@@ -205,6 +205,7 @@ export function ProductBottomContent({
   onLoadComments,
   onWriteReview,
   onWriteComment,
+  isPreview,
 }) {
   const [activeTab, setActiveTab] = useState("reviews");
 
@@ -363,14 +364,16 @@ export function ProductBottomContent({
           <div className="mb-5 flex items-center justify-between gap-4">
             <h3 className="text-xl font-extrabold">Đánh giá &amp; Bình luận</h3>
 
-            <button
-              type="button"
-              onClick={handleWrite}
-              className="flex shrink-0 items-center gap-1 rounded-full bg-[#fff3e8] px-4 py-2 text-sm font-extrabold text-[#b84a25] transition hover:bg-[#ffe2cd]"
-            >
-              {activeTab === "comments" ? "Viết bình luận" : "Viết đánh giá"}
-              <Pencil size={14} />
-            </button>
+            {!isPreview && (
+              <button
+                type="button"
+                onClick={handleWrite}
+                className="flex shrink-0 items-center gap-1 rounded-full bg-[#fff3e8] px-4 py-2 text-sm font-extrabold text-[#b84a25] transition hover:bg-[#ffe2cd]"
+              >
+                {activeTab === "comments" ? "Viết bình luận" : "Viết đánh giá"}
+                <Pencil size={14} />
+              </button>
+            )}
           </div>
 
           <div className="mb-5 flex items-center gap-3">
@@ -423,13 +426,13 @@ export function ProductBottomContent({
             ) : resolvedComments.length ? (
               resolvedComments.map((comment) => (
                 <div key={comment.id} className="space-y-3">
-                  <CommentItem comment={comment} />
+                  <CommentItem comment={comment} isPreview={isPreview} />
 
                   {Array.isArray(comment.replies) &&
                     comment.replies.length > 0 ? (
                     <div className="space-y-3">
                       {comment.replies.map((reply) => (
-                        <CommentItem key={reply.id} comment={reply} isReply />
+                        <CommentItem key={reply.id} comment={reply} isReply isPreview={isPreview} />
                       ))}
                     </div>
                   ) : null}

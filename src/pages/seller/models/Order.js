@@ -40,6 +40,10 @@ export default class Order {
     this.createdAt = raw.createdAt ?? "";
     this.updatedAt = raw.updatedAt ?? "";
 
+    this.ghnOrderCode = raw.ghnOrderCode ?? null;
+    this.expectedDeliveryTime = raw.expectedDeliveryTime ?? null;
+    this.ghnTotalFee = raw.ghnTotalFee ?? null;
+
     this.shippingAddress = raw.shippingAddress ?? null;
     this.items = raw.items ?? [];
   }
