@@ -257,6 +257,49 @@ export function CategoryManagement() {
         </div>
       </div>
 
+      {/* Metrics Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="bg-white border border-stone-200/80 rounded-2xl p-5 shadow-[0_8px_30px_rgba(238,229,219,0.12)]">
+          <div className="text-[10px] font-black text-stone-400 tracking-wider uppercase">Tổng số danh mục</div>
+          <div className="flex items-center justify-between gap-3 mt-2.5">
+            <div className="text-2xl font-extrabold text-stone-900 leading-none">{categories.length}</div>
+            <div className="w-10 h-10 rounded-xl grid place-items-center bg-orange-50 text-[#c85a28] border border-orange-100/50">
+              <Layers className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white border border-stone-200/80 rounded-2xl p-5 shadow-[0_8px_30px_rgba(238,229,219,0.12)]">
+          <div className="text-[10px] font-black text-stone-400 tracking-wider uppercase">Danh mục Cha</div>
+          <div className="flex items-center justify-between gap-3 mt-2.5">
+            <div className="text-2xl font-extrabold text-stone-900 leading-none">{parentCategories.length}</div>
+            <div className="w-10 h-10 rounded-xl grid place-items-center bg-blue-50 text-blue-700 border border-blue-100/50">
+              <Folder className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white border border-stone-200/80 rounded-2xl p-5 shadow-[0_8px_30px_rgba(238,229,219,0.12)]">
+          <div className="text-[10px] font-black text-stone-400 tracking-wider uppercase">Danh mục Con</div>
+          <div className="flex items-center justify-between gap-3 mt-2.5">
+            <div className="text-2xl font-extrabold text-stone-900 leading-none">{categories.length - parentCategories.length}</div>
+            <div className="w-10 h-10 rounded-xl grid place-items-center bg-emerald-50 text-emerald-700 border border-emerald-100/50">
+              <FolderOpen className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white border border-stone-200/80 rounded-2xl p-5 shadow-[0_8px_30px_rgba(238,229,219,0.12)]">
+          <div className="text-[10px] font-black text-stone-400 tracking-wider uppercase">Đang hoạt động</div>
+          <div className="flex items-center justify-between gap-3 mt-2.5">
+            <div className="text-2xl font-extrabold text-stone-900 leading-none">{categories.filter(c => c.isActive).length}</div>
+            <div className="w-10 h-10 rounded-xl grid place-items-center bg-purple-50 text-purple-700 border border-purple-100/50">
+              <Shirt className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Main Grid Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1.9fr] gap-6">
         

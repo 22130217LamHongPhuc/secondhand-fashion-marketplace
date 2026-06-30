@@ -360,10 +360,10 @@ export function CouponManagement() {
       {/* Form Modal for Add/Edit */}
       {showModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center z-[1100] animate-[fadeIn_0.2s_ease-out]">
-          <div className="bg-white rounded-2xl w-full max-w-[600px] shadow-2xl border border-stone-200/60 overflow-hidden animate-[scaleIn_0.2s_ease-out] [color-scheme:light]">
+          <div className="bg-white rounded-2xl w-[95%] max-w-[600px] max-h-[90vh] flex flex-col shadow-2xl border border-stone-200/60 overflow-hidden animate-[scaleIn_0.2s_ease-out] [color-scheme:light]">
             
             {/* Modal Header */}
-            <div className="bg-stone-50 p-4 px-6 border-b border-stone-100 flex items-center justify-between">
+            <div className="bg-stone-50 p-4 px-6 border-b border-stone-100 flex items-center justify-between shrink-0">
               <h3 className="m-0 text-base font-extrabold text-stone-900">
                 {editingCoupon ? "Chỉnh sửa mã giảm giá" : "Tạo mã giảm giá mới"}
               </h3>
@@ -376,160 +376,165 @@ export function CouponManagement() {
             </div>
             
             {/* Modal Form */}
-            <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4 bg-white">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Mã Code *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ví dụ: VINTAGE50K"
-                    value={formData.code}
-                    className="bg-white border border-stone-200 rounded-xl p-2.5 text-sm text-stone-850 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5"
-                    onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                    disabled={!!editingCoupon}
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Tên mã voucher *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ví dụ: Giảm giá hè"
-                    value={formData.name}
-                    className="bg-white border border-stone-200 rounded-xl p-2.5 text-sm text-stone-850 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5"
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Mô tả chi tiết</label>
-                <textarea
-                  placeholder="Mô tả điều kiện áp dụng mã..."
-                  value={formData.description}
-                  rows={2}
-                  className="bg-white border border-stone-200 rounded-xl p-2.5 text-sm text-stone-850 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5 resize-none"
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Loại giảm giá *</label>
-                  <select
-                    value={formData.discountType}
-                    className="bg-white border border-stone-200 rounded-xl p-2.5 text-sm text-stone-700 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5 cursor-pointer"
-                    onChange={(e) => setFormData({ ...formData, discountType: e.target.value })}
-                  >
-                    <option value="PERCENTAGE">Phần trăm (%)</option>
-                    <option value="FIXED_AMOUNT">Số tiền cố định (đ)</option>
-                  </select>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Giá trị giảm *</label>
-                  <input
-                    type="number"
-                    required
-                    min="1"
-                    placeholder={formData.discountType === "PERCENTAGE" ? "Ví dụ: 10 (%)" : "Ví dụ: 50000 (đ)"}
-                    value={formData.discountValue}
-                    className="bg-white border border-stone-200 rounded-xl p-2.5 text-sm text-stone-855 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5"
-                    onChange={(e) => setFormData({ ...formData, discountValue: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Giá trị đơn tối thiểu (đ)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder="Ví dụ: 100000"
-                    value={formData.minOrderValue}
-                    className="bg-white border border-stone-200 rounded-xl p-2.5 text-sm text-stone-850 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5"
-                    onChange={(e) => setFormData({ ...formData, minOrderValue: e.target.value })}
-                  />
-                </div>
-                {formData.discountType === "PERCENTAGE" ? (
+            <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col bg-white">
+              
+              {/* Form Content */}
+              <div className="p-6 flex-1 overflow-y-auto flex flex-col gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Giới hạn giảm tối đa (đ)</label>
+                    <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Mã Code *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ví dụ: VINTAGE50K"
+                      value={formData.code}
+                      className="bg-white border border-stone-200 rounded-xl p-2.5 text-sm text-stone-850 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5"
+                      onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                      disabled={!!editingCoupon}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Tên mã voucher *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ví dụ: Giảm giá hè"
+                      value={formData.name}
+                      className="bg-white border border-stone-200 rounded-xl p-2.5 text-sm text-stone-850 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5"
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Mô tả chi tiết</label>
+                  <textarea
+                    placeholder="Mô tả điều kiện áp dụng mã..."
+                    value={formData.description}
+                    rows={2}
+                    className="bg-white border border-stone-200 rounded-xl p-2.5 text-sm text-stone-855 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5 resize-none"
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Loại giảm giá *</label>
+                    <select
+                      value={formData.discountType}
+                      className="bg-white border border-stone-200 rounded-xl p-2.5 text-sm text-stone-700 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5 cursor-pointer"
+                      onChange={(e) => setFormData({ ...formData, discountType: e.target.value })}
+                    >
+                      <option value="PERCENTAGE">Phần trăm (%)</option>
+                      <option value="FIXED_AMOUNT">Số tiền cố định (đ)</option>
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Giá trị giảm *</label>
+                    <input
+                      type="number"
+                      required
+                      min="1"
+                      placeholder={formData.discountType === "PERCENTAGE" ? "Ví dụ: 10 (%)" : "Ví dụ: 50000 (đ)"}
+                      value={formData.discountValue}
+                      className="bg-white border border-stone-200 rounded-xl p-2.5 text-sm text-stone-855 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5"
+                      onChange={(e) => setFormData({ ...formData, discountValue: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Giá trị đơn tối thiểu (đ)</label>
                     <input
                       type="number"
                       min="0"
-                      placeholder="Không giới hạn"
-                      value={formData.maxDiscountAmount}
+                      placeholder="Ví dụ: 100000"
+                      value={formData.minOrderValue}
                       className="bg-white border border-stone-200 rounded-xl p-2.5 text-sm text-stone-850 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5"
-                      onChange={(e) => setFormData({ ...formData, maxDiscountAmount: e.target.value })}
+                      onChange={(e) => setFormData({ ...formData, minOrderValue: e.target.value })}
                     />
                   </div>
-                ) : (
+                  {formData.discountType === "PERCENTAGE" ? (
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Giới hạn giảm tối đa (đ)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="Không giới hạn"
+                        value={formData.maxDiscountAmount}
+                        className="bg-white border border-stone-200 rounded-xl p-2.5 text-sm text-stone-850 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5"
+                        onChange={(e) => setFormData({ ...formData, maxDiscountAmount: e.target.value })}
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Lượt dùng tối đa</label>
+                      <input
+                        type="number"
+                        min="1"
+                        placeholder="Không giới hạn"
+                        value={formData.usageLimit}
+                        className="bg-white border border-stone-200 rounded-xl p-2.5 text-sm text-stone-855 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5"
+                        onChange={(e) => setFormData({ ...formData, usageLimit: e.target.value })}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  {formData.discountType === "PERCENTAGE" && (
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Lượt dùng tối đa</label>
+                      <input
+                        type="number"
+                        min="1"
+                        placeholder="Không giới hạn"
+                        value={formData.usageLimit}
+                        className="bg-white border border-stone-200 rounded-xl p-2.5 text-sm text-stone-855 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5"
+                        onChange={(e) => setFormData({ ...formData, usageLimit: e.target.value })}
+                      />
+                    </div>
+                  )}
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Lượt dùng tối đa</label>
-                    <input
-                      type="number"
-                      min="1"
-                      placeholder="Không giới hạn"
-                      value={formData.usageLimit}
-                      className="bg-white border border-stone-200 rounded-xl p-2.5 text-sm text-stone-850 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5"
-                      onChange={(e) => setFormData({ ...formData, usageLimit: e.target.value })}
-                    />
+                    <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Cách phân phối mã *</label>
+                    <select
+                      value={formData.isAutoSave ? "AUTO" : "MANUAL"}
+                      className="bg-white border border-stone-200 rounded-xl p-2.5 text-sm text-stone-700 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5 cursor-pointer"
+                      onChange={(e) => setFormData({ ...formData, isAutoSave: e.target.value === "AUTO" })}
+                    >
+                      <option value="MANUAL">🔑 Thủ công (Tự lưu)</option>
+                      <option value="AUTO">⚡ Tự động (Hệ thống tự áp dụng)</option>
+                    </select>
                   </div>
-                )}
-              </div>
+                </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                {formData.discountType === "PERCENTAGE" && (
+                <div className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Lượt dùng tối đa</label>
+                    <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Ngày bắt đầu *</label>
                     <input
-                      type="number"
-                      min="1"
-                      placeholder="Không giới hạn"
-                      value={formData.usageLimit}
+                      type="datetime-local"
+                      required
+                      value={formData.startDate}
                       className="bg-white border border-stone-200 rounded-xl p-2.5 text-sm text-stone-850 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5"
-                      onChange={(e) => setFormData({ ...formData, usageLimit: e.target.value })}
+                      onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                     />
                   </div>
-                )}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Cách phân phối mã *</label>
-                  <select
-                    value={formData.isAutoSave ? "AUTO" : "MANUAL"}
-                    className="bg-white border border-stone-200 rounded-xl p-2.5 text-sm text-stone-700 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5 cursor-pointer"
-                    onChange={(e) => setFormData({ ...formData, isAutoSave: e.target.value === "AUTO" })}
-                  >
-                    <option value="MANUAL">🔑 Thủ công (Tự lưu)</option>
-                    <option value="AUTO">⚡ Tự động (Hệ thống tự áp dụng)</option>
-                  </select>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Ngày kết thúc *</label>
+                    <input
+                      type="datetime-local"
+                      required
+                      value={formData.endDate}
+                      className="bg-white border border-stone-200 rounded-xl p-2.5 text-sm text-stone-850 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5"
+                      onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Ngày bắt đầu *</label>
-                  <input
-                    type="datetime-local"
-                    required
-                    value={formData.startDate}
-                    className="bg-white border border-stone-200 rounded-xl p-2.5 text-sm text-stone-850 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5"
-                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Ngày kết thúc *</label>
-                  <input
-                    type="datetime-local"
-                    required
-                    value={formData.endDate}
-                    className="bg-white border border-stone-200 rounded-xl p-2.5 text-sm text-stone-850 outline-none transition-all focus:border-[#c85a28] focus:ring-4 focus:ring-[#c85a28]/5"
-                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2.5 mt-4 border-t border-stone-100 pt-4">
+              {/* Modal Footer */}
+              <div className="p-4 px-6 border-t border-stone-100 flex justify-end gap-2.5 bg-stone-50 shrink-0">
                 <button 
                   type="button" 
                   className="bg-stone-100 hover:bg-stone-200/80 text-stone-700 py-2.5 px-4 text-xs font-bold rounded-xl cursor-pointer transition-all active:scale-[0.98] border-none" 

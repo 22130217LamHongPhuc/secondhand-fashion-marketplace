@@ -25,7 +25,8 @@ import AdvancedFilter from "../../components/common/AdvancedFilter";
 const statusTabs = [
   { label: "Tất cả", id: "all" },
   { label: "Đang bán", id: "active" },
-  { label: "Đã ẩn", id: "hidden" },
+  { label: "Chờ duyệt", id: "pending" },
+  { label: "Đang khóa", id: "locked" },
 ];
 
 const StatusBadge = ({ status }) => {
@@ -34,13 +35,17 @@ const StatusBadge = ({ status }) => {
       dot: "bg-accent-green",
       pill: "border-accent-green/30 text-neutral-700",
     },
-    "Đã ẩn": {
-      dot: "bg-neutral-400",
-      pill: "border-neutral-300 text-neutral-500",
-    },
     "Hết hàng": {
       dot: "bg-accent-orange",
       pill: "border-accent-yellow/40 text-neutral-700",
+    },
+    "Chờ duyệt": {
+      dot: "bg-amber-500",
+      pill: "border-amber-200 bg-amber-50/50 text-amber-700",
+    },
+    "Đang khóa": {
+      dot: "bg-rose-500",
+      pill: "border-rose-200 bg-rose-50/50 text-rose-700",
     },
   };
 
@@ -85,8 +90,12 @@ const ProductsPage = () => {
   }
   if (activeTab === 1) {
     queryParams.isActive = true;
+    queryParams.isApproved = true;
   } else if (activeTab === 2) {
+    queryParams.isApproved = false;
+  } else if (activeTab === 3) {
     queryParams.isActive = false;
+    queryParams.isApproved = true;
   }
 
   if (advancedFilters.fromDate) queryParams.fromDate = advancedFilters.fromDate;
