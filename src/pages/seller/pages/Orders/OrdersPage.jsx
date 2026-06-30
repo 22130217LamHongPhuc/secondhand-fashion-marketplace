@@ -183,16 +183,6 @@ const OrdersPage = () => {
         <h1 className="font-heading text-3xl font-bold text-neutral-800">
           Quản lý đơn hàng
         </h1>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={startExport}
-            disabled={isExporting}
-            className="flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 transition-all hover:bg-neutral-50 hover:text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-100 disabled:opacity-50"
-          >
-            <FileSpreadsheet size={18} />
-            Export Excel
-          </button>
-        </div>
       </div>
 
       {/* Search + Filter Tabs */}
@@ -257,7 +247,7 @@ const OrdersPage = () => {
 
       <AdvancedFilter onApply={(filters) => { setAdvancedFilters(filters); setCurrentPage(0); }} />
 
-      <ExportProgressModal 
+      <ExportProgressModal
         isOpen={isExporting || !!completeData || !!exportError}
         onClose={resetExport}
         isExporting={isExporting}
@@ -265,7 +255,6 @@ const OrdersPage = () => {
         completeData={completeData}
         error={exportError}
       />
-
       {/* Data Area */}
       {loading ? (
         <TableSkeleton columns={6} rows={5} />
@@ -473,6 +462,70 @@ const OrdersPage = () => {
           )}
         </div>
       )}
+
+      {/* Export Banner */}
+      <div className="flex items-center justify-between rounded-2xl border border-neutral-200 bg-white p-5">
+        <div className="flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-neutral-100">
+            <FileSpreadsheet size={22} className="text-neutral-500" />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-neutral-700">
+              Xuất báo cáo đơn hàng
+            </p>
+            <p className="mt-0.5 text-sm text-neutral-400">
+              Tải xuống file Excel dữ liệu đơn hàng hiện tại.
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-col items-end gap-2">
+          {exportError && (
+            <span className="text-xs text-red-500">{exportError}</span>
+          )}
+          
+          {completeData ? (
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-accent-green font-semibold">
+                Xuất file thành công!
+              </span>
+              <a
+                href={completeData.fileUrl}
+                download
+                onClick={resetExport}
+                className="rounded-xl bg-accent-green px-7 py-3 text-sm font-semibold text-white shadow-md transition-all hover:bg-green-600 hover:shadow-lg active:scale-[0.98] cursor-pointer"
+              >
+                Tải xuống ngay
+              </a>
+            </div>
+          ) : isExporting ? (
+            <div className="flex items-center gap-3">
+              <div className="flex flex-col items-end">
+                <span className="text-xs font-semibold text-brand-primary">
+                  Đang xử lý... {progress?.percent || 0}%
+                </span>
+                <span className="text-[10px] text-neutral-400">
+                  {progress?.processed || 0} / {progress?.total || 0} đơn
+                </span>
+              </div>
+              <div className="h-2 w-32 overflow-hidden rounded-full bg-neutral-100">
+                <div 
+                  className="h-full bg-brand-primary transition-all duration-300"
+                  style={{ width: `${progress?.percent || 0}%` }}
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="flex w-fit items-center justify-center rounded-xl bg-brand-primary px-7 py-3 text-sm font-semibold text-white shadow-md transition-all hover:bg-brand-dark hover:shadow-lg active:scale-[0.98] cursor-pointer">
+              <button
+                onClick={startExport}
+                className="flex items-center gap-2 bg-transparent border-none outline-none text-white cursor-pointer p-0 m-0 w-full h-full"
+              >
+                Tải báo cáo (.excel)
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
 
       <ShippingSuccessModal 
         isOpen={!!shippingSuccessData} 

@@ -86,7 +86,7 @@ const ProductDetailPage = () => {
       };
       originalDataRef.current = formValues;
       setFormData(formValues);
-      
+
       const existingImages = (productData.images || []).map((img) => ({
         id: img.id || Math.random().toString(36).substring(2, 9) + Date.now(),
         file: null,
@@ -96,7 +96,7 @@ const ProductDetailPage = () => {
         isPrimary: img.isPrimary,
       }));
       setImages(existingImages);
-      
+
       setAttributes(productData.attributes || []);
       setTags(productData.tags || []);
     }
@@ -154,10 +154,10 @@ const ProductDetailPage = () => {
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     const finalValue = type === "checkbox" ? checked : value;
-    
+
     setFormData((prev) => {
       const nextData = { ...prev, [name]: finalValue };
-      
+
       const fieldError = validateField(name, finalValue, nextData);
       setErrors((prevErrors) => {
         const nextErrors = { ...prevErrors };
@@ -166,14 +166,14 @@ const ProductDetailPage = () => {
         } else {
           delete nextErrors[name];
         }
-        
+
         // If basePrice changes, re-validate salePrice
         if (name === "basePrice" && nextData.salePrice) {
           const saleError = validateField("salePrice", nextData.salePrice, nextData);
           if (saleError) nextErrors.salePrice = saleError;
           else delete nextErrors.salePrice;
         }
-        
+
         return nextErrors;
       });
       return nextData;
@@ -316,7 +316,7 @@ const ProductDetailPage = () => {
     setErrors((prev) => {
       const next = { ...prev };
       const errorKey = `attribute_${index}_${field}`;
-      
+
       let errorMsg = null;
       if (field === "attrKey") {
         if (!value.trim()) errorMsg = "Tên thuộc tính không được để trống";
@@ -494,7 +494,7 @@ const ProductDetailPage = () => {
           JSON.stringify(productData.attributes || []);
         const hasTagsChanges =
           JSON.stringify(tags) !== JSON.stringify(productData.tags || []);
-          
+
         const currentImages = images
           .filter((img) => img.status === "done" && img.imageUrl)
           .map((img, idx) => ({
@@ -502,13 +502,13 @@ const ProductDetailPage = () => {
             sortOrder: idx,
             isPrimary: img.isPrimary || false,
           }));
-          
+
         const originalImages = (productData.images || []).map((img) => ({
-            imageUrl: img.url,
-            sortOrder: img.sortOrder,
-            isPrimary: img.isPrimary || false,
+          imageUrl: img.url,
+          sortOrder: img.sortOrder,
+          isPrimary: img.isPrimary || false,
         }));
-        
+
         const hasImagesChanges = JSON.stringify(currentImages) !== JSON.stringify(originalImages);
 
         if (
@@ -530,7 +530,7 @@ const ProductDetailPage = () => {
         if (hasTagsChanges) {
           finalPayload.tags = tags.filter((t) => t.trim());
         }
-        
+
         if (hasImagesChanges) {
           if (currentImages.length === 0) {
             toastService.error("Vui lòng giữ lại ít nhất một hình ảnh cho sản phẩm.");
@@ -659,91 +659,91 @@ const ProductDetailPage = () => {
               </label>
 
               {images.map((img, idx) => {
-                  const isPrimary = img.isPrimary || false;
-                  const isUploading = img.status === "uploading";
-                  const isError = img.status === "error";
+                const isPrimary = img.isPrimary || false;
+                const isUploading = img.status === "uploading";
+                const isError = img.status === "error";
 
-                  return (
-                    <div
-                      key={img.id || idx}
-                      draggable={!isUploading}
-                      onDragStart={(e) => handleDragStart(e, idx)}
-                      onDragOver={handleDragOver}
-                      onDrop={(e) => handleDrop(e, idx)}
-                      className={`group relative h-32 w-32 overflow-hidden rounded-xl border transition-all ${isUploading ? "cursor-not-allowed opacity-60" : "cursor-grab active:cursor-grabbing"
-                        } ${isPrimary
-                          ? "border-brand-primary ring-2 ring-brand-primary/20"
-                          : isError
-                            ? "border-red-500 ring-2 ring-red-200"
-                            : "border-neutral-200 hover:border-brand-primary/40"
-                        }`}
-                    >
-                      <img
-                        src={img.previewUrl}
-                        alt={`Preview ${idx + 1}`}
-                        className="h-full w-full object-cover"
-                      />
+                return (
+                  <div
+                    key={img.id || idx}
+                    draggable={!isUploading}
+                    onDragStart={(e) => handleDragStart(e, idx)}
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDrop(e, idx)}
+                    className={`group relative h-32 w-32 overflow-hidden rounded-xl border transition-all ${isUploading ? "cursor-not-allowed opacity-60" : "cursor-grab active:cursor-grabbing"
+                      } ${isPrimary
+                        ? "border-brand-primary ring-2 ring-brand-primary/20"
+                        : isError
+                          ? "border-red-500 ring-2 ring-red-200"
+                          : "border-neutral-200 hover:border-brand-primary/40"
+                      }`}
+                  >
+                    <img
+                      src={img.previewUrl}
+                      alt={`Preview ${idx + 1}`}
+                      className="h-full w-full object-cover"
+                    />
 
-                      {isPrimary && (
-                        <span className="absolute top-2 left-2 flex items-center gap-1 rounded bg-brand-primary px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm">
-                          <Star size={8} fill="white" />
-                          Chính
-                        </span>
-                      )}
+                    {isPrimary && (
+                      <span className="absolute top-2 left-2 flex items-center gap-1 rounded bg-brand-primary px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm">
+                        <Star size={8} fill="white" />
+                        Chính
+                      </span>
+                    )}
 
-                      {isUploading && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40">
-                          <Loader2 className="h-6 w-6 animate-spin text-white" />
-                          <span className="mt-1 text-[10px] font-semibold text-white">Đang tải...</span>
-                        </div>
-                      )}
+                    {isUploading && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40">
+                        <Loader2 className="h-6 w-6 animate-spin text-white" />
+                        <span className="mt-1 text-[10px] font-semibold text-white">Đang tải...</span>
+                      </div>
+                    )}
 
-                      {isError && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 gap-1.5">
+                    {isError && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleRetryImage(idx)}
+                          className="rounded bg-white/95 p-1.5 text-neutral-800 shadow transition hover:bg-white flex items-center gap-1 text-[10px] font-bold"
+                          title="Tải lại"
+                        >
+                          <RefreshCw size={12} className="text-brand-primary" />
+                          Thử lại
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveImage(idx)}
+                          className="rounded bg-red-500/90 p-1.5 text-white shadow transition hover:bg-red-500"
+                          title="Xóa ảnh"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    )}
+
+                    {!isUploading && !isError && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+                        {!isPrimary && (
                           <button
                             type="button"
-                            onClick={() => handleRetryImage(idx)}
-                            className="rounded bg-white/95 p-1.5 text-neutral-800 shadow transition hover:bg-white flex items-center gap-1 text-[10px] font-bold"
-                            title="Tải lại"
+                            onClick={() => handleSetPrimary(idx)}
+                            className="rounded bg-white/90 px-2 py-1 text-[10px] font-bold text-neutral-800 shadow transition hover:bg-white"
                           >
-                            <RefreshCw size={12} className="text-brand-primary" />
-                            Thử lại
+                            Làm ảnh chính
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveImage(idx)}
-                            className="rounded bg-red-500/90 p-1.5 text-white shadow transition hover:bg-red-500"
-                            title="Xóa ảnh"
-                          >
-                            <Trash2 size={12} />
-                          </button>
-                        </div>
-                      )}
-
-                      {!isUploading && !isError && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
-                          {!isPrimary && (
-                            <button
-                              type="button"
-                              onClick={() => handleSetPrimary(idx)}
-                              className="rounded bg-white/90 px-2 py-1 text-[10px] font-bold text-neutral-800 shadow transition hover:bg-white"
-                            >
-                              Làm ảnh chính
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveImage(idx)}
-                            className="rounded bg-red-500/90 p-1.5 text-white shadow transition hover:bg-red-500"
-                            title="Xóa ảnh"
-                          >
-                            <Trash2 size={12} />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveImage(idx)}
+                          className="rounded bg-red-500/90 p-1.5 text-white shadow transition hover:bg-red-500"
+                          title="Xóa ảnh"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -785,8 +785,8 @@ const ProductDetailPage = () => {
                   value={formData.categoryId}
                   onChange={handleChange}
                   className={`mt-1.5 w-full rounded-xl border bg-neutral-50 px-4 py-3 text-sm text-neutral-700 outline-none focus:border-brand-primary/40 focus:bg-white focus:ring-2 focus:ring-brand-primary/10 ${errors.categoryId
-                      ? "border-red-500 focus:ring-red-200"
-                      : "border-neutral-200"
+                    ? "border-red-500 focus:ring-red-200"
+                    : "border-neutral-200"
                     }`}
                 >
                   <option value="">Chọn danh mục sản phẩm</option>
@@ -1136,9 +1136,9 @@ const ProductDetailPage = () => {
             </p>
             <div className="mt-3 overflow-hidden rounded-xl border border-neutral-100">
               <div className="relative">
-                {(isEdit ? previewUrls[0] : images[0]?.previewUrl) ? (
+                {(images[0]?.url || images[0]?.previewUrl) ? (
                   <img
-                    src={isEdit ? previewUrls[0] : images[0]?.previewUrl}
+                    src={images[0]?.url || images[0]?.previewUrl}
                     alt="Preview"
                     className="h-72 w-full object-cover"
                   />

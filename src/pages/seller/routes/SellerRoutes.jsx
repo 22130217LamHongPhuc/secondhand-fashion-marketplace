@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import DashboardPage from '../pages/Dashboard/DashboardPage';
 import ProductsPage from '../pages/Products/ProductsPage';
 import ProductDetailPage from '../pages/Products/ProductDetailPage';
+import ProductPreviewPage from '../pages/Products/ProductPreviewPage';
 import OrdersPage from '../pages/Orders/OrdersPage';
 import AnalyticsPage from '../pages/Analytics/AnalyticsPage';
 import StoreProfilePage from '../pages/Store/StoreProfilePage';
@@ -22,6 +23,7 @@ const SellerRoutes = () => {
         <Route path="products" element={<ProductsPage />} />
         <Route path="products/new" element={<ProductDetailPage />} />
         <Route path="products/:id" element={<ProductDetailPage />} />
+        <Route path="products/:id/preview" element={<ProductPreviewPage />} />
         <Route path="orders" element={<OrdersPage />} />
         <Route path="orders/:id" element={<OrderDetailPage />} />
         <Route path="messages" element={<MessagesPage />} />

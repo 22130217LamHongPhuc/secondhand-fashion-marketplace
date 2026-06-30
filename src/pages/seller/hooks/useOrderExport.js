@@ -1,11 +1,11 @@
 import { useState, useCallback } from 'react';
 import { useSseSubscription } from '@/hooks';
-import api from '@/config/api';
+import api from '@/config/axios';
 import { useAuth } from '@/hooks';
 
 export const useOrderExport = () => {
   const { user } = useAuth();
-  const sellerId = user?.id;
+  const sellerId = user?.userId || user?.id;
 
   const [isExporting, setIsExporting] = useState(false);
   const [progress, setProgress] = useState(null);
@@ -41,8 +41,8 @@ export const useOrderExport = () => {
       setError(null);
       setCompleteData(null);
       setProgress({ percent: 0, processed: 0, total: 0, etaSeconds: 0 });
-      
-      await api.post('/seller/orders/export');
+
+      await api.post('/api/seller/orders/export');
     } catch (err) {
       console.error('[useOrderExport] Error starting export:', err);
       setError(err?.response?.data?.message || 'Không thể bắt đầu export');
