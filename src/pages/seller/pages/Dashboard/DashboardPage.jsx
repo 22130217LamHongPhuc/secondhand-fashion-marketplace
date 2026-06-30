@@ -2,10 +2,6 @@ import { useState } from 'react';
 import { useSellerDashboard } from '../../hooks';
 import {
   ShoppingCart,
-  Image,
-  ClipboardList,
-  MessageSquare,
-  ShoppingBag,
 } from 'lucide-react';
 
 /* ============================================================
@@ -152,11 +148,11 @@ const DashboardPage = () => {
         </div>
       </div>
 
-      {/* ── Row 2: Revenue Chart + Notifications (2:1) ── */}
-      <div className="grid grid-cols-3 gap-6">
-        {/* Revenue over time */}
-        <div className="col-span-2 rounded-2xl border border-neutral-200 bg-white p-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      {/* ── Row 2: Revenue & Visitors ── */}
+      <div className="grid grid-cols-1 gap-6">
+        {/* Revenue & Visitors Chart */}
+        <div className="rounded-2xl border border-neutral-200 bg-white p-6">
+          <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
             <h2 className="font-heading text-lg font-bold text-neutral-800">
               Doanh thu theo thời gian
             </h2>
@@ -279,30 +275,6 @@ const DashboardPage = () => {
           </div>
         </div>
 
-        {/* Notifications */}
-        <div className="rounded-2xl border border-neutral-200 bg-white p-6">
-          <h2 className="font-heading text-lg font-bold text-neutral-800">
-            Thông báo mới nhất
-          </h2>
-          <div className="mt-5 space-y-5">
-            {recentNotifications?.map((n) => (
-              <div key={n.id} className="flex gap-3">
-                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${n.type === 'ORDER' ? 'bg-brand-primary' : 'bg-neutral-400'}`}>
-                  {n.type === 'ORDER' ? <ShoppingBag size={18} className="text-white" /> : <MessageSquare size={18} className="text-white" />}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-bold text-neutral-700">{n.title}</p>
-                  <p className="mt-0.5 text-xs leading-relaxed text-neutral-400">{n.desc}</p>
-                  <p className="mt-1.5 text-[11px] text-neutral-300">{n.time}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          <button className="mt-6 w-full rounded-xl border border-neutral-200 py-3 text-sm font-semibold text-neutral-600 transition-colors hover:bg-neutral-50">
-            Xem tất cả
-          </button>
-        </div>
-      </div>
 
       {/* ── Row 3: Category Revenue ── */}
       <div className="grid grid-cols-1 gap-6">
@@ -356,6 +328,7 @@ const DashboardPage = () => {
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 };
