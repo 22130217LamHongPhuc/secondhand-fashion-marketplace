@@ -17,7 +17,7 @@ const ShippingSuccessModal = ({ isOpen, onClose, shippingInfo }) => {
                         <h3 className="font-bold text-neutral-800 text-lg">Tạo đơn thành công!</h3>
                         <p className="text-sm text-brand-primary font-medium">Đã chuyển thông tin cho Giao Hàng Nhanh</p>
                     </div>
-                    <button 
+                    <button
                         onClick={onClose}
                         className="ml-auto text-brand-primary/60 hover:text-brand-primary hover:bg-brand-primary/10 p-2 rounded-full transition-colors"
                     >
@@ -43,7 +43,7 @@ const ShippingSuccessModal = ({ isOpen, onClose, shippingInfo }) => {
                             </div>
                             <p className="font-semibold text-neutral-700">{shippingInfo.expectedDeliveryTime || 'Đang cập nhật'}</p>
                         </div>
-                        
+
                         <div className="bg-neutral-50 rounded-xl p-4 border border-neutral-100 flex flex-col gap-2">
                             <div className="flex items-center gap-2 text-neutral-400">
                                 <DollarSign size={16} />
@@ -56,12 +56,14 @@ const ShippingSuccessModal = ({ isOpen, onClose, shippingInfo }) => {
 
                 {/* Footer */}
                 <div className="p-6 pt-2">
-                    <button 
-                        onClick={onClose}
-                        className="w-full bg-brand-primary text-white font-bold py-3 rounded-xl hover:bg-brand-dark transition-colors shadow-md"
-                    >
-                        Đóng
-                    </button>
+                    <div className="w-full bg-brand-primary text-white font-bold py-3 rounded-xl hover:bg-brand-dark transition-colors shadow-md flex justify-center items-center cursor-pointer">
+                        <button
+                            onClick={onClose}
+                            className="bg-transparent border-none outline-none text-white cursor-pointer w-full h-full font-bold"
+                        >
+                            Đóng
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

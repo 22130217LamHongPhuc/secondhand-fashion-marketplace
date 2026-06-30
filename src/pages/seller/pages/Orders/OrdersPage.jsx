@@ -149,18 +149,18 @@ const OrdersPage = () => {
   const handleAction = async (orderId, actionStr) => {
     try {
       if (actionStr === "confirm") {
-          await confirmOrder(orderId);
-          toastService.success("Xác nhận đơn thành công");
+        await confirmOrder(orderId);
+        toastService.success("Xác nhận đơn thành công");
       }
       if (actionStr === "delivery") {
-          const response = await startDelivery(orderId);
-          setShippingSuccessData(response);
-          toastService.success("Đã tạo đơn giao hàng thành công!");
+        const response = await startDelivery(orderId);
+        setShippingSuccessData(response.data);
+        toastService.success("Đã tạo đơn giao hàng thành công!");
       }
       if (actionStr === "complete") {
-          if (!window.confirm("Xác nhận giả lập giao hàng thành công cho đơn này?")) return;
-          await completeOrder(orderId);
-          toastService.success("Đã xác nhận giao hàng thành công!");
+        if (!window.confirm("Xác nhận giả lập giao hàng thành công cho đơn này?")) return;
+        await completeOrder(orderId);
+        toastService.success("Đã xác nhận giao hàng thành công!");
       }
       if (actionStr === "cancel") {
         const reason = window.prompt("Nhập lý do hủy đơn hàng:");
@@ -360,7 +360,7 @@ const OrdersPage = () => {
                             </button>
                           </>
                         )}
-                        
+
                         {o.status === "CONFIRMED" && (
                           <button
                             onClick={() => handleAction(o.id, "delivery")}
@@ -420,8 +420,8 @@ const OrdersPage = () => {
                         key={n}
                         onClick={() => setCurrentPage(n)}
                         className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold transition-colors hover:bg-neutral-150 cursor-pointer ${currentPage === n
-                            ? "bg-accent-yellow shadow-lg text-gray-700 font-bold"
-                            : "text-neutral-500 hover:bg-neutral-100"
+                          ? "bg-accent-yellow shadow-lg text-gray-700 font-bold"
+                          : "text-neutral-500 hover:bg-neutral-100"
                           }`}
                       >
                         {n + 1}
@@ -482,7 +482,7 @@ const OrdersPage = () => {
           {exportError && (
             <span className="text-xs text-red-500">{exportError}</span>
           )}
-          
+
           {completeData ? (
             <div className="flex items-center gap-3">
               <span className="text-xs text-accent-green font-semibold">
@@ -508,7 +508,7 @@ const OrdersPage = () => {
                 </span>
               </div>
               <div className="h-2 w-32 overflow-hidden rounded-full bg-neutral-100">
-                <div 
+                <div
                   className="h-full bg-brand-primary transition-all duration-300"
                   style={{ width: `${progress?.percent || 0}%` }}
                 />
@@ -527,9 +527,9 @@ const OrdersPage = () => {
         </div>
       </div>
 
-      <ShippingSuccessModal 
-        isOpen={!!shippingSuccessData} 
-        onClose={() => setShippingSuccessData(null)} 
+      <ShippingSuccessModal
+        isOpen={!!shippingSuccessData}
+        onClose={() => setShippingSuccessData(null)}
         shippingInfo={shippingSuccessData}
       />
     </div>
