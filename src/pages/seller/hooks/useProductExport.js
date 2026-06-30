@@ -1,0 +1,68 @@
+import { useState, useCallback } from 'react';
+import { useSseSubscription } from '@/hooks';
+import api from '@/config/api';
+import { useAuth } from '@/hooks';
+
+export const useProductExport = () => {
+  const { user } = useAuth();
+  const sellerId = user?.id;
+
+  const [isExporting, setIsExporting] = useState(false);
+  const [progress, setProgress] = useState(null);
+  const [completeData, setCompleteData] = useState(null);
+  const [error, setError] = useState(null);
+
+  // Lắng nghe sự kiện SSE cho kênh 'product-export'
+  useSseSubscription('product-export', sellerId, {
+    'export-progress': (data) => {
+      if (isExporting) {
+        setProgress(data);
+      }
+    },
+    'export-complete': (data) => {
+      if (isExporting) {
+        setCompleteData(data);
+        setIsExporting(false);
+        setProgress(null);
+      }
+    },
+    'export-error': (data) => {
+      if (isExporting) {
+        setError(data?.message || 'Có lỗi xảy ra trong quá trình export');
+        setIsExporting(false);
+        setProgress(null);
+      }
+    }
+  });
+
+  const startExport = useCallback(async () => {
+    try {
+      setIsExporting(true);
+      setError(null);
+      setCompleteData(null);
+      setProgress({ percent: 0, currentRow: 0, totalRows: 0, estimatedSecondsLeft: 0 });
+      
+      await api.post('/seller/products/export');
+    } catch (err) {
+      console.error('[useProductExport] Error starting export:', err);
+      setError(err?.response?.data?.message || 'Không thể bắt đầu export');
+      setIsExporting(false);
+    }
+  }, []);
+
+  const resetExport = useCallback(() => {
+    setIsExporting(false);
+    setProgress(null);
+    setCompleteData(null);
+    setError(null);
+  }, []);
+
+  return {
+    isExporting,
+    progress,
+    completeData,
+    error,
+    startExport,
+    resetExport
+  };
+};

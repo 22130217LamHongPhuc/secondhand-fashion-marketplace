@@ -20,6 +20,8 @@ import TableSkeleton from "../../components/common/TableSkeleton";
 import ErrorState from "../../components/common/ErrorState";
 import EmptyState from "../../components/common/EmptyState";
 import AdvancedFilter from "../../components/common/AdvancedFilter";
+import { ExportProgressModal } from "../../components/common/ExportProgressModal";
+import { useProductExport } from "../../hooks";
 
 const statusTabs = [
   { label: "Tất cả", id: "all" },
@@ -63,6 +65,7 @@ const ProductsPage = () => {
   const [advancedFilters, setAdvancedFilters] = useState({});
   const [sortBy, setSortBy] = useState("newest");
   const navigate = useNavigate();
+  const { isExporting, progress, completeData, error: exportError, startExport, resetExport } = useProductExport();
 
   // Debounce search input
   useEffect(() => {
@@ -144,10 +147,22 @@ const ProductsPage = () => {
 
   return (
     <div className="space-y-6">
-      {/* Page Title */}
-      <h1 className="font-heading text-3xl font-bold text-neutral-800">
-        Quản lý sản phẩm
-      </h1>
+      {/* Page Title & Actions */}
+      <div className="flex items-center justify-between">
+        <h1 className="font-heading text-3xl font-bold text-neutral-800">
+          Quản lý sản phẩm
+        </h1>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={startExport}
+            disabled={isExporting}
+            className="flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 transition-all hover:bg-neutral-50 hover:text-neutral-900 focus:outline-none focus:ring-2 focus:ring-neutral-100 disabled:opacity-50"
+          >
+            <FileSpreadsheet size={18} />
+            Export Excel
+          </button>
+        </div>
+      </div>
 
       {/* Search + Filter Tabs */}
       <div className="flex items-center gap-4">
@@ -204,6 +219,15 @@ const ProductsPage = () => {
       </div>
 
       <AdvancedFilter onApply={(filters) => { setAdvancedFilters(filters); setCurrentPage(0); }} />
+
+      <ExportProgressModal 
+        isOpen={isExporting || !!completeData || !!exportError}
+        onClose={resetExport}
+        isExporting={isExporting}
+        progress={progress}
+        completeData={completeData}
+        error={exportError}
+      />
 
       {/* Data Area */}
       {loading ? (
