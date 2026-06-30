@@ -19,6 +19,7 @@ import {
   useCancelOrder,
 } from "../../hooks";
 import { toastService } from "@/services/toastService";
+import ShippingSuccessModal from "../../components/common/ShippingSuccessModal";
 import { Pagination } from "../../models";
 import TableSkeleton from "../../components/common/TableSkeleton";
 import ErrorState from "../../components/common/ErrorState";
@@ -69,6 +70,14 @@ const OrdersPage = () => {
   const [searchInput, setSearchInput] = useState("");
   const [debouncedOrderCode, setDebouncedOrderCode] = useState("");
   const [advancedFilters, setAdvancedFilters] = useState({});
+  const [filters, setFilters] = useState({
+    startDate: "",
+    endDate: "",
+    minPrice: "",
+    maxPrice: "",
+  });
+
+  const [shippingSuccessData, setShippingSuccessData] = useState(null);
   const [sortBy, setSortBy] = useState("newest");
 
   // Debounce search input
@@ -141,9 +150,20 @@ const OrdersPage = () => {
 
   const handleAction = async (orderId, actionStr) => {
     try {
-      if (actionStr === "confirm") await confirmOrder(orderId);
-      if (actionStr === "delivery") await startDelivery(orderId);
-      if (actionStr === "complete") await completeOrder(orderId);
+      if (actionStr === "confirm") {
+          await confirmOrder(orderId);
+          toastService.success("Xác nhận đơn thành công");
+      }
+      if (actionStr === "delivery") {
+          const response = await startDelivery(orderId);
+          setShippingSuccessData(response);
+          toastService.success("Đã tạo đơn giao hàng thành công!");
+      }
+      if (actionStr === "complete") {
+          if (!window.confirm("Xác nhận giả lập giao hàng thành công cho đơn này?")) return;
+          await completeOrder(orderId);
+          toastService.success("Đã xác nhận giao hàng thành công!");
+      }
       if (actionStr === "cancel") {
         const reason = window.prompt("Nhập lý do hủy đơn hàng:");
         if (reason === null) return; // User cancelled prompt
@@ -151,9 +171,8 @@ const OrdersPage = () => {
           id: orderId,
           reason: reason || "Người bán hủy đơn",
         });
+        toastService.success("Hủy đơn thành công");
       }
-
-      toastService.success("Thao tác thành công");
     } catch (e) {
       toastService.error("Thao tác thất bại: " + (e?.message || e));
     }
@@ -333,6 +352,26 @@ const OrdersPage = () => {
                             </button>
                           </>
                         )}
+                        
+                        {o.status === "CONFIRMED" && (
+                          <button
+                            onClick={() => handleAction(o.id, "delivery")}
+                            title="Giao hàng"
+                            className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600 transition-colors hover:bg-blue-100"
+                          >
+                            <Truck size={16} />
+                          </button>
+                        )}
+
+                        {o.status === "SHIPPING" && (
+                          <button
+                            onClick={() => handleAction(o.id, "complete")}
+                            title="Giả lập giao thành công"
+                            className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent-green-light text-accent-green transition-colors hover:bg-accent-green/20"
+                          >
+                            <CircleCheck size={16} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -415,6 +454,12 @@ const OrdersPage = () => {
           )}
         </div>
       )}
+
+      <ShippingSuccessModal 
+        isOpen={!!shippingSuccessData} 
+        onClose={() => setShippingSuccessData(null)} 
+        shippingInfo={shippingSuccessData}
+      />
     </div>
   );
 };

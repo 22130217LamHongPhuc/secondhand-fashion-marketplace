@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useSellerOrderDetail } from '../../hooks';
-import { Loader2, ArrowLeft, MapPin, CreditCard, ShoppingBag } from 'lucide-react';
+import { useSellerOrderDetail, useStartDelivery, useCompleteOrder } from '../../hooks';
+import { Loader2, ArrowLeft, MapPin, CreditCard, ShoppingBag, Truck, CheckCircle } from 'lucide-react';
+import { toastService } from "@/services/toastService";
 
 const formatPrice = (price) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price || 0);
@@ -12,6 +13,8 @@ const OrderDetailPage = () => {
     const navigate = useNavigate();
 
     const { data: order, isLoading, error } = useSellerOrderDetail(id);
+    const { mutateAsync: startDelivery, isPending: isDelivering } = useStartDelivery();
+    const { mutateAsync: completeOrder, isPending: isCompleting } = useCompleteOrder();
 
     if (isLoading) {
         return (
@@ -87,7 +90,7 @@ const OrderDetailPage = () => {
                     </div>
 
                     {/* Grid Layout: Thông tin khách hàng & Thanh toán */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div className={`grid grid-cols-1 md:grid-cols-2 ${order.ghnOrderCode ? 'lg:grid-cols-3' : ''} gap-6 mb-8`}>
                         {/* Box: Địa chỉ giao hàng */}
                         <div className="bg-neutral-50/50 rounded-2xl p-6 border border-neutral-100">
                             <div className="flex items-center gap-3 mb-4">
@@ -133,6 +136,40 @@ const OrderDetailPage = () => {
                                 )}
                             </div>
                         </div>
+
+                        {/* Box: Thông tin vận chuyển (nếu có GHN) */}
+                        {order.ghnOrderCode && (
+                            <div className="bg-neutral-50/50 rounded-2xl p-6 border border-neutral-100">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="h-10 w-10 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary">
+                                        <Truck size={18} />
+                                    </div>
+                                    <h3 className="font-bold text-neutral-800 text-base">Thông tin vận chuyển</h3>
+                                </div>
+                                <div className="space-y-3 text-sm text-neutral-600">
+                                    <div className="flex justify-between">
+                                        <span className="text-neutral-400">Đơn vị:</span>
+                                        <span className="font-semibold text-neutral-700">Giao Hàng Nhanh</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-neutral-400">Mã vận đơn:</span>
+                                        <span className="font-semibold text-brand-primary">{order.ghnOrderCode}</span>
+                                    </div>
+                                    {order.expectedDeliveryTime && (
+                                        <div className="flex justify-between">
+                                            <span className="text-neutral-400">Dự kiến giao:</span>
+                                            <span className="font-medium text-neutral-700">{order.expectedDeliveryTime}</span>
+                                        </div>
+                                    )}
+                                    {order.ghnTotalFee && (
+                                        <div className="flex justify-between">
+                                            <span className="text-neutral-400">Phí GHN:</span>
+                                            <span className="font-medium text-neutral-700">{order.ghnTotalFee}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Products List Table */}
@@ -171,8 +208,47 @@ const OrderDetailPage = () => {
                         </div>
                     </div>
 
-                    {/* Order Summary (Tổng kết) */}
-                    <div className="flex justify-end">
+                    {/* Order Summary (Tổng kết) & Action */}
+                    <div className="flex flex-col-reverse md:flex-row justify-between items-end gap-6">
+                        <div className="w-full md:w-auto">
+                            {order.status === "CONFIRMED" && (
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            await startDelivery(order.id);
+                                            toastService.success("Đã tạo đơn giao hàng thành công!");
+                                        } catch (err) {
+                                            toastService.error("Lỗi giao hàng: " + (err?.message || "Không xác định"));
+                                        }
+                                    }}
+                                    disabled={isDelivering}
+                                    className="flex items-center justify-center gap-2 rounded-xl bg-brand-primary px-6 py-3 font-bold text-white transition-all hover:bg-brand-dark disabled:opacity-70 w-full md:w-auto shadow-sm"
+                                >
+                                    {isDelivering ? <Loader2 className="animate-spin" size={20} /> : <Truck size={20} />}
+                                    Giao Hàng Qua GHN
+                                </button>
+                            )}
+                            
+                            {order.status === "SHIPPING" && (
+                                <button
+                                    onClick={async () => {
+                                        if (window.confirm("Xác nhận giả lập giao hàng thành công cho đơn này?")) {
+                                            try {
+                                                await completeOrder(order.id);
+                                                toastService.success("Đã xác nhận giao hàng thành công!");
+                                            } catch (err) {
+                                                toastService.error("Lỗi xác nhận: " + (err?.message || "Không xác định"));
+                                            }
+                                        }
+                                    }}
+                                    disabled={isCompleting}
+                                    className="flex items-center justify-center gap-2 rounded-xl bg-accent-green px-6 py-3 font-bold text-white transition-all hover:bg-accent-green-dark disabled:opacity-70 w-full md:w-auto shadow-sm"
+                                >
+                                    {isCompleting ? <Loader2 className="animate-spin" size={20} /> : <CheckCircle size={20} />}
+                                    Giả lập giao thành công
+                                </button>
+                            )}
+                        </div>
                         <div className="w-full md:w-1/2 lg:w-1/3 space-y-4 bg-neutral-50/50 p-6 rounded-2xl border border-neutral-100">
                             <div className="flex justify-between text-neutral-500 text-sm">
                                 <span>Tạm tính</span>
