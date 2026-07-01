@@ -438,7 +438,7 @@ const StoreProfilePage = () => {
                     <div className="h-full w-2/3 rounded-full bg-blue-500 animate-pulse" />
                   </div>
                 )}
-                
+
                 {!avatarUploading && (
                   <div className="mt-4 flex w-fit items-center gap-2 rounded-xl bg-brand-primary px-4 py-2 text-sm font-semibold text-white shadow-md transition-all hover:bg-brand-dark hover:shadow-lg cursor-pointer">
                     <button
