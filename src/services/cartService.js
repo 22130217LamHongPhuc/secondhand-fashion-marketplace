@@ -16,19 +16,7 @@ export const cartService = {
   getCart() {
     try {
       const data = localStorage.getItem(CART_KEY);
-      let cart = data ? JSON.parse(data) : [];
-      let changed = false;
-      cart = cart.map((item) => {
-        if (item.price && item.price < 1000) {
-          item.price = item.price * 1000;
-          changed = true;
-        }
-        return item;
-      });
-      if (changed) {
-        localStorage.setItem(CART_KEY, JSON.stringify(cart));
-      }
-      return cart;
+      return data ? JSON.parse(data) : [];
     } catch (e) {
       console.error("Error reading cart", e);
       return [];
