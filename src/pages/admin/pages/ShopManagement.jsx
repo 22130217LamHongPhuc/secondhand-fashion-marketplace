@@ -80,8 +80,9 @@ export function ShopManagement() {
 
   // Stats
   const totalShops = shops.length;
+  const pendingShopsCount = shops.filter((s) => !s.isVerified && !s.isActive).length;
   const verifiedShopsCount = shops.filter((s) => s.isVerified).length;
-  const lockedShopsCount = shops.filter((s) => !s.isActive).length;
+  const lockedShopsCount = shops.filter((s) => !s.isActive && s.isVerified).length;
   const totalStrikes = shops.reduce((sum, s) => sum + (s.warningStrikes || 0), 0);
 
   // Filter & Search Logic
@@ -94,9 +95,10 @@ export function ShopManagement() {
 
     if (!matchesSearch) return false;
 
+    if (filterType === "pending") return !shop.isVerified && !shop.isActive;
     if (filterType === "verified") return shop.isVerified;
     if (filterType === "warning") return (shop.warningStrikes || 0) > 0;
-    if (filterType === "locked") return !shop.isActive;
+    if (filterType === "locked") return !shop.isActive && shop.isVerified;
     return true;
   });
 
@@ -115,10 +117,16 @@ export function ShopManagement() {
     
     // 1. Optimistic update
     setShops(prev => prev.map(s => s.id === id ? { ...s, isVerified: nextState } : s));
+    
     toastService.success(nextState ? `Đã cấp tích xanh xác thực (Verified) cho shop "${shop.name}"!` : `Đã thu hồi tích xanh của shop "${shop.name}"!`);
 
     // 2. Background API call
     shopService.toggleVerify(id, nextState)
+      .then((updatedShop) => {
+        if (updatedShop) {
+          setShops(prev => prev.map(s => s.id === id ? updatedShop : s));
+        }
+      })
       .catch((err) => {
         toastService.error("Thao tác thất bại: " + err.message);
         // Revert
@@ -134,10 +142,15 @@ export function ShopManagement() {
 
     // 1. Optimistic update
     setShops(prev => prev.map(s => s.id === id ? { ...s, isActive: nextState } : s));
-    toastService.success(nextState ? `Đã mở khóa hoạt động cho shop "${shop.name}"!` : `Đã tạm khóa hoạt động shop "${shop.name}"!`);
+    toastService.success(nextState ? `Đã mở khóa hoạt động (phê duyệt) cho shop "${shop.name}"!` : `Đã tạm khóa hoạt động shop "${shop.name}"!`);
 
     // 2. Background API call
     shopService.toggleActive(id, nextState)
+      .then((updatedShop) => {
+        if (updatedShop) {
+          setShops(prev => prev.map(s => s.id === id ? updatedShop : s));
+        }
+      })
       .catch((err) => {
         toastService.error("Thao tác thất bại: " + err.message);
         // Revert
@@ -198,7 +211,18 @@ export function ShopManagement() {
           </div>
         </div>
 
-        {/* Card 2: Shop Tích Xanh */}
+        {/* Card 2: Shop Chờ Phê Duyệt */}
+        <div className="bg-white border border-stone-200/60 rounded-xl p-3.5 flex items-center justify-between shadow-sm">
+          <div>
+            <div className="text-[10px] font-bold text-stone-400 tracking-wider uppercase">SHOP CHỜ DUYỆT</div>
+            <div className="text-2xl font-black text-[#c85a28] mt-1">{pendingShopsCount}</div>
+          </div>
+          <div className="w-9 h-9 rounded-lg grid place-items-center bg-amber-50 text-amber-700">
+            <AlertTriangle className="w-5 h-5 text-amber-700" />
+          </div>
+        </div>
+
+        {/* Card 3: Shop Tích Xanh */}
         <div className="bg-white border border-stone-200/60 rounded-xl p-3.5 flex items-center justify-between shadow-sm">
           <div>
             <div className="text-[10px] font-bold text-stone-400 tracking-wider uppercase">SHOP TÍCH XANH</div>
@@ -209,7 +233,7 @@ export function ShopManagement() {
           </div>
         </div>
 
-        {/* Card 3: Shop Bị Khóa */}
+        {/* Card 4: Shop Bị Khóa */}
         <div className="bg-white border border-stone-200/60 rounded-xl p-3.5 flex items-center justify-between shadow-sm">
           <div>
             <div className="text-[10px] font-bold text-stone-400 tracking-wider uppercase">SHOP BỊ KHÓA</div>
@@ -217,17 +241,6 @@ export function ShopManagement() {
           </div>
           <div className="w-9 h-9 rounded-lg grid place-items-center bg-rose-50 text-rose-600">
             <Lock className="w-5 h-5 text-rose-600" />
-          </div>
-        </div>
-
-        {/* Card 4: Điểm cảnh cáo */}
-        <div className="bg-white border border-stone-200/60 rounded-xl p-3.5 flex items-center justify-between shadow-sm">
-          <div>
-            <div className="text-[10px] font-bold text-stone-400 tracking-wider uppercase">WARNING STRIKES</div>
-            <div className="text-2xl font-black text-stone-900 mt-1">{totalStrikes}</div>
-          </div>
-          <div className="w-9 h-9 rounded-lg grid place-items-center bg-amber-50 text-amber-700">
-            <ShieldAlert className="w-5 h-5 text-amber-700" />
           </div>
         </div>
       </div>
@@ -244,6 +257,16 @@ export function ShopManagement() {
             onClick={() => setFilterType("all")}
           >
             Tất cả cửa hàng
+          </button>
+          <button
+            className={`border-none rounded-lg py-2 px-4 text-[13px] font-bold cursor-pointer transition-all ${
+              filterType === "pending"
+                ? "bg-white text-stone-900 shadow-sm"
+                : "bg-transparent text-stone-500 hover:text-stone-800"
+            }`}
+            onClick={() => setFilterType("pending")}
+          >
+            Chờ phê duyệt
           </button>
           <button
             className={`border-none rounded-lg py-2 px-4 text-[13px] font-bold cursor-pointer transition-all ${
@@ -302,7 +325,6 @@ export function ShopManagement() {
                   <th className="p-3 text-left text-[11px] font-bold text-stone-500 tracking-wider uppercase">Chủ shop</th>
                   <th className="p-3 text-left text-[11px] font-bold text-stone-500 tracking-wider uppercase">Ngày tham gia</th>
                   <th className="p-3 text-center text-[11px] font-bold text-stone-500 tracking-wider uppercase">Đánh giá</th>
-                  <th className="p-3 text-center text-[11px] font-bold text-stone-500 tracking-wider uppercase">Sản phẩm</th>
                   <th className="p-3 text-center text-[11px] font-bold text-stone-500 tracking-wider uppercase">Strikes</th>
                   <th className="p-3 text-center text-[11px] font-bold text-stone-500 tracking-wider uppercase">Tích xanh</th>
                   <th className="p-3 text-center text-[11px] font-bold text-stone-500 tracking-wider uppercase">Trạng thái</th>
@@ -328,9 +350,6 @@ export function ShopManagement() {
                       <span className="bg-amber-50 text-amber-700 p-[3px_8px] rounded-lg text-xs font-bold inline-block border border-amber-100">
                         <span className="flex items-center gap-0.5"><Star className="w-3 h-3 text-amber-500 fill-amber-500" /> {shop.ratingAvg}</span>
                       </span>
-                    </td>
-                    <td className="p-3.5 border-b border-stone-100/80 align-middle text-center font-bold text-stone-850">
-                      {shop.totalProducts}
                     </td>
                     <td className="p-3.5 text-[13px] text-stone-800 align-middle text-center">
                       <span className={`inline-block p-[3px_8px] rounded-lg text-xs font-extrabold ${shop.warningStrikes > 0 ? "bg-rose-50 text-rose-600 border border-rose-100" : "bg-emerald-50 text-emerald-700 border border-emerald-100"}`}>
@@ -504,47 +523,64 @@ export function ShopManagement() {
 
             {/* Quick Chế tài/Moderation Actions bar */}
             <div className="flex flex-col gap-3.5 border-t border-stone-100 pt-5">
-              <h4 className="text-[11px] font-bold text-stone-400 tracking-wider uppercase m-0">Áp dụng Chế tài Admin</h4>
-              
-              <div className="grid grid-cols-1 gap-2.5">
-                {/* Verify / Unverify */}
-                <button
-                  className={`rounded-xl py-2.5 px-4 text-xs font-bold cursor-pointer transition-all flex items-center justify-center gap-1.5 border-none ${selectedShop.isVerified ? "bg-rose-50 text-rose-600 hover:bg-rose-100" : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"}`}
-                  onClick={() => handleToggleVerify(selectedShop.id)}
-                >
-                  <CheckCircle className="w-4 h-4" />
-                  <span>{selectedShop.isVerified ? "Thu hồi Tích xanh" : "Cấp Tích xanh Uy tín"}</span>
-                </button>
+              {!selectedShop.isVerified && !selectedShop.isActive ? (
+                <>
+                  <h4 className="text-[11px] font-bold text-[#c85a28] tracking-wider uppercase m-0">Phê duyệt đăng ký Shop mới</h4>
+                  <div className="grid grid-cols-1 gap-2.5">
+                    <button
+                      className="rounded-xl py-2.5 px-4 text-xs font-bold cursor-pointer transition-all flex items-center justify-center gap-1.5 border-none bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm"
+                      onClick={() => handleToggleActive(selectedShop.id)}
+                    >
+                      <CheckCircle className="w-4.5 h-4.5" />
+                      <span>Phê duyệt & Kích hoạt Shop</span>
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h4 className="text-[11px] font-bold text-stone-400 tracking-wider uppercase m-0">Áp dụng Chế tài Admin</h4>
+                  
+                  <div className="grid grid-cols-1 gap-2.5">
+                    {/* Verify / Unverify */}
+                    <button
+                      className={`rounded-xl py-2.5 px-4 text-xs font-bold cursor-pointer transition-all flex items-center justify-center gap-1.5 border-none ${selectedShop.isVerified ? "bg-rose-50 text-rose-600 hover:bg-rose-100" : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"}`}
+                      onClick={() => handleToggleVerify(selectedShop.id)}
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      <span>{selectedShop.isVerified ? "Thu hồi Tích xanh" : "Cấp Tích xanh Uy tín"}</span>
+                    </button>
 
-                {/* Strike punishment */}
-                <button
-                  className="rounded-xl py-2.5 px-4 text-xs font-bold cursor-pointer transition-all flex items-center justify-center gap-1.5 bg-amber-600 border-none text-white hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  onClick={() => handleAddStrike(selectedShop.id)}
-                  disabled={selectedShop.warningStrikes >= 5}
-                >
-                  <ShieldAlert className="w-4 h-4" />
-                  <span>Phạt 1 điểm Warning Strike</span>
-                </button>
+                    {/* Strike punishment */}
+                    <button
+                      className="rounded-xl py-2.5 px-4 text-xs font-bold cursor-pointer transition-all flex items-center justify-center gap-1.5 bg-amber-600 border-none text-white hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      onClick={() => handleAddStrike(selectedShop.id)}
+                      disabled={selectedShop.warningStrikes >= 5}
+                    >
+                      <ShieldAlert className="w-4 h-4" />
+                      <span>Phạt 1 điểm Warning Strike</span>
+                    </button>
 
-                {/* Lock / Unlock */}
-                <button
-                  className={`rounded-xl py-2.5 px-4 text-xs font-bold cursor-pointer transition-all flex items-center justify-center gap-1.5 border-none text-white ${selectedShop.isActive ? "bg-rose-600 hover:bg-rose-700" : "bg-emerald-600 hover:bg-emerald-700"}`}
-                  onClick={() => handleToggleActive(selectedShop.id)}
-                >
-                  {selectedShop.isActive ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
-                  <span>{selectedShop.isActive ? "Khóa Cửa Hàng" : "Mở Khóa Hoạt Động"}</span>
-                </button>
+                    {/* Lock / Unlock */}
+                    <button
+                      className={`rounded-xl py-2.5 px-4 text-xs font-bold cursor-pointer transition-all flex items-center justify-center gap-1.5 border-none text-white ${selectedShop.isActive ? "bg-rose-600 hover:bg-rose-700" : "bg-emerald-600 hover:bg-emerald-700"}`}
+                      onClick={() => handleToggleActive(selectedShop.id)}
+                    >
+                      {selectedShop.isActive ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+                      <span>{selectedShop.isActive ? "Khóa Cửa Hàng" : "Mở Khóa Hoạt Động"}</span>
+                    </button>
 
-                {/* Reset Warning Strikes */}
-                <button
-                  className="rounded-xl py-2.5 px-4 text-xs font-bold cursor-pointer transition-all flex items-center justify-center gap-1.5 bg-white border border-stone-200 text-stone-700 hover:bg-stone-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  onClick={() => handleResetStrikes(selectedShop.id)}
-                  disabled={selectedShop.warningStrikes === 0}
-                >
-                  <RefreshCw className="w-4 h-4" />
-                  <span>Xóa toàn bộ điểm phạt</span>
-                </button>
-              </div>
+                    {/* Reset Warning Strikes */}
+                    <button
+                      className="rounded-xl py-2.5 px-4 text-xs font-bold cursor-pointer transition-all flex items-center justify-center gap-1.5 bg-white border border-stone-200 text-stone-700 hover:bg-stone-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      onClick={() => handleResetStrikes(selectedShop.id)}
+                      disabled={selectedShop.warningStrikes === 0}
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      <span>Xóa toàn bộ điểm phạt</span>
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

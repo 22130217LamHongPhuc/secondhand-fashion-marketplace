@@ -44,19 +44,37 @@ const SellerLayout = () => {
   }
 
   if (shop.isActive === false) {
+    const isPending = !shop.isVerified;
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-neutral-50 px-4 text-center">
         <div className="max-w-md p-8 bg-white border border-rose-100 rounded-2xl shadow-lg">
-          <span className="inline-flex p-3 rounded-full bg-rose-50 text-rose-500 mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-            </svg>
-          </span>
-          <h2 className="text-xl font-extrabold text-neutral-900 mb-2">Cửa hàng đã bị khóa</h2>
-          <p className="text-sm text-neutral-600 mb-6">
-            Cửa hàng của bạn đã bị khóa do vi phạm điều khoản dịch vụ hoặc đã tích lũy đủ 5 gậy phạt (5/5 gậy). Vui lòng liên hệ Admin để được hỗ trợ giải quyết.
-          </p>
+          {isPending ? (
+            <>
+              <span className="inline-flex p-3 rounded-full bg-amber-50 text-amber-500 mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+              </span>
+              <h2 className="text-xl font-extrabold text-neutral-900 mb-2">Cửa hàng đang chờ duyệt</h2>
+              <p className="text-sm text-neutral-600 mb-6 font-medium">
+                Cửa hàng của bạn đã được đăng ký thành công và đang chờ Ban quản trị (Admin) phê duyệt để hoạt động. Vui lòng quay lại sau!
+              </p>
+            </>
+          ) : (
+            <>
+              <span className="inline-flex p-3 rounded-full bg-rose-50 text-rose-500 mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+              </span>
+              <h2 className="text-xl font-extrabold text-neutral-900 mb-2">Cửa hàng đã bị khóa</h2>
+              <p className="text-sm text-neutral-600 mb-6">
+                Cửa hàng của bạn đã bị khóa do vi phạm điều khoản dịch vụ hoặc đã tích lũy đủ 5 gậy phạt (5/5 gậy). Vui lòng liên hệ Admin để được hỗ trợ giải quyết.
+              </p>
+            </>
+          )}
           <button 
             onClick={() => {
               localStorage.removeItem("token");
