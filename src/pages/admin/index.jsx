@@ -9,6 +9,7 @@ import {
   CategoryManagement,
   ShopManagement,
   CouponManagement,
+  BannerManagement,
 } from "./pages";
 
 export { AdminLayout };
@@ -90,5 +91,14 @@ export const adminRoutes = [
       </AdminLayout>
     ),
   },
+  {
+    path: "/admin/banners",
+    element: (
+      <AdminLayout>
+        <BannerManagement />
+      </AdminLayout>
+    ),
+  },
 ];
+
 

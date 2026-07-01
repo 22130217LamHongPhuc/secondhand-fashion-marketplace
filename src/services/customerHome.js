@@ -160,4 +160,9 @@ export const customerHomeService = {
     const response = await http("/api/promotions/campaigns/active");
     return unwrapData(response) ?? [];
   },
+
+  getBanners: async () => {
+    const response = await http("/api/banners");
+    return unwrapData(response) ?? [];
+  },
 };

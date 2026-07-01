@@ -279,5 +279,38 @@ export const couponService = {
   },
 };
 
+// Homepage Banner Management
+export const bannerService = {
+  getAll: async () => {
+    return http("/api/admin/banners");
+  },
+  getById: async (id) => {
+    return http(`/api/admin/banners/${id}`);
+  },
+  create: async (data) => {
+    return http("/api/admin/banners", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+  update: async (id, data) => {
+    return http(`/api/admin/banners/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+  },
+  delete: async (id) => {
+    return http(`/api/admin/banners/${id}`, {
+      method: "DELETE",
+    });
+  },
+  toggleActive: async (id, active) => {
+    return http(`/api/admin/banners/${id}/active?active=${active}`, {
+      method: "PATCH",
+    });
+  },
+};
+
+
 
 

@@ -14,11 +14,29 @@ export default function HomePage() {
   const [featuredShops, setFeaturedShops] = useState([]);
   const [campaigns, setCampaigns] = useState([]);
   const [coupons, setCoupons] = useState([]);
+  const [banners, setBanners] = useState([]);
+  const [bannersLoading, setBannersLoading] = useState(true);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
     setLoading(true);
+
+    // Fetch banners immediately and independently
+    customerHomeService.getBanners()
+      .then((data) => {
+        if (isMounted) {
+          setBanners(data ?? []);
+          setBannersLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load banners", err);
+        if (isMounted) {
+          setBanners([]);
+          setBannersLoading(false);
+        }
+      });
 
     const load = async () => {
       const [
@@ -81,6 +99,8 @@ export default function HomePage() {
         setCoupons([]);
       }
 
+
+
       setLoading(false);
     };
 
@@ -93,7 +113,7 @@ export default function HomePage() {
   return (
     <main className="min-h-screen bg-[#fbfae6] px-5 py-5 text-[#3f392f] md:px-10">
       <div className="mx-auto max-w-7xl">
-        <HeroBanner />
+        <HeroBanner banners={banners} loading={bannersLoading} />
 
         <PromotionsSection campaigns={campaigns} coupons={coupons} loading={loading} />
 
