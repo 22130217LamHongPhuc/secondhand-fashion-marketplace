@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { keepPreviousData } from '@tanstack/react-query';
-import { useSellerDashboard } from '../../hooks';
+import { useSellerDashboard, useCategoryBreakdown } from '../../hooks';
 import {
   ShoppingCart,
 } from 'lucide-react';
+import { toastService } from '@/services/toastService';
 
 /* ============================================================
    COMPONENT
@@ -19,11 +20,20 @@ const DashboardPage = () => {
   const [periodMode, setPeriodMode] = useState('preset'); // 'preset' | 'custom'
   const [revenuePeriod, setRevenuePeriod] = useState('30_DAYS');
 
-  // Default custom range: last 30 days
+  const getNDaysAgo = (n) => {
+    return new Date(Date.now() - n * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  };
+
   const today = new Date().toISOString().split('T')[0]; // yyyy-MM-dd
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const thirtyDaysAgo = getNDaysAgo(30);
+
+  // States that actually trigger the react-query refetch:
   const [startDate, setStartDate] = useState(thirtyDaysAgo);
   const [endDate, setEndDate] = useState(today);
+
+  // Temporary states for the date inputs to prevent immediate API calls on change:
+  const [tempStartDate, setTempStartDate] = useState(thirtyDaysAgo);
+  const [tempEndDate, setTempEndDate] = useState(today);
 
   const queryParams = periodMode === 'custom'
     ? { startDate, endDate }
@@ -32,6 +42,52 @@ const DashboardPage = () => {
   const { data, isLoading, isFetching, error } = useSellerDashboard(queryParams, {
     placeholderData: keepPreviousData,
   });
+
+  const handleApplyCustomPeriod = () => {
+    if (!tempStartDate || !tempEndDate) {
+      toastService.warning('Vui lòng chọn đầy đủ ngày bắt đầu và ngày kết thúc.');
+      return;
+    }
+
+    if (tempStartDate > tempEndDate) {
+      toastService.warning('Ngày bắt đầu không được lớn hơn ngày kết thúc.');
+      return;
+    }
+
+    if (tempStartDate > today || tempEndDate > today) {
+      toastService.warning('Thời gian lọc không được vượt quá ngày hôm nay.');
+      return;
+    }
+
+    setStartDate(tempStartDate);
+    setEndDate(tempEndDate);
+    setPeriodMode('custom');
+  };
+
+  // Category filter state — use "YYYY-MM" string for the month picker
+  const nowDate = new Date();
+  const defaultMonthValue = `${nowDate.getFullYear()}-${String(nowDate.getMonth() + 1).padStart(2, '0')}`;
+  const [catMonthValue, setCatMonthValue] = useState(defaultMonthValue);
+
+  const catMonth = parseInt(catMonthValue.split('-')[1], 10);
+  const catYear = parseInt(catMonthValue.split('-')[0], 10);
+
+  const maxMonthValue = defaultMonthValue; // Can't go beyond current month
+
+  const { data: catData, isFetching: catFetching } = useCategoryBreakdown(
+    { month: catMonth, year: catYear },
+    { placeholderData: keepPreviousData }
+  );
+  const filteredCategoryBreakdown = catData ?? [];
+  const catTotal = filteredCategoryBreakdown.reduce((sum, c) => sum + Number(c.revenue || 0), 0);
+
+  const formatMoney = (amount) => {
+    if (!amount) return '0đ';
+    return Number(amount).toLocaleString('vi-VN') + 'đ';
+  };
+
+  // Expanded color palette for better chart contrast
+  const PIE_COLORS = ['#c75c2e', '#2563eb', '#16a34a', '#d97706', '#7c3aed', '#db2777', '#0891b2', '#65a30d', '#dc2626', '#6366f1'];
 
   if (isLoading) return <div className="p-8 text-center text-neutral-500">Đang tải dữ liệu...</div>;
   if (error) return <div className="p-8 text-center text-red-500">Lỗi tải dữ liệu. Vui lòng thử lại.</div>;
@@ -171,6 +227,9 @@ const DashboardPage = () => {
               <div className="flex items-center bg-neutral-100 p-1 rounded-full border border-neutral-200">
                 <button
                   onClick={() => {
+                    const start = getNDaysAgo(7);
+                    setTempStartDate(start);
+                    setTempEndDate(today);
                     setPeriodMode('preset');
                     setRevenuePeriod('7_DAYS');
                   }}
@@ -184,6 +243,9 @@ const DashboardPage = () => {
                 </button>
                 <button
                   onClick={() => {
+                    const start = getNDaysAgo(30);
+                    setTempStartDate(start);
+                    setTempEndDate(today);
                     setPeriodMode('preset');
                     setRevenuePeriod('30_DAYS');
                   }}
@@ -197,6 +259,9 @@ const DashboardPage = () => {
                 </button>
                 <button
                   onClick={() => {
+                    const start = getNDaysAgo(90);
+                    setTempStartDate(start);
+                    setTempEndDate(today);
                     setPeriodMode('preset');
                     setRevenuePeriod('90_DAYS');
                   }}
@@ -216,11 +281,9 @@ const DashboardPage = () => {
                   <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">Từ</span>
                   <input
                     type="date"
-                    value={startDate}
-                    onChange={(e) => {
-                      setStartDate(e.target.value);
-                      setPeriodMode('custom');
-                    }}
+                    value={tempStartDate}
+                    max={today}
+                    onChange={(e) => setTempStartDate(e.target.value)}
                     className="rounded-lg border border-neutral-200 bg-white px-2.5 py-1 text-xs font-medium text-neutral-600 outline-none focus:border-brand-primary"
                   />
                 </div>
@@ -228,20 +291,24 @@ const DashboardPage = () => {
                   <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">Đến</span>
                   <input
                     type="date"
-                    value={endDate}
-                    onChange={(e) => {
-                      setEndDate(e.target.value);
-                      setPeriodMode('custom');
-                    }}
+                    value={tempEndDate}
+                    max={today}
+                    onChange={(e) => setTempEndDate(e.target.value)}
                     className="rounded-lg border border-neutral-200 bg-white px-2.5 py-1 text-xs font-medium text-neutral-600 outline-none focus:border-brand-primary"
                   />
                 </div>
+                <button
+                  onClick={handleApplyCustomPeriod}
+                  className="rounded-lg bg-[#c75c2e] hover:bg-[#a64820] text-white px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer shadow-xs ml-2 active:scale-95"
+                >
+                  Áp dụng
+                </button>
               </div>
             </div>
           </div>
 
           {/* Bar chart */}
-          <div className="mt-8 flex items-end gap-10 px-6" style={{ height: 200 }}>
+          <div className="mt-8 flex items-end gap-3 sm:gap-6 md:gap-8 px-6" style={{ height: 200 }}>
             {revenueChart?.map((item) => {
               // Normalize chart heights for visual scaling
               const maxVal = Math.max(...revenueChart.map(i => Math.max(i.light, i.dark)), 1);
@@ -290,51 +357,126 @@ const DashboardPage = () => {
       <div className="grid grid-cols-1 gap-6">
         {/* Category Revenue */}
         <div className="rounded-2xl border border-neutral-200 bg-white p-6">
-          <h2 className="font-heading text-lg font-bold text-neutral-800">
-            Doanh thu theo danh mục
-          </h2>
-          <div className="mt-6 flex items-center gap-8">
-            {/* Donut chart */}
-            <div className="relative flex h-28 w-28 shrink-0 items-center justify-center">
-              <svg viewBox="0 0 36 36" className="h-28 w-28 -rotate-90">
-                {categoryBreakdown?.reduce(
-                  (acc, item) => {
-                    const dash = item.percent;
-                    if (dash > 0) {
-                      acc.elements.push(
-                        <circle
-                          key={item.label}
-                          cx="18" cy="18" r="15.5"
-                          fill="none"
-                          stroke={item.color}
-                          strokeWidth="3.5"
-                          strokeDasharray={`${dash} ${100 - dash}`}
-                          strokeDashoffset={`-${acc.offset}`}
-                        />
-                      );
-                      acc.offset += dash;
-                    }
-                    return acc;
-                  },
-                  { elements: [], offset: 0 }
-                ).elements}
-              </svg>
-              <span className="absolute text-xl font-bold text-neutral-800">100%</span>
+          {/* Header with month picker */}
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h2 className="font-heading text-lg font-bold text-neutral-800">
+                Doanh thu theo danh mục
+              </h2>
+              <p className="text-xs text-neutral-400 mt-0.5">Phân bổ doanh thu theo loại hàng hóa trong tháng</p>
             </div>
-            {/* Legend */}
-            <div className="grid grid-cols-2 gap-x-5 gap-y-2.5">
-              {categoryBreakdown?.map((c) => (
-                <div key={c.label} className="flex items-center gap-2">
-                  <span
-                    className="h-3 w-3 rounded-full shrink-0"
-                    style={{ backgroundColor: c.color }}
-                  />
-                  <span className="text-sm text-neutral-600 line-clamp-1">
-                    {c.label} ({c.percent}%)
-                  </span>
+            <input
+              type="month"
+              value={catMonthValue}
+              max={maxMonthValue}
+              onChange={(e) => setCatMonthValue(e.target.value)}
+              className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm font-semibold text-neutral-700 outline-none transition-all focus:border-brand-primary/40 focus:ring-2 focus:ring-brand-primary/10 cursor-pointer hover:bg-neutral-50"
+            />
+          </div>
+
+          {/* Content */}
+          <div className={`transition-opacity duration-300 ${catFetching ? 'opacity-50' : 'opacity-100'}`}>
+            {filteredCategoryBreakdown.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-neutral-400">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-20 w-20 mb-4 text-neutral-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={0.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+                </svg>
+                <p className="text-sm font-bold text-neutral-500">Chưa có doanh thu trong tháng này</p>
+                <p className="text-xs text-neutral-400 mt-1">Hãy chọn tháng khác để xem thống kê</p>
+              </div>
+            ) : (
+              <div className="flex flex-col lg:flex-row items-center lg:items-start gap-8">
+                {/* Big donut chart */}
+                <div className="relative flex items-center justify-center shrink-0" style={{ width: 280, height: 280 }}>
+                  <svg viewBox="0 0 42 42" className="w-full h-full" style={{ transform: 'rotate(-90deg)' }}>
+                    {/* Background ring */}
+                    <circle cx="21" cy="21" r="15.5" fill="none" stroke="#f5f5f4" strokeWidth="5.5" />
+                    {/* Segments */}
+                    {filteredCategoryBreakdown.reduce(
+                      (acc, item, idx) => {
+                        const segmentPercent = item.percent;
+                        if (segmentPercent > 0) {
+                          // Small gap between segments (0.5%)
+                          const gap = filteredCategoryBreakdown.length > 1 ? 0.8 : 0;
+                          const drawPercent = Math.max(segmentPercent - gap, 0.5);
+                          const circumference = 2 * Math.PI * 15.5;
+                          const dashLen = (drawPercent / 100) * circumference;
+                          const gapLen = circumference - dashLen;
+                          const offsetLen = -(acc.offset / 100) * circumference;
+
+                          acc.elements.push(
+                            <circle
+                              key={item.label}
+                              cx="21" cy="21" r="15.5"
+                              fill="none"
+                              stroke={PIE_COLORS[idx % PIE_COLORS.length]}
+                              strokeWidth="5.5"
+                              strokeDasharray={`${dashLen} ${gapLen}`}
+                              strokeDashoffset={offsetLen}
+                              strokeLinecap="round"
+                              className="transition-all duration-700 hover:opacity-80"
+                              style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))' }}
+                            />
+                          );
+                          acc.offset += segmentPercent;
+                        }
+                        return acc;
+                      },
+                      { elements: [], offset: 0 }
+                    ).elements}
+                  </svg>
+                  {/* Center label */}
+                  <div className="absolute flex flex-col items-center pointer-events-none">
+                    <span className="text-[28px] font-bold text-neutral-800 leading-none">
+                      {formatMoneyShort(catTotal)}
+                    </span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 mt-1">Tổng tháng {catMonth}</span>
+                  </div>
                 </div>
-              ))}
-            </div>
+
+                {/* Category list */}
+                <div className="flex-1 w-full space-y-3">
+                  {filteredCategoryBreakdown.map((c, idx) => (
+                    <div
+                      key={c.label}
+                      className="group flex items-center gap-3 rounded-xl border border-neutral-100 bg-white p-3.5 transition-all hover:border-neutral-200 hover:shadow-sm"
+                    >
+                      {/* Color dot */}
+                      <span
+                        className="h-3.5 w-3.5 rounded-full shrink-0"
+                        style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }}
+                      />
+                      {/* Info */}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-sm font-bold text-neutral-700 truncate">{c.label}</span>
+                          <div className="flex items-center gap-2 shrink-0 ml-2">
+                            <span className="text-sm font-bold text-neutral-800">{formatMoney(c.revenue)}</span>
+                            <span
+                              className="text-[10px] font-bold px-1.5 py-0.5 rounded-md text-white"
+                              style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }}
+                            >
+                              {c.percent}%
+                            </span>
+                          </div>
+                        </div>
+                        {/* Progress bar */}
+                        <div className="w-full h-1.5 bg-neutral-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-700"
+                            style={{
+                              width: `${c.percent}%`,
+                              backgroundColor: PIE_COLORS[idx % PIE_COLORS.length],
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -27,3 +27,16 @@ export const useSellerAnalytics = (params = {}, options = {}) => {
     ...options,
   });
 };
+
+export const useCategoryBreakdown = (params = {}, options = {}) => {
+  return useQuery({
+    queryKey: sellerStatisticKeys.categoryBreakdown(params),
+    queryFn: async () => {
+      const res = await sellerStatisticApi.getCategoryBreakdown(params);
+      return res.data.data;
+    },
+    staleTime: 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    ...options,
+  });
+};

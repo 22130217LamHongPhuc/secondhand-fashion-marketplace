@@ -8,11 +8,7 @@ export async function searchProductsByImage({ file, limit = 10 }) {
   const formData = new FormData();
   formData.append("file", file);
 
-  let baseUrl = env.apiBaseUrl || window.location.origin;
-  if (baseUrl.includes("localhost:8080")) {
-    baseUrl = "http://localhost:8000";
-  }
-
+  const baseUrl = env.apiBaseUrl || window.location.origin;
   const url = `${baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl}/api/image-search/search-by-image?limit=${limit}`;
 
   const res = await fetch(url, {

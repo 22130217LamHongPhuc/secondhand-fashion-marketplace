@@ -15,6 +15,7 @@ import {
   Check,
   AlertCircle
 } from "lucide-react";
+import ConfirmModal from "@/components/common/ConfirmModal";
 
 export function CampaignManagement() {
   const [campaigns, setCampaigns] = useState([]);
@@ -22,6 +23,7 @@ export function CampaignManagement() {
   const [error, setError] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState(null);
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState({ isOpen: false, campaignId: null });
 
   // Registered products moderation states
   const [selectedCampaign, setSelectedCampaign] = useState(null);
@@ -92,15 +94,17 @@ export function CampaignManagement() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa chiến dịch này không?")) {
-      try {
-        await campaignService.delete(id);
-        alert("Xóa chiến dịch thành công!");
-        loadCampaigns();
-      } catch (err) {
-        alert("Lỗi khi xóa chiến dịch: " + err.message);
-      }
+  const handleDelete = (id) => {
+    setDeleteConfirmModal({ isOpen: true, campaignId: id });
+  };
+
+  const executeDelete = async () => {
+    try {
+      await campaignService.delete(deleteConfirmModal.campaignId);
+      alert("Xóa chiến dịch thành công!");
+      loadCampaigns();
+    } catch (err) {
+      alert("Lỗi khi xóa chiến dịch: " + err.message);
     }
   };
 
@@ -569,6 +573,15 @@ export function CampaignManagement() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={deleteConfirmModal.isOpen}
+        onClose={() => setDeleteConfirmModal({ isOpen: false, campaignId: null })}
+        onConfirm={executeDelete}
+        title="Xác nhận xóa"
+        message="Bạn có chắc chắn muốn xóa chiến dịch này không?"
+        type="danger"
+      />
     </div>
   );
 }

@@ -291,13 +291,13 @@ export default function CustomerLayout() {
             >
               Đơn hàng
             </button>
-            <button
+            {/* <button
               type="button"
               onClick={() => navigate("/complaints")}
               className="hover:text-[#b84a25]"
             >
               Khiếu nại
-            </button>
+            </button> */}
           </nav>
 
           <div className="flex items-center gap-2 text-[#b84a25]">
@@ -309,7 +309,6 @@ export default function CustomerLayout() {
               type="button"
               onClick={() => navigate("/image-search")}
               className={headerIconButtonClass}
-              aria-label="Tìm kiếm bằng hình ảnh"
               aria-label="Tìm kiếm bằng hình ảnh"
               title="Tìm kiếm bằng hình ảnh"
             >
@@ -474,8 +473,8 @@ export default function CustomerLayout() {
                                 </p>
                               )}
                               <p className={`mt-1 truncate text-xs ${conversation.customerUnreadCount > 0
-                                  ? "font-bold text-[#3f3b2f]"
-                                  : "font-normal text-[#9c927b]"
+                                ? "font-bold text-[#3f3b2f]"
+                                : "font-normal text-[#9c927b]"
                                 }`}>
                                 {conversation.lastMessagePreview || "Chưa có tin nhắn"}
                               </p>

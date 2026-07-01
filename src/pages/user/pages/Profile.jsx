@@ -200,7 +200,7 @@ export function Profile() {
       if (avatarFile) {
         const formData = new FormData();
         formData.append("file", avatarFile);
-        
+
         const baseUrl = env.apiBaseUrl || window.location.origin;
         const uploadRes = await fetch(`${baseUrl}/api/images`, {
           method: "POST",
@@ -224,7 +224,7 @@ export function Profile() {
       if (res?.data) {
         toastService.success(res.message || "Cập nhật hồ sơ thành công!");
         setProfile(res.data);
-        
+
         // Update user session in localStorage to keep layout sync'd
         const updatedSessionUser = {
           ...sessionUser,
@@ -232,7 +232,7 @@ export function Profile() {
           avatarUrl: res.data.avatarUrl,
         };
         localStorage.setItem("user", JSON.stringify(updatedSessionUser));
-        
+
         // Dispatch simple event to reload CustomerLayout user details
         window.dispatchEvent(new Event("storage"));
       }
@@ -478,11 +478,10 @@ export function Profile() {
                 {addresses.map((address) => (
                   <div
                     key={address.id}
-                    className={`rounded-2xl border p-5 shadow-xs relative transition hover:shadow-md hover:-translate-y-0.5 duration-300 ${
-                      address.isDefault
+                    className={`rounded-2xl border p-5 shadow-xs relative transition hover:shadow-md hover:-translate-y-0.5 duration-300 ${address.isDefault
                         ? "border-[#b84a25] bg-[#fffaf5]"
                         : "border-[#e7dfbd]/60 bg-white"
-                    }`}
+                      }`}
                   >
                     {address.isDefault && (
                       <span className="absolute top-4 right-4 rounded-full bg-[#f4fbf0] text-[#4c7d38] px-2.5 py-0.5 text-[10px] font-extrabold border border-[#d2ecbe] shadow-xs">
@@ -517,31 +516,14 @@ export function Profile() {
         {/* Right Sidebar: Wallet & Member Info */}
         <div className="space-y-6">
           {/* Wallet card (elegant container matching the theme) */}
-          <div className="rounded-3xl border border-[#e7dfbd] bg-[#fffaf0] p-6 shadow-sm space-y-4">
-            <h3 className="text-sm font-extrabold uppercase tracking-widest text-[#b84a25] flex items-center gap-2">
-              <Wallet size={16} />
-              <span>Ví tích lũy</span>
-            </h3>
-            
-            <div className="border-t border-[#e7dfbd] pt-4">
-              <p className="text-xs font-bold text-[#766f60]">Tổng tiền đã tích lũy (5% chi tiêu):</p>
-              <p className="text-3xl font-black text-[#b84a25] mt-1">
-                {formatVnd(profile?.totalSpent !== undefined ? profile?.totalSpent * 0.05 : 0)}
-              </p>
-            </div>
 
-            <div className="bg-white border border-[#e7dfbd] p-4 rounded-2xl flex justify-between text-xs text-[#766f60] shadow-sm">
-              <span>Tổng chi tiêu:</span>
-              <span className="font-extrabold text-[#3d3a2c]">{formatVnd(profile?.totalSpent)}</span>
-            </div>
-          </div>
 
           {/* Member stats */}
           <div className="rounded-3xl border border-[#e7dfbd] bg-white p-6 shadow-sm space-y-4">
             <h3 className="text-sm font-extrabold uppercase tracking-wider text-[#3d3a2c] border-b border-slate-100 pb-2">
               Thông tin thành viên
             </h3>
-            
+
             <div className="space-y-3.5">
               <div className="flex justify-between items-center text-sm">
                 <span className="text-[#766f60] flex items-center gap-2">

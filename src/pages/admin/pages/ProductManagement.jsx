@@ -299,16 +299,29 @@ export function ProductManagement() {
 
   const handleToggleStatus = async (id, isActiveVal) => {
     // 1. Optimistic update
-    setProducts(prev => prev.map(p => p.id === id ? { ...p, isActive: isActiveVal } : p));
+    let previousStatus = null;
+    setProducts(prev => prev.map(p => {
+      if (p.id === id) {
+        previousStatus = p.status;
+        return {
+          ...p,
+          isActive: isActiveVal,
+          status: isActiveVal ? "selling" : "locked"
+        };
+      }
+      return p;
+    }));
     toastService.success("Đã cập nhật trạng thái sản phẩm thành công!");
 
     // 2. Background API call
     try {
       await productService.toggleActive(id, isActiveVal);
+      // Optional: reload products to ensure consistency with backend
+      // loadProducts(); 
     } catch (err) {
       toastService.error("Lỗi khi đổi trạng thái sản phẩm: " + err.message);
       // Revert
-      setProducts(prev => prev.map(p => p.id === id ? { ...p, isActive: !isActiveVal } : p));
+      setProducts(prev => prev.map(p => p.id === id ? { ...p, isActive: !isActiveVal, status: previousStatus } : p));
     }
   };
 
@@ -325,11 +338,10 @@ export function ProductManagement() {
       {/* Tabs list for Statuses */}
       <div className="flex bg-stone-100 border border-stone-200 rounded-xl p-1 gap-1 w-fit flex-wrap mb-4">
         <button
-          className={`border-none rounded-lg py-2 px-4 text-[13px] font-bold cursor-pointer transition-all ${
-            activeTab === "all"
-              ? "bg-white text-stone-900 shadow-sm"
-              : "bg-transparent text-stone-500 hover:text-stone-800"
-          }`}
+          className={`border-none rounded-lg py-2 px-4 text-[13px] font-bold cursor-pointer transition-all ${activeTab === "all"
+            ? "bg-white text-stone-900 shadow-sm"
+            : "bg-transparent text-stone-500 hover:text-stone-800"
+            }`}
           onClick={() => {
             setActiveTab("all");
             setPage(1);
@@ -338,11 +350,10 @@ export function ProductManagement() {
           Tất cả <span className="ml-1 opacity-70">({totalCount})</span>
         </button>
         <button
-          className={`border-none rounded-lg py-2 px-4 text-[13px] font-bold cursor-pointer transition-all ${
-            activeTab === "selling"
-              ? "bg-white text-stone-900 shadow-sm"
-              : "bg-transparent text-stone-500 hover:text-stone-800"
-          }`}
+          className={`border-none rounded-lg py-2 px-4 text-[13px] font-bold cursor-pointer transition-all ${activeTab === "selling"
+            ? "bg-white text-stone-900 shadow-sm"
+            : "bg-transparent text-stone-500 hover:text-stone-800"
+            }`}
           onClick={() => {
             setActiveTab("selling");
             setPage(1);
@@ -351,11 +362,10 @@ export function ProductManagement() {
           Đang bán <span className="ml-1 opacity-70">({sellingCount})</span>
         </button>
         <button
-          className={`border-none rounded-lg py-2 px-4 text-[13px] font-bold cursor-pointer transition-all ${
-            activeTab === "pending"
-              ? "bg-white text-stone-900 shadow-sm"
-              : "bg-transparent text-stone-500 hover:text-stone-800"
-          }`}
+          className={`border-none rounded-lg py-2 px-4 text-[13px] font-bold cursor-pointer transition-all ${activeTab === "pending"
+            ? "bg-white text-stone-900 shadow-sm"
+            : "bg-transparent text-stone-500 hover:text-stone-800"
+            }`}
           onClick={() => {
             setActiveTab("pending");
             setPage(1);
@@ -364,11 +374,10 @@ export function ProductManagement() {
           Chờ duyệt <span className="ml-1 opacity-70">({pendingCount})</span>
         </button>
         <button
-          className={`border-none rounded-lg py-2 px-4 text-[13px] font-bold cursor-pointer transition-all ${
-            activeTab === "locked"
-              ? "bg-white text-stone-900 shadow-sm"
-              : "bg-transparent text-stone-500 hover:text-stone-800"
-          }`}
+          className={`border-none rounded-lg py-2 px-4 text-[13px] font-bold cursor-pointer transition-all ${activeTab === "locked"
+            ? "bg-white text-stone-900 shadow-sm"
+            : "bg-transparent text-stone-500 hover:text-stone-800"
+            }`}
           onClick={() => {
             setActiveTab("locked");
             setPage(1);
@@ -397,7 +406,7 @@ export function ProductManagement() {
 
         {/* Sort Dropdown */}
         <div className="relative w-full sm:w-[180px]">
-          <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
+          <ChevronDown className="absolute right-3.5 top-7 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
           <select
             value={sortFilter}
             onChange={(e) => {
@@ -414,8 +423,8 @@ export function ProductManagement() {
 
         {/* Shop Filter Dropdown */}
         <div className="relative w-full sm:w-[200px]">
-          <Store className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
-          <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
+          <Store className="absolute left-3.5 top-7  -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
+          <ChevronDown className="absolute right-3.5 top-7 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
           <select
             value={shopFilter}
             onChange={(e) => {

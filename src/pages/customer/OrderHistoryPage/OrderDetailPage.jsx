@@ -12,6 +12,9 @@ import OrderShippingAddress from "./components/OrderShippingAddress";
 import OrderTimeline from "./components/OrderTimeline";
 import { customerComplaintService } from "@/services/customerComplaint";
 import { toastService } from "@/services/toastService";
+import { reviewService } from "@/services/reviewService";
+import WriteReviewModal from "../DetailProductPage/components/WriteReviewModal";
+import toast from "react-hot-toast";
 
 export default function OrderDetailPage() {
   const { orderId } = useParams();
@@ -26,6 +29,9 @@ export default function OrderDetailPage() {
   const [submittingComplaint, setSubmittingComplaint] = useState(false);
   const [complaintError, setComplaintError] = useState("");
   const [activeComplaintId, setActiveComplaintId] = useState(null);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [selectedReviewItem, setSelectedReviewItem] = useState(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -105,6 +111,33 @@ export default function OrderDetailPage() {
     }
   };
 
+  const handleOpenReview = (item) => {
+    setSelectedReviewItem(item);
+    setReviewModalOpen(true);
+  };
+
+  const handleSubmitReview = async (payload) => {
+    setSubmittingReview(true);
+    try {
+      await reviewService.createReview(payload);
+      toast.success("Đánh giá sản phẩm thành công!");
+      
+      setOrder((prev) => {
+        if (!prev) return prev;
+        const newItems = prev.items.map((i) => 
+          i.productId === payload.productId ? { ...i, reviewed: true } : i
+        );
+        return { ...prev, items: newItems };
+      });
+      
+      setReviewModalOpen(false);
+    } catch (error) {
+      toast.error(error?.response?.data?.message || "Có lỗi xảy ra khi gửi đánh giá.");
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
   if (loading) {
     return <OrderDetailSkeleton />;
   }
@@ -134,7 +167,7 @@ export default function OrderDetailPage() {
 
       <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
         <div className="space-y-5">
-          <OrderDetailItems items={order.items} />
+          <OrderDetailItems items={order.items} orderId={order.id} orderStatus={order.status} onWriteReview={handleOpenReview} />
           <OrderTimeline order={order} />
         </div>
 
@@ -174,6 +207,23 @@ export default function OrderDetailPage() {
         open={Boolean(activeComplaintId)}
         complaintId={activeComplaintId}
         onClose={() => setActiveComplaintId(null)}
+      />
+
+      <WriteReviewModal
+        open={reviewModalOpen}
+        product={
+          selectedReviewItem
+            ? {
+                id: selectedReviewItem.productId,
+                name: selectedReviewItem.productName,
+                thumbnailUrl: selectedReviewItem.thumbnailUrl,
+              }
+            : null
+        }
+        orderId={order?.id}
+        submitting={submittingReview}
+        onClose={() => setReviewModalOpen(false)}
+        onSubmit={handleSubmitReview}
       />
     </div>
   );

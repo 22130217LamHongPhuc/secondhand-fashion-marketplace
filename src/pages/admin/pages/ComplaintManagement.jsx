@@ -248,7 +248,7 @@ export function ComplaintManagement() {
       toastService.warning("Vui lòng nhập nội dung phản hồi!");
       return;
     }
-    
+
     complaintService.updateStatus(selectedTicket.id, "RESOLVED", responseText)
       .then(() => {
         toastService.success("Đã gửi phản hồi và giải quyết khiếu nại!");
@@ -284,9 +284,9 @@ export function ComplaintManagement() {
       toastService.error("Khiếu nại này không liên kết với Shop nào!");
       return;
     }
-    
+
     const reason = responseText.trim() || "Bị cảnh cáo vi phạm từ Admin thông qua khiếu nại #" + selectedTicket.id;
-    
+
     shopService.addStrike(selectedTicket.shopId)
       .then(() => {
         return complaintService.updateStatus(selectedTicket.id, "RESOLVED", `Phạt gậy cảnh cáo (warning strike) gửi tới Shop do vi phạm. Nội dung: ${reason}`);
@@ -319,7 +319,7 @@ export function ComplaintManagement() {
         setResponseText("");
       });
   };
-  
+
   const handleToggleShopActive = () => {
     if (!selectedTicket.shopId) {
       toastService.error("Khiếu nại này không liên kết với Shop nào!");
@@ -327,7 +327,7 @@ export function ComplaintManagement() {
     }
     const newStatus = !selectedTicket.shopActive;
     const actionLabel = newStatus ? "mở khóa" : "khóa";
-    
+
     setConfirmConfig({
       title: `${newStatus ? "Mở khóa" : "Khóa"} cửa hàng`,
       message: `Bạn có chắc chắn muốn ${actionLabel} cửa hàng "${selectedTicket.shopName}"?`,
@@ -352,7 +352,7 @@ export function ComplaintManagement() {
       toastService.error("Khiếu nại này không liên kết với Shop nào!");
       return;
     }
-    
+
     setConfirmConfig({
       title: "Xóa gậy phạt",
       message: `Bạn có chắc chắn muốn xóa tất cả gậy phạt của cửa hàng "${selectedTicket.shopName}"?`,
@@ -415,7 +415,7 @@ export function ComplaintManagement() {
 
   const handleCloseTicket = () => {
     const reason = responseText.trim() || "Từ chối giải quyết khiếu nại.";
-    
+
     complaintService.updateStatus(selectedTicket.id, "REJECTED", reason)
       .then(() => {
         toastService.success("Đã đóng và từ chối xử lý khiếu nại!");
@@ -483,7 +483,7 @@ export function ComplaintManagement() {
   return (
     <div className="flex flex-col gap-5 w-full text-[#3e2723] pb-10 animate-[fadeIn_0.35s_cubic-bezier(0.4,0,0.2,1)]">
       {/* Top Title & Export */}
-      <div className="flex items-center justify-between mb-2.5">
+      {/* <div className="flex items-center justify-between mb-2.5">
         <div>
           <h1 className="text-xl font-extrabold text-[#3e2723] m-0">Quản lý khiếu nại</h1>
         </div>
@@ -505,7 +505,7 @@ export function ComplaintManagement() {
           </svg>
           <span>Xuất báo cáo</span>
         </button>
-      </div>
+      </div> */}
 
       {/* Stats Cards Dashboard */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-4">
@@ -563,7 +563,7 @@ export function ComplaintManagement() {
 
         {/* Date Filter */}
         <div className="relative w-full sm:w-[180px]">
-          <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
+          <Calendar className="absolute left-3.5 top-7 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
           <input
             type="date"
             value={dateFilter}
@@ -576,7 +576,7 @@ export function ComplaintManagement() {
 
         {/* Clear Filters */}
         {(dateFilter || searchQuery) && (
-          <button 
+          <button
             className="py-2.5 px-4 bg-stone-100 border border-stone-200 rounded-xl cursor-pointer text-sm font-bold text-stone-600 hover:bg-stone-200 hover:text-stone-800 transition-all shadow-sm"
             onClick={() => {
               setDateFilter("");
@@ -613,9 +613,8 @@ export function ComplaintManagement() {
               filteredTickets.map((ticket) => (
                 <tr
                   key={ticket.id}
-                  className={`hover:bg-[#fffdf9] border-b border-[#f9f5eb] last:border-none ${
-                    selectedTicket && selectedTicket.id === ticket.id ? "bg-[#faf2dc]" : ""
-                  }`}
+                  className={`hover:bg-[#fffdf9] border-b border-[#f9f5eb] last:border-none ${selectedTicket && selectedTicket.id === ticket.id ? "bg-[#faf2dc]" : ""
+                    }`}
                 >
                   <td className="p-[14px_12px] text-[13px] text-[#c85a28] font-bold align-middle">#{ticket.id}</td>
                   <td className="p-[14px_12px] text-[13px] text-[#3e2723] align-middle flex items-center gap-2.5">
@@ -762,11 +761,10 @@ export function ComplaintManagement() {
                           <button className="bg-[#ffebee] text-[#c62828] border border-[#ffcdd2] rounded-xl py-2.5 px-4 text-[13px] font-bold cursor-pointer transition-all hover:bg-[#ffd8d8]" onClick={handleBanShop} title="Cộng gậy cảnh cáo shop">
                             Cảnh cáo Shop (+1 gậy)
                           </button>
-                          <button className={`border rounded-xl py-2.5 px-4 text-[13px] font-bold cursor-pointer transition-all ${
-                            selectedTicket.shopActive 
-                              ? "bg-[#fff3e0] text-[#e65100] border-[#ffe0b2] hover:bg-[#ffe0b2]"
-                              : "bg-[#e8f5e9] text-[#2e7d32] border-[#c8e6c9] hover:bg-[#d0efd3]"
-                          }`} onClick={handleToggleShopActive} title={selectedTicket.shopActive ? "Khóa cửa hàng" : "Mở khóa cửa hàng"}>
+                          <button className={`border rounded-xl py-2.5 px-4 text-[13px] font-bold cursor-pointer transition-all ${selectedTicket.shopActive
+                            ? "bg-[#fff3e0] text-[#e65100] border-[#ffe0b2] hover:bg-[#ffe0b2]"
+                            : "bg-[#e8f5e9] text-[#2e7d32] border-[#c8e6c9] hover:bg-[#d0efd3]"
+                            }`} onClick={handleToggleShopActive} title={selectedTicket.shopActive ? "Khóa cửa hàng" : "Mở khóa cửa hàng"}>
                             {selectedTicket.shopActive ? "Khóa Shop" : "Mở khóa Shop"}
                           </button>
 
@@ -799,15 +797,13 @@ export function ComplaintManagement() {
                   </div>
                 </div>
               ) : (
-                <div 
-                  className={`mt-6 p-5 rounded-lg border-l-[5px] ${
-                    selectedTicket.rawStatus === "RESOLVED" ? "bg-[#f1f8e9] border-[#689f38]" : "bg-[#ffebee] border-[#d32f2f]"
-                  }`}
-                >
-                  <h4 
-                    className={`margin-0 mb-2.5 text-base font-bold flex items-center gap-1.5 ${
-                      selectedTicket.rawStatus === "RESOLVED" ? "text-[#33691e]" : "text-[#b71c1c]"
+                <div
+                  className={`mt-6 p-5 rounded-lg border-l-[5px] ${selectedTicket.rawStatus === "RESOLVED" ? "bg-[#f1f8e9] border-[#689f38]" : "bg-[#ffebee] border-[#d32f2f]"
                     }`}
+                >
+                  <h4
+                    className={`margin-0 mb-2.5 text-base font-bold flex items-center gap-1.5 ${selectedTicket.rawStatus === "RESOLVED" ? "text-[#33691e]" : "text-[#b71c1c]"
+                      }`}
                   >
                     <span>{selectedTicket.rawStatus === "RESOLVED" ? "✓ KHIẾU NẠI ĐÃ ĐƯỢC GIẢI QUYẾT" : "✗ KHIẾU NẠI ĐÃ TỪ CHỐI"}</span>
                   </h4>
@@ -824,13 +820,12 @@ export function ComplaintManagement() {
             {/* Card: Reference Details */}
             <div className="bg-[#fffaf0] border border-[#f3ebd8] rounded-2xl p-6 shadow-[0_4px_16px_rgba(139,90,60,0.04)]">
               <h3 className="text-base font-bold text-[#3e2723] m-0 mb-4">Thông tin tham chiếu</h3>
-              
+
               <div className="text-sm text-[#3e2723]">
                 <div className="mb-3 border-b border-[#f3ebd8] pb-3">
                   <strong className="text-[#8b5a3c]">Người khiếu nại:</strong>
                   <div className="mt-1">
                     Tên: {selectedTicket.sender}<br />
-                    Mức độ tin cậy: <span className="text-[#2e7d32] font-bold">Cao (98%)</span>
                   </div>
                 </div>
 
@@ -871,13 +866,13 @@ export function ComplaintManagement() {
             </div>
 
             {/* Card: Eco Green ESG Panel */}
-            <div className="bg-[#e8f5e9] border border-[#c8e6c9] border-l-4 border-l-[#2e7d32] rounded-2xl p-6 shadow-[0_4px_16px_rgba(139,90,60,0.04)]">
+            {/* <div className="bg-[#e8f5e9] border border-[#c8e6c9] border-l-4 border-l-[#2e7d32] rounded-2xl p-6 shadow-[0_4px_16px_rgba(139,90,60,0.04)]">
               <h3 className="text-base font-bold text-[#1b5e20] m-0 mb-4">Tiệm Cũ Xanh</h3>
               <p className="text-[13px] leading-relaxed text-[#2e7d32] m-0 mb-4">
                 Các phản hồi về chương trình 'Mua bán vì môi trường' tăng 40% trong tháng này. Hãy chuẩn bị báo cáo chi tiết cho đối tác ESG.
               </p>
               <span className="bg-[#2e7d32] text-white text-[11px] font-extrabold tracking-wider py-1.5 px-3 rounded-md inline-block">GREEN METRICS</span>
-            </div>
+            </div> */}
           </div>
         </div>
       ) : null}
@@ -887,7 +882,7 @@ export function ComplaintManagement() {
           <div className="relative bg-white p-[30px] rounded-xl max-w-[600px] w-[90%] max-h-[90vh] overflow-y-auto shadow-[0_8px_30px_rgba(0,0,0,0.2)] border border-[#ebdcb9] text-[#3e2723] animate-[modalScaleIn_0.3s_cubic-bezier(0.34,1.56,0.64,1)]" onClick={(e) => e.stopPropagation()}>
             <button className="absolute top-4 right-4 bg-none border-none text-2xl cursor-pointer text-[#8b7d6a] flex items-center justify-center w-8 h-8 rounded-full transition-all hover:bg-[#faf6eb] hover:text-[#c85a28]" onClick={() => setShowOrderModal(false)} title="Đóng">
               <svg xmlns="http://www.w3.org/2000/svg" height="22" viewBox="0 -960 960 960" width="22" fill="currentColor">
-                <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/>
+                <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z" />
               </svg>
             </button>
             <h2 className="m-0 mb-5 text-[#3e2723] text-xl font-bold">Chi tiết đơn hàng #{selectedOrder.id}</h2>

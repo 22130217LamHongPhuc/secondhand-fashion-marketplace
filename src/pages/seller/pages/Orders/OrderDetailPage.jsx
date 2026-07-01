@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useSellerOrderDetail, useStartDelivery, useCompleteOrder } from '../../hooks';
 import { Loader2, ArrowLeft, MapPin, CreditCard, ShoppingBag, Truck, CheckCircle } from 'lucide-react';
 import { toastService } from "@/services/toastService";
+import ConfirmModal from "@/components/common/ConfirmModal";
 
 const formatPrice = (price) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price || 0);
@@ -15,6 +16,8 @@ const OrderDetailPage = () => {
     const { data: order, isLoading, error } = useSellerOrderDetail(id);
     const { mutateAsync: startDelivery, isPending: isDelivering } = useStartDelivery();
     const { mutateAsync: completeOrder, isPending: isCompleting } = useCompleteOrder();
+    
+    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
     if (isLoading) {
         return (
@@ -231,16 +234,7 @@ const OrderDetailPage = () => {
                             
                             {order.status === "SHIPPING" && (
                                 <button
-                                    onClick={async () => {
-                                        if (window.confirm("Xác nhận giả lập giao hàng thành công cho đơn này?")) {
-                                            try {
-                                                await completeOrder(order.id);
-                                                toastService.success("Đã xác nhận giao hàng thành công!");
-                                            } catch (err) {
-                                                toastService.error("Lỗi xác nhận: " + (err?.message || "Không xác định"));
-                                            }
-                                        }
-                                    }}
+                                    onClick={() => setIsConfirmModalOpen(true)}
                                     disabled={isCompleting}
                                     className="flex items-center justify-center gap-2 rounded-xl bg-accent-green px-6 py-3 font-bold text-white transition-all hover:bg-accent-green-dark disabled:opacity-70 w-full md:w-auto shadow-sm"
                                 >
@@ -268,6 +262,22 @@ const OrderDetailPage = () => {
 
                 </div>
             </main>
+
+            <ConfirmModal
+                isOpen={isConfirmModalOpen}
+                onClose={() => setIsConfirmModalOpen(false)}
+                onConfirm={async () => {
+                    try {
+                        await completeOrder(order.id);
+                        toastService.success("Đã xác nhận giao hàng thành công!");
+                    } catch (err) {
+                        toastService.error("Lỗi xác nhận: " + (err?.message || "Không xác định"));
+                    }
+                }}
+                title="Xác nhận giao hàng"
+                message="Xác nhận giả lập giao hàng thành công cho đơn này?"
+                type="warning"
+            />
         </div>
     );
 };

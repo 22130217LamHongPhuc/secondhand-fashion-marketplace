@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ImageUp, Loader2 } from "lucide-react";
+import { ImageUp, Loader2, Search } from "lucide-react";
 import ProductGrid from "../ProductListPage/components/ProductGrid";
 import { searchProductsByImage } from "@/services/imageSearch";
 
@@ -8,6 +8,7 @@ export default function ImageSearchPage() {
   const [items, setItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [hasSearched, setHasSearched] = useState(false);
 
   const previewUrl = useMemo(() => {
     if (!file) return "";
@@ -29,6 +30,7 @@ export default function ImageSearchPage() {
     setItems([]);
     setError("");
     setFile(selected);
+    setHasSearched(false);
   };
 
   const onSearch = async () => {
@@ -37,12 +39,15 @@ export default function ImageSearchPage() {
     try {
       setIsLoading(true);
       setError("");
+      setHasSearched(false);
 
       const res = await searchProductsByImage({ file, limit: 10 });
       setItems(Array.isArray(res.data) ? res.data : (res?.items ?? []));
+      setHasSearched(true);
     } catch (e) {
       setItems([]);
       setError(e instanceof Error ? e.message : "Search failed");
+      setHasSearched(true);
     } finally {
       setIsLoading(false);
     }
@@ -126,7 +131,7 @@ export default function ImageSearchPage() {
           <h2 className="text-base font-extrabold text-[#3f3b2f]">
             Kết quả ({products.length})
           </h2>
-          {file && !isLoading ? (
+          {file && !isLoading && products.length > 0 ? (
             <div className="text-xs font-semibold text-[#8a8370]">
               Tip: click vào sản phẩm để xem chi tiết
             </div>
@@ -136,10 +141,46 @@ export default function ImageSearchPage() {
         {products.length ? (
           <ProductGrid products={products} />
         ) : (
-          <div className="rounded-2xl border border-[#e7dfbd] bg-white px-6 py-10 text-center text-sm text-[#706b5c]">
-            {file
-              ? "Chưa có kết quả. Hãy bấm Tìm kiếm."
-              : "Chọn ảnh để bắt đầu tìm kiếm."}
+          <div className="rounded-2xl border border-[#e7dfbd] bg-white px-6 py-12 text-center">
+            {file ? (
+              hasSearched ? (
+                <div className="flex flex-col items-center justify-center space-y-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#f6f4dd] text-[#b84a25]">
+                    <Search className="h-6 w-6" />
+                  </div>
+                  <h3 className="text-base font-extrabold text-[#3f3b2f]">
+                    Không tìm thấy sản phẩm phù hợp
+                  </h3>
+                  <p className="max-w-md text-sm text-[#706b5c] leading-relaxed">
+                    Chúng tôi không tìm thấy sản phẩm nào tương tự với hình ảnh bạn đã tải lên. Hãy thử lại bằng một hình ảnh khác rõ nét hơn hoặc có góc chụp khác.
+                  </p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center space-y-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#eee8d2] text-[#706b5c]">
+                    <ImageUp className="h-6 w-6" />
+                  </div>
+                  <h3 className="text-base font-extrabold text-[#3f3b2f]">
+                    Chưa có kết quả
+                  </h3>
+                  <p className="max-w-md text-sm text-[#706b5c] leading-relaxed">
+                    Hình ảnh đã được chọn. Vui lòng bấm vào nút <strong>Tìm kiếm</strong> ở trên để bắt đầu tìm kiếm sản phẩm.
+                  </p>
+                </div>
+              )
+            ) : (
+              <div className="flex flex-col items-center justify-center space-y-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#eee8d2]/50 text-[#706b5c]/70">
+                  <ImageUp className="h-6 w-6" />
+                </div>
+                <h3 className="text-base font-extrabold text-[#3f3b2f]/80">
+                  Bắt đầu tìm kiếm
+                </h3>
+                <p className="max-w-md text-sm text-[#706b5c] leading-relaxed">
+                  Hãy chọn một hình ảnh sản phẩm từ thiết bị của bạn để tìm kiếm các sản phẩm tương tự trên hệ thống.
+                </p>
+              </div>
+            )}
           </div>
         )}
       </section>

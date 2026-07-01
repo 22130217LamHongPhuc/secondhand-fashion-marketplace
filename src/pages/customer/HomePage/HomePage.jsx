@@ -95,7 +95,7 @@ export default function HomePage() {
       <div className="mx-auto max-w-7xl">
         <HeroBanner />
 
-        <PromotionsSection campaigns={campaigns} coupons={coupons} loading={loading} />
+        {/* <PromotionsSection campaigns={campaigns} coupons={coupons} loading={loading} /> */}
 
         <CategoryList categories={categories} loading={loading} />
 

@@ -6,7 +6,7 @@ import AdminLoader from "@/components/common/AdminLoader";
 import { ChevronLeft, ChevronRight, Search, Calendar, Store, Filter, ShoppingBag, Clock, ClipboardCheck, Truck, CheckCircle2, XCircle, TrendingUp } from "lucide-react";
 
 const statusLabels = {
-  pending: "Chờ giao",
+  pending: "Chờ xác nhận",
   confirmed: "Đã xác nhận",
   shipping: "Đang giao",
   done: "Hoàn thành",
@@ -265,7 +265,7 @@ export function OrderManagement() {
       </div>
 
       {/* Grid of 7 Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mb-5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-3 mb-5">
         {/* Card 1: Tổng đơn */}
         <div className="bg-white border border-stone-200/60 rounded-xl p-3.5 flex items-center justify-between shadow-sm">
           <div>
@@ -386,7 +386,7 @@ export function OrderManagement() {
 
           {/* Date Filter Dropdown */}
           <div className="relative w-full sm:w-[180px]">
-            <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
+            <Calendar className="absolute left-3.5 top-7 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
             <select
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
@@ -427,7 +427,7 @@ export function OrderManagement() {
 
           {/* Shop Filter Dropdown */}
           <div className="relative w-full sm:w-[180px]">
-            <Store className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
+            <Store className="absolute left-3.5 top-7 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
             <select
               value={shopFilter}
               onChange={(e) => setShopFilter(e.target.value)}
@@ -452,7 +452,7 @@ export function OrderManagement() {
                 <path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z" />
               </svg>
             </button>
-            <h2 className="m-0 mb-5 text-[#a0522d] text-xl font-extrabold">Chi tiết đơn hàng #{selectedOrder.id}</h2>
+            <h2 className="m-0 mb-5 text-[#a0522d] text-xl font-extrabold">Chi tiết đơn hàng #{selectedOrder.orderCode}</h2>
 
             <div className="mb-5">
               <div className="mb-[22px] pb-[15px] border-b border-[#e8dfd5] last:border-b-0">
@@ -586,7 +586,7 @@ export function OrderManagement() {
                 <tbody>
                   {paginatedOrders.map((order) => (
                     <tr key={order.id} className="hover:bg-stone-50/60 border-b border-stone-100/80">
-                      <td className="p-3.5 px-3 border-b border-stone-100/80 text-[#c85a28] font-extrabold align-middle">#TC-{order.id}</td>
+                      <td className="p-3.5 px-3 border-b border-stone-100/80 text-[#c85a28] font-extrabold align-middle">#{order.orderCode}</td>
                       <td className="p-3.5 px-3 border-b border-stone-100/80 text-stone-800 text-[13px] align-middle">
                         <div className="flex items-center gap-2.5 flex-col md:flex-row md:items-center items-start">
                           <div className="w-[30px] h-[30px] rounded-full bg-stone-100 text-[#c85a28] grid place-items-center text-[11px] font-extrabold shrink-0 border border-stone-200/50">

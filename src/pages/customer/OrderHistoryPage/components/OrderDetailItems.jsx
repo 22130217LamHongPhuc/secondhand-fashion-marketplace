@@ -1,8 +1,8 @@
-import { PackageSearch, Star } from "lucide-react";
+import { PackageSearch, Star, Pencil } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { formatVnd } from "../utils";
 
-export default function OrderDetailItems({ items }) {
+export default function OrderDetailItems({ items, orderId, orderStatus, onWriteReview }) {
   const navigate = useNavigate();
 
   return (
@@ -54,6 +54,18 @@ export default function OrderDetailItems({ items }) {
                     <Star size={12} className="fill-current" />
                     Đã đánh giá
                   </span>
+                ) : orderStatus === "DONE" ? (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onWriteReview?.(item);
+                    }}
+                    className="inline-flex items-center gap-1 rounded-full bg-[#fffaf0] px-2 py-0.5 font-bold text-[#b84a25] border border-[#b84a25] hover:bg-[#b84a25] hover:text-white transition"
+                  >
+                    <Pencil size={12} />
+                    Viết đánh giá
+                  </button>
                 ) : null}
               </div>
             </div>

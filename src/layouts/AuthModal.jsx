@@ -334,8 +334,8 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
               <button
                 onClick={() => handleTabChange("login")}
                 className={`flex-1 pb-2 text-center text-sm font-extrabold transition-all border-b-2 ${activeTab === "login"
-                    ? "border-[#b84a25] text-[#b84a25]"
-                    : "border-transparent text-[#706b5c] hover:text-[#3f3b2f]"
+                  ? "border-[#b84a25] text-[#b84a25]"
+                  : "border-transparent text-[#706b5c] hover:text-[#3f3b2f]"
                   }`}
               >
                 Đăng nhập
@@ -343,8 +343,8 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
               <button
                 onClick={() => handleTabChange("register")}
                 className={`flex-1 pb-2 text-center text-sm font-extrabold transition-all border-b-2 ${activeTab === "register"
-                    ? "border-[#b84a25] text-[#b84a25]"
-                    : "border-transparent text-[#706b5c] hover:text-[#3f3b2f]"
+                  ? "border-[#b84a25] text-[#b84a25]"
+                  : "border-transparent text-[#706b5c] hover:text-[#3f3b2f]"
                   }`}
               >
                 Đăng ký

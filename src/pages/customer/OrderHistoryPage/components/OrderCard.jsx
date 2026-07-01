@@ -35,8 +35,9 @@ export default function OrderCard({ order, onCancel, onComplaint, onViewComplain
     PAYMENT_METHOD_LABELS[order.paymentMethod] ||
     order.paymentMethod ||
     "Thanh toán";
+  const currentPaymentStatus = order.status === "DONE" ? "PAID" : order.paymentStatus;
   const paymentStatus =
-    PAYMENT_STATUS_LABELS[order.paymentStatus] || order.paymentStatus || "";
+    PAYMENT_STATUS_LABELS[currentPaymentStatus] || currentPaymentStatus || "";
 
   useEffect(() => {
     if (order.status !== "DONE") return;

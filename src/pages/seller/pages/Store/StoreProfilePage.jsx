@@ -438,7 +438,7 @@ const StoreProfilePage = () => {
                     <div className="h-full w-2/3 rounded-full bg-blue-500 animate-pulse" />
                   </div>
                 )}
-                
+
                 {!avatarUploading && (
                   <div className="mt-4 flex w-fit items-center gap-2 rounded-xl bg-brand-primary px-4 py-2 text-sm font-semibold text-white shadow-md transition-all hover:bg-brand-dark hover:shadow-lg cursor-pointer">
                     <button
@@ -510,7 +510,7 @@ const StoreProfilePage = () => {
           </div>
 
           {/* ── Slug Preview ── */}
-          <div>
+          {/* <div>
             <label className="text-sm font-semibold text-neutral-700 flex items-center gap-1.5">
               <Globe size={15} className="text-neutral-400" />
               Đường dẫn cửa hàng (Slug)
@@ -530,7 +530,7 @@ const StoreProfilePage = () => {
             <p className="mt-1 text-[11px] text-neutral-400">
               Đường dẫn này được sinh tự động và duy nhất dựa trên tên cửa hàng của bạn.
             </p>
-          </div>
+          </div> */}
 
           {/* ── Description ── */}
           <div>

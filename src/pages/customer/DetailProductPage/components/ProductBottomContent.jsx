@@ -131,7 +131,7 @@ function ReviewItem({ review, index }) {
   );
 }
 
-function CommentItem({ comment, isReply = false }) {
+function CommentItem({ comment, isReply = false, isPreview = false }) {
   const name =
     comment.userName ??
     comment.reviewerName ??
@@ -230,12 +230,10 @@ export function ProductBottomContent({
   };
 
   const handleWrite = () => {
-    if (activeTab === "comments") {
-      onWriteComment?.();
-      return;
+    if (activeTab !== "comments") {
+      handleSwitchTab("comments");
     }
-
-    onWriteReview?.();
+    onWriteComment?.();
   };
 
   const { cleanDesc, metadataList } = useMemo(() => {
@@ -370,7 +368,7 @@ export function ProductBottomContent({
                 onClick={handleWrite}
                 className="flex shrink-0 items-center gap-1 rounded-full bg-[#fff3e8] px-4 py-2 text-sm font-extrabold text-[#b84a25] transition hover:bg-[#ffe2cd]"
               >
-                {activeTab === "comments" ? "Viết bình luận" : "Viết đánh giá"}
+                Viết bình luận
                 <Pencil size={14} />
               </button>
             )}

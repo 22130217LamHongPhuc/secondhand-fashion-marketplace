@@ -20,6 +20,7 @@ export { useSellerOrderEvents } from "./useSellerOrderEvents";
 export {
   useSellerDashboard,
   useSellerAnalytics,
+  useCategoryBreakdown,
 } from "./useSellerStatistics";
 
 export { useSellerCategories } from "./useSellerCategories";

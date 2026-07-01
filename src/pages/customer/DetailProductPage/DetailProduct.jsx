@@ -5,8 +5,6 @@ import {
   SimilarProducts,
   ProductDetailSkeleton,
 } from "./components";
-import WriteReviewModal from "./components/WriteReviewModal";
-import { reviewService } from "@/services/reviewService";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { customerProductService } from "@/services/customerProduct";
@@ -82,8 +80,6 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const [reviewModalOpen, setReviewModalOpen] = useState(false);
-  const [submittingReview, setSubmittingReview] = useState(false);
   const [commentModalOpen, setCommentModalOpen] = useState(false);
   const [submittingComment, setSubmittingComment] = useState(false);
 
@@ -158,6 +154,15 @@ export default function ProductDetailPage() {
     }));
   }, [product]);
 
+  const [currentUser] = useState(() => {
+    try {
+      const u = localStorage.getItem("user");
+      return u ? JSON.parse(u) : null;
+    } catch {
+      return null;
+    }
+  });
+
   const infoProduct = useMemo(() => {
     if (!product) return null;
 
@@ -226,42 +231,6 @@ export default function ProductDetailPage() {
           : [],
     }));
   }, [product]);
-
-  const handleSubmitReview = async (payload) => {
-    setSubmittingReview(true);
-
-    try {
-      const response = await reviewService.createReview(payload);
-      const createdReview = response?.data ?? response;
-
-      setProduct((current) => {
-        if (!current) return current;
-
-        const nextReview = {
-          id: createdReview.id,
-          rating: createdReview.rating,
-          comment: createdReview.comment,
-          reviewerId: createdReview.reviewerId,
-          reviewerName: createdReview.reviewerName,
-          reviewerAvatarUrl: createdReview.reviewerAvatarUrl,
-          createdAt: createdReview.createdAt,
-
-          imageUrls: createdReview.imageUrls ?? [],
-        };
-
-        return {
-          ...current,
-          latestReviews: [nextReview, ...(current.latestReviews ?? [])],
-        };
-      });
-
-      setReviewModalOpen(false);
-    } catch (error) {
-      toast.error("Phải đặt hàng trước mới đánh giá được");
-    } finally {
-      setSubmittingReview(false);
-    }
-  };
 
   const handleSubmitComment = async (payload) => {
     setSubmittingComment(true);
@@ -346,11 +315,13 @@ export default function ProductDetailPage() {
     );
   }
 
+  const isOwnProduct = currentUser?.userId && product?.shop?.sellerId === currentUser.userId;
+
   return (
     <>
       <section className="grid gap-8 lg:grid-cols-[1.4fr_1fr]">
         <ProductGallery images={galleryImages} />
-        <ProductInfoPanel product={infoProduct} />
+        <ProductInfoPanel product={infoProduct} isOwnProduct={isOwnProduct} />
       </section>
 
       <ProductBottomContent
@@ -359,7 +330,6 @@ export default function ProductDetailPage() {
         metadata={product?.metadata}
         reviews={reviews}
         comments={comments}
-        onWriteReview={() => setReviewModalOpen(true)}
         onWriteComment={() => setCommentModalOpen(true)}
       />
 
@@ -371,15 +341,6 @@ export default function ProductDetailPage() {
         submitting={submittingComment}
         onClose={() => setCommentModalOpen(false)}
         onSubmit={handleSubmitComment}
-      />
-
-      <WriteReviewModal
-        open={reviewModalOpen}
-        product={product}
-        orderId={801}
-        submitting={submittingReview}
-        onClose={() => setReviewModalOpen(false)}
-        onSubmit={handleSubmitReview}
       />
     </>
   );

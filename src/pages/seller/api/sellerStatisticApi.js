@@ -22,6 +22,14 @@ const sellerStatisticApi = {
   getAnalytics: (params = {}) => {
     return axiosInstance.get(`${BASE}/analytics`, { params });
   },
+
+  /**
+   * 3. Lấy dữ liệu phân bổ danh mục theo tháng
+   * GET /api/seller/stat/category-breakdown
+   */
+  getCategoryBreakdown: (params = {}) => {
+    return axiosInstance.get(`${BASE}/category-breakdown`, { params });
+  },
 };
 
 export default sellerStatisticApi;

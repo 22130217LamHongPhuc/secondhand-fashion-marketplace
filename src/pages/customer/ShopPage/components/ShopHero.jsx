@@ -17,7 +17,7 @@ function joinYear(createdAt) {
 
 export default function ShopHero({ shop }) {
   const resolvedShop = shop ?? {
-    name: "Sài Gòn Retro",
+    name: "Sài Gòn ",
     description:
       "Chuyên quần áo vintage tuyển chọn từ thập niên 80s - 90s. Mỗi món đồ đều có một câu chuyện riêng.",
     avatarUrl:
@@ -61,9 +61,8 @@ export default function ShopHero({ shop }) {
             </div>
 
             <span
-              className={`absolute bottom-3 right-1 h-4 w-4 rounded-full border-2 border-[#fff4cf] ${
-                resolvedShop.isActive ? "bg-green-500" : "bg-[#d7cfb8]"
-              }`}
+              className={`absolute bottom-3 right-1 h-4 w-4 rounded-full border-2 border-[#fff4cf] ${resolvedShop.isActive ? "bg-green-500" : "bg-[#d7cfb8]"
+                }`}
             />
           </div>
 

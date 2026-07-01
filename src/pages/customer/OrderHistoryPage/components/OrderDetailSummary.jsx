@@ -49,7 +49,9 @@ const STATUS_DETAILS = {
 export default function OrderDetailSummary({ order }) {
   const [paying, setPaying] = useState(false);
   const methodKey = (order.paymentMethod || "").toUpperCase();
-  const statusKey = (order.paymentStatus || "").toUpperCase();
+  
+  const currentPaymentStatus = order.status === "DONE" ? "PAID" : order.paymentStatus;
+  const statusKey = (currentPaymentStatus || "").toUpperCase();
 
   const canRepay =
     order.status === "PENDING" &&
@@ -89,7 +91,7 @@ export default function OrderDetailSummary({ order }) {
     order.paymentMethod ||
     "Thanh toán";
   const paymentStatus =
-    PAYMENT_STATUS_LABELS[order.paymentStatus] || order.paymentStatus || "";
+    PAYMENT_STATUS_LABELS[currentPaymentStatus] || currentPaymentStatus || "";
 
   const methodDetail = METHOD_DETAILS[methodKey] || {
     bg: "bg-neutral-50 text-neutral-700 border-neutral-200",

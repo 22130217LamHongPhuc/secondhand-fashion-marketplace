@@ -1161,9 +1161,20 @@ const ProductDetailPage = () => {
                   {formData.name || "Tên sản phẩm"}
                 </h3>
                 <div className="mt-2.5 flex items-baseline gap-2">
-                  <span className="text-xl font-bold text-brand-primary">
-                    {formData.salePrice || formData.basePrice || "0"}đ
-                  </span>
+                  {formData.salePrice ? (
+                    <>
+                      <span className="text-xl font-bold text-brand-primary">
+                        {Number(formData.salePrice).toLocaleString("vi-VN")}đ
+                      </span>
+                      <span className="text-sm font-semibold text-neutral-400 line-through">
+                        {Number(formData.basePrice).toLocaleString("vi-VN")}đ
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-xl font-bold text-brand-primary">
+                      {formData.basePrice ? Number(formData.basePrice).toLocaleString("vi-VN") : "0"}đ
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

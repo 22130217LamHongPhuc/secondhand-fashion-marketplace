@@ -2,7 +2,17 @@ import { useNavigate } from "react-router-dom";
 
 export default function ProductCard({ product }) {
   const navigate = useNavigate();
+  
+  let currentUser = null;
+  try {
+    const u = localStorage.getItem("user");
+    if (u) currentUser = JSON.parse(u);
+  } catch(e) {}
+
+  const isOwnProduct = currentUser?.userId && product?.sellerId === currentUser.userId;
+
   const handleViewDetail = (id) => {
+    if (isOwnProduct) return;
     navigate(`/product/${id}`);
   };
 
@@ -26,10 +36,14 @@ export default function ProductCard({ product }) {
       ? `-${product.discount}%`
       : product?.discount;
 
+  const containerClass = isOwnProduct 
+      ? "overflow-hidden rounded-3xl bg-white p-3 shadow-sm ring-1 ring-black/5 opacity-50 cursor-not-allowed pointer-events-none" 
+      : "overflow-hidden rounded-3xl bg-white p-3 shadow-sm ring-1 ring-black/5 transition hover:-translate-y-1 hover:shadow-md cursor-pointer";
+
   return (
     <article
       onClick={() => handleViewDetail(product.id)}
-      className="overflow-hidden rounded-3xl bg-white p-3 shadow-sm ring-1 ring-black/5 transition hover:-translate-y-1 hover:shadow-md"
+      className={containerClass}
     >
       <div className="relative overflow-hidden rounded-2xl bg-[#f4ecd2]">
         <img

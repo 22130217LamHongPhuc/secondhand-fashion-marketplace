@@ -420,7 +420,7 @@ const CreateStorePage = () => {
                     </div>
 
                     {/* ── Slug Preview ── */}
-                    <div>
+                    {/* <div>
                         <label className="text-sm font-semibold text-neutral-700 flex items-center gap-1.5">
                             <Globe size={15} className="text-neutral-400" />
                             Đường dẫn cửa hàng (Slug)
@@ -440,7 +440,7 @@ const CreateStorePage = () => {
                         <p className="mt-1 text-[11px] text-neutral-400">
                             Đường dẫn này được sinh tự động và duy nhất dựa trên tên cửa hàng của bạn.
                         </p>
-                    </div>
+                    </div> */}
 
                     {/* ── Description ── */}
                     <div>

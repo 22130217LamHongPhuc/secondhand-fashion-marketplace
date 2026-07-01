@@ -20,6 +20,8 @@ import {
 } from "../../hooks";
 import { toastService } from "@/services/toastService";
 import ShippingSuccessModal from "../../components/common/ShippingSuccessModal";
+import ConfirmModal from "@/components/common/ConfirmModal";
+import PromptModal from "@/components/common/PromptModal";
 import { Pagination } from "../../models";
 import TableSkeleton from "../../components/common/TableSkeleton";
 import ErrorState from "../../components/common/ErrorState";
@@ -75,6 +77,8 @@ const OrdersPage = () => {
   const [advancedFilters, setAdvancedFilters] = useState({});
   const [shippingSuccessData, setShippingSuccessData] = useState(null);
   const [sortBy, setSortBy] = useState("newest");
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, orderId: null, actionStr: null, title: "", message: "", type: "danger" });
+  const [promptModal, setPromptModal] = useState({ isOpen: false, orderId: null, actionStr: null, title: "", message: "", type: "danger" });
 
   const { isExporting, progress, completeData, error: exportError, startExport, resetExport } = useOrderExport();
 
@@ -158,16 +162,49 @@ const OrdersPage = () => {
         toastService.success("Đã tạo đơn giao hàng thành công!");
       }
       if (actionStr === "complete") {
-        if (!window.confirm("Xác nhận giả lập giao hàng thành công cho đơn này?")) return;
+        setConfirmModal({
+          isOpen: true,
+          orderId,
+          actionStr,
+          title: "Xác nhận giao hàng",
+          message: "Xác nhận giả lập giao hàng thành công cho đơn này?",
+          type: "warning"
+        });
+      }
+      if (actionStr === "cancel") {
+        setPromptModal({
+          isOpen: true,
+          orderId,
+          actionStr,
+          title: "Hủy đơn hàng",
+          message: "Nhập lý do hủy đơn hàng:",
+          type: "danger"
+        });
+      }
+    } catch (e) {
+      toastService.error("Thao tác thất bại: " + (e?.message || e));
+    }
+  };
+
+  const executeConfirmAction = async () => {
+    const { orderId, actionStr } = confirmModal;
+    try {
+      if (actionStr === "complete") {
         await completeOrder(orderId);
         toastService.success("Đã xác nhận giao hàng thành công!");
       }
+    } catch (e) {
+      toastService.error("Thao tác thất bại: " + (e?.message || e));
+    }
+  };
+
+  const executePromptAction = async (inputValue) => {
+    const { orderId, actionStr } = promptModal;
+    try {
       if (actionStr === "cancel") {
-        const reason = window.prompt("Nhập lý do hủy đơn hàng:");
-        if (reason === null) return; // User cancelled prompt
         await cancelOrder({
           id: orderId,
-          reason: reason || "Người bán hủy đơn",
+          reason: inputValue || "Người bán hủy đơn",
         });
         toastService.success("Hủy đơn thành công");
       }
@@ -531,6 +568,22 @@ const OrdersPage = () => {
         isOpen={!!shippingSuccessData}
         onClose={() => setShippingSuccessData(null)}
         shippingInfo={shippingSuccessData}
+      />
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+        onConfirm={executeConfirmAction}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type={confirmModal.type}
+      />
+      <PromptModal
+        isOpen={promptModal.isOpen}
+        onClose={() => setPromptModal({ ...promptModal, isOpen: false })}
+        onConfirm={executePromptAction}
+        title={promptModal.title}
+        message={promptModal.message}
+        type={promptModal.type}
       />
     </div>
   );

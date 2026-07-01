@@ -84,9 +84,25 @@ export default function ShopsPage() {
 
         if (!isMounted) return;
 
-        setItems(Array.isArray(result?.items) ? result.items : []);
+        let fetchedItems = Array.isArray(result?.items) ? result.items : [];
+        let adjustTotal = 0;
+        try {
+          const storedUser = localStorage.getItem("user");
+          if (storedUser) {
+            const currentUser = JSON.parse(storedUser);
+            if (currentUser && currentUser.userId) {
+              const originalLength = fetchedItems.length;
+              fetchedItems = fetchedItems.filter((shop) => shop.sellerId !== currentUser.userId);
+              adjustTotal = fetchedItems.length - originalLength;
+            }
+          }
+        } catch (e) {
+          // Ignore parsing errors
+        }
+
+        setItems(fetchedItems);
         setTotalElements(
-          typeof result?.totalElements === "number" ? result.totalElements : 0,
+          typeof result?.totalElements === "number" ? Math.max(0, result.totalElements + adjustTotal) : 0,
         );
         setTotalPages(
           typeof result?.totalPages === "number" ? result.totalPages : 1,

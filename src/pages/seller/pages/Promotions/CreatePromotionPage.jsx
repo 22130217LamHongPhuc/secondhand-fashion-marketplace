@@ -46,18 +46,37 @@ const CreatePromotionPage = () => {
         if (value === "" || isNaN(dVal)) error = "Mức giảm không được để trống";
         else if (dVal <= 0) error = "Mức giảm phải lớn hơn 0";
         else if (currentData.discountType === "PERCENTAGE" && dVal > 100) error = "Mức giảm phần trăm tối đa là 100";
+        else if (currentData.discountType === "FIXED_AMOUNT") {
+          const minOrd = parseFloat(currentData.minOrderValue);
+          if (!isNaN(minOrd) && minOrd > 0 && dVal >= minOrd)
+            error = "Mức giảm phải nhỏ hơn giá trị đơn hàng tối thiểu";
+        }
         break;
       case "maxDiscountAmount":
         if (currentData.discountType === "PERCENTAGE") {
           const maxVal = parseFloat(value);
           if (value === "" || isNaN(maxVal)) error = "Mức giảm tối đa không được để trống";
           else if (maxVal <= 0) error = "Mức giảm tối đa phải lớn hơn 0";
+          else {
+            const minOrd = parseFloat(currentData.minOrderValue);
+            if (!isNaN(minOrd) && minOrd > 0 && maxVal >= minOrd)
+              error = "Mức giảm tối đa phải nhỏ hơn giá trị đơn hàng tối thiểu";
+          }
         }
         break;
       case "minOrderValue":
         if (value !== "") {
           const minVal = parseFloat(value);
           if (isNaN(minVal) || minVal < 0) error = "Giá trị đơn hàng tối thiểu không được âm";
+          else if (minVal > 0 && currentData.discountType === "FIXED_AMOUNT") {
+            const disc = parseFloat(currentData.discountValue);
+            if (!isNaN(disc) && disc >= minVal)
+              error = "Giá trị đơn hàng tối thiểu phải lớn hơn mức giảm";
+          } else if (minVal > 0 && currentData.discountType === "PERCENTAGE") {
+            const maxDisc = parseFloat(currentData.maxDiscountAmount);
+            if (!isNaN(maxDisc) && maxDisc >= minVal)
+              error = "Giá trị đơn hàng tối thiểu phải lớn hơn mức giảm tối đa";
+          }
         }
         break;
       case "minOrderItems":
@@ -118,6 +137,25 @@ const CreatePromotionPage = () => {
           const maxError = validateField("maxDiscountAmount", nextData.maxDiscountAmount, nextData);
           if (maxError) nextErrors.maxDiscountAmount = maxError;
           else delete nextErrors.maxDiscountAmount;
+        }
+
+        // Cross-validate discount vs minOrderValue
+        if (name === "discountValue" || name === "minOrderValue" || name === "maxDiscountAmount") {
+          if (name !== "discountValue") {
+            const dvErr = validateField("discountValue", nextData.discountValue, nextData);
+            if (dvErr) nextErrors.discountValue = dvErr;
+            else delete nextErrors.discountValue;
+          }
+          if (name !== "minOrderValue") {
+            const movErr = validateField("minOrderValue", nextData.minOrderValue, nextData);
+            if (movErr) nextErrors.minOrderValue = movErr;
+            else delete nextErrors.minOrderValue;
+          }
+          if (name !== "maxDiscountAmount" && nextData.discountType === "PERCENTAGE") {
+            const mdErr = validateField("maxDiscountAmount", nextData.maxDiscountAmount, nextData);
+            if (mdErr) nextErrors.maxDiscountAmount = mdErr;
+            else delete nextErrors.maxDiscountAmount;
+          }
         }
 
         if (name === "startDate" && nextData.endDate) {

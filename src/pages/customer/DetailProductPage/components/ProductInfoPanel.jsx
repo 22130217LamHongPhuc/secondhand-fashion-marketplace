@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { cartService } from "@/services/cartService";
 import { toastService } from "@/services/toastService";
 
-export function ProductInfoPanel({ product }) {
+export function ProductInfoPanel({ product, isOwnProduct }) {
   const navigateToShop = useNavigate();
 
   const handleViewShop = (id) => {
@@ -11,6 +11,7 @@ export function ProductInfoPanel({ product }) {
   };
 
   const handleAddToCart = () => {
+    if (isOwnProduct) return;
     const res = cartService.addToCart(product);
     if (res.success) {
       toastService.success("Đã thêm sản phẩm vào giỏ hàng!");
@@ -20,6 +21,7 @@ export function ProductInfoPanel({ product }) {
   };
 
   const handleBuyNow = () => {
+    if (isOwnProduct) return;
     const res = cartService.addToCart(product);
     if (res.success || res.message === "Sản phẩm đã có trong giỏ hàng!") {
       navigateToShop("/cart", { state: { buyNowProductId: product.id } });
@@ -29,6 +31,7 @@ export function ProductInfoPanel({ product }) {
   };
 
   const handleMessageShop = () => {
+    if (isOwnProduct) return;
     if (!localStorage.getItem("token")) {
       toastService.info("Đăng nhập để nhắn tin với shop.");
       return;
@@ -43,6 +46,8 @@ export function ProductInfoPanel({ product }) {
       }),
     );
   };
+
+  const isActionDisabled = product.stockQuantity === 0 || isOwnProduct;
 
   return (
     <aside className="space-y-6">
@@ -118,8 +123,9 @@ export function ProductInfoPanel({ product }) {
       <div className="space-y-3 pt-8">
         <button
           type="button"
+          disabled={isOwnProduct}
           onClick={handleMessageShop}
-          className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-[#c04f25] bg-white font-bold text-[#b84a25] transition hover:bg-[#fff3ea] cursor-pointer"
+          className={`flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-[#c04f25] bg-white font-bold text-[#b84a25] transition hover:bg-[#fff3ea] ${isOwnProduct ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`}
         >
           <MessageCircle size={18} />
           Nhắn tin với shop
@@ -127,8 +133,8 @@ export function ProductInfoPanel({ product }) {
 
         <button
           onClick={handleAddToCart}
-          disabled={product.stockQuantity === 0}
-          className="flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-[#c04f25] font-bold text-white shadow-sm transition hover:bg-[#a9411d] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+          disabled={isActionDisabled}
+          className={`flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-[#c04f25] font-bold text-white shadow-sm transition hover:bg-[#a9411d] disabled:opacity-40 disabled:cursor-not-allowed ${isActionDisabled ? "" : "cursor-pointer"}`}
         >
           <ShoppingCart size={18} />
           {product.stockQuantity === 0 ? "Hết hàng" : "Thêm vào giỏ"}
@@ -136,8 +142,8 @@ export function ProductInfoPanel({ product }) {
 
         <button
           onClick={handleBuyNow}
-          disabled={product.stockQuantity === 0}
-          className="h-14 w-full rounded-xl bg-[#ffc28f] font-bold text-[#6c331b] transition hover:bg-[#ffb678] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+          disabled={isActionDisabled}
+          className={`h-14 w-full rounded-xl bg-[#ffc28f] font-bold text-[#6c331b] transition hover:bg-[#ffb678] disabled:opacity-40 disabled:cursor-not-allowed ${isActionDisabled ? "" : "cursor-pointer"}`}
         >
           Mua ngay
         </button>
