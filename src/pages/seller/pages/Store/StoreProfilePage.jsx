@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Pencil, Eye, Lightbulb, Camera, Loader2, Globe } from "lucide-react";
+import { Pencil, Eye, Lightbulb, Camera, Loader2, Globe, BadgeCheck } from "lucide-react";
 import { useSellerShop, useCreateShop, useUpdateShop } from "../../hooks";
 import { imageApi } from "../../api";
 import { toastService } from "@/services/toastService";
@@ -457,8 +457,11 @@ const StoreProfilePage = () => {
               {/* Store Info */}
               <div className="px-4 pt-9 pb-4">
                 <div className="flex items-start justify-between">
-                  <h3 className="text-base font-bold text-neutral-800 truncate max-w-[70%]">
+                  <h3 className="text-base font-bold text-neutral-800 truncate max-w-[70%] flex items-center gap-1">
                     {name.trim() || "Tên cửa hàng"}
+                    {shop?.isVerified && (
+                      <BadgeCheck className="w-4 h-4 text-blue-500 fill-blue-500/10 shrink-0" />
+                    )}
                   </h3>
                 </div>
                 <p className="mt-1 flex items-center gap-1 text-[11px] text-neutral-400">

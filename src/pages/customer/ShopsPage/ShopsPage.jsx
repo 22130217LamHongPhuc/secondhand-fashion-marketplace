@@ -1,6 +1,6 @@
 import { customerShopService } from "@/services/customerShop";
 import Pagination from "../ProductListPage/components/Pagination";
-import { Search } from "lucide-react";
+import { Search, BadgeCheck } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
@@ -199,16 +199,14 @@ export default function ShopsPage() {
 
               <div className="px-4 pb-4 pt-7">
                 <div className="flex items-start justify-between gap-3">
-                  <h2 className="line-clamp-1 text-sm font-extrabold text-[#3f3b2f] group-hover:text-[#b84a25]">
+                  <h2 className="line-clamp-1 text-sm font-extrabold text-[#3f3b2f] group-hover:text-[#b84a25] flex items-center gap-1">
                     {shop?.name || "Shop"}
+                    {shop?.isVerified && (
+                      <BadgeCheck className="w-3.5 h-3.5 text-blue-500 fill-blue-500/10 shrink-0" />
+                    )}
                   </h2>
 
                   <div className="flex items-center gap-2">
-                    {shop?.isVerified ? (
-                      <span className="rounded-full bg-[#e8e2c6] px-2 py-1 text-[10px] font-bold text-[#776f5d]">
-                        Verified
-                      </span>
-                    ) : null}
                     {shop?.isActive === false ? (
                       <span className="rounded-full bg-[#e8e2c6] px-2 py-1 text-[10px] font-bold text-[#776f5d]">
                         Tạm đóng

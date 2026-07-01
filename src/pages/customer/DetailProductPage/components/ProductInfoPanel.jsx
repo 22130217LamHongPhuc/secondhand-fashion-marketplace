@@ -1,4 +1,4 @@
-import { MessageCircle, ShoppingCart, Star, Truck, RotateCcw } from "lucide-react";
+import { MessageCircle, ShoppingCart, Star, Truck, RotateCcw, BadgeCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cartService } from "@/services/cartService";
 import { toastService } from "@/services/toastService";
@@ -98,7 +98,12 @@ export function ProductInfoPanel({ product }) {
           </div>
 
           <div className="flex-1">
-            <h3 className="font-bold text-[#3f3b2f]">{product.shop.name}</h3>
+            <h3 className="font-bold text-[#3f3b2f] flex items-center gap-1">
+              {product.shop.name}
+              {product.shop.isVerified && (
+                <BadgeCheck className="w-4 h-4 text-blue-500 fill-blue-500/10 shrink-0" />
+              )}
+            </h3>
             <p className="text-xs text-[#7c7565]">{product.shop.meta}</p>
             <div className="mt-1 flex items-center gap-1 text-xs text-[#587d36]">
               <Star size={13} className="fill-current" />
