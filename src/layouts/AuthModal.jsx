@@ -13,6 +13,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
   // Form states
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [avatarFile, setAvatarFile] = useState(null);
@@ -55,6 +56,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
     // Reset form states
     setEmail("");
     setPassword("");
+    setConfirmPassword("");
     setFullName("");
     setPhone("");
     setAvatarFile(null);
@@ -120,12 +122,16 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
 
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
-    if (!email.trim() || !password.trim() || !fullName.trim()) {
-      toastService.warning("Vui lòng điền các trường bắt buộc (Email, Mật khẩu, Họ tên).");
+    if (!email.trim() || !password.trim() || !confirmPassword.trim() || !fullName.trim()) {
+      toastService.warning("Vui lòng điền các trường bắt buộc (Email, Mật khẩu, Nhập lại mật khẩu, Họ tên).");
       return;
     }
     if (password.length < 6) {
       toastService.warning("Mật khẩu phải dài ít nhất 6 ký tự.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      toastService.warning("Mật khẩu nhập lại không khớp.");
       return;
     }
 
@@ -530,6 +536,24 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Tối thiểu 6 ký tự"
+                      required
+                      disabled={isLoading}
+                      className="w-full rounded-xl border border-[#e7dfbd] bg-white py-2 pl-10 pr-4 text-sm text-[#3f3b2f] placeholder-[#8a8370] focus:border-[#b84a25] focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-[#3f3b2f]">Nhập lại mật khẩu *</label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-[#706b5c]">
+                      <Lock size={16} />
+                    </span>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Nhập lại mật khẩu"
                       required
                       disabled={isLoading}
                       className="w-full rounded-xl border border-[#e7dfbd] bg-white py-2 pl-10 pr-4 text-sm text-[#3f3b2f] placeholder-[#8a8370] focus:border-[#b84a25] focus:outline-none"
