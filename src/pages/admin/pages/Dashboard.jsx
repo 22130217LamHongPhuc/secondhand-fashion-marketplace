@@ -86,11 +86,13 @@ export function Dashboard() {
   }
 
   // Calculate percentages for Donut chart
+  const totalForDonut = Math.max(stats?.totalOrders || 1, 1);
   const orderStatuses = [
-    { label: "Hoàn thành", count: stats?.completedOrders || Math.round((stats?.totalOrders || 10) * 0.6), color: "#10b981", percent: 60 },
-    { label: "Đang giao", count: stats?.shippingOrders || Math.round((stats?.totalOrders || 10) * 0.2), color: "#6366f1", percent: 20 },
-    { label: "Chờ xử lý", count: stats?.pendingOrders || Math.round((stats?.totalOrders || 10) * 0.15), color: "#f59e0b", percent: 15 },
-    { label: "Đã hủy", count: stats?.cancelledOrders || Math.round((stats?.totalOrders || 10) * 0.05), color: "#ef4444", percent: 5 },
+    { label: "Hoàn thành", count: stats?.completedOrders || 0, color: "#10b981", percent: Math.round(((stats?.completedOrders || 0) / totalForDonut) * 100) },
+    { label: "Đang giao", count: stats?.shippingOrders || 0, color: "#6366f1", percent: Math.round(((stats?.shippingOrders || 0) / totalForDonut) * 100) },
+    { label: "Chờ xử lý", count: stats?.pendingOrders || 0, color: "#f59e0b", percent: Math.round(((stats?.pendingOrders || 0) / totalForDonut) * 100) },
+    { label: "Đã hủy", count: stats?.cancelledOrders || 0, color: "#ef4444", percent: Math.round(((stats?.cancelledOrders || 0) / totalForDonut) * 100) },
+    { label: "Đơn hoàn trả", count: stats?.returnedOrders || 0, color: "#f43f5e", percent: Math.round(((stats?.returnedOrders || 0) / totalForDonut) * 100) },
   ];
 
   // SVG Line Chart computations
@@ -152,8 +154,9 @@ export function Dashboard() {
         </button>
       </div>
 
-      {/* 5 Modern Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 mb-8">
+      {/* Main Stats Cards Row 1 */}
+      <h3 className="text-xs font-black text-stone-400 tracking-widest uppercase mb-3">Chỉ số hệ thống</h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 mb-6">
         
         {/* Card 1: Doanh thu */}
         <div className="bg-gradient-to-br from-[#fff7f2] to-[#fff1e6] border border-[#fbd6bc] rounded-2xl p-4 flex flex-col justify-between shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300 relative overflow-hidden group">
@@ -168,9 +171,9 @@ export function Dashboard() {
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
-          <div className="flex items-center gap-1 mt-4 text-[10px] font-bold text-emerald-600">
-            <ArrowUpRight className="w-3.5 h-3.5" />
-            <span>+12.4% so với tháng trước</span>
+          <div className={`flex items-center gap-1 mt-4 text-[10px] font-bold ${stats?.revenueGrowth >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+            {stats?.revenueGrowth >= 0 ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
+            <span>{stats?.revenueGrowth >= 0 ? "+" : ""}{stats?.revenueGrowth?.toFixed(1)}% so với tháng trước</span>
           </div>
         </div>
 
@@ -187,9 +190,9 @@ export function Dashboard() {
               <ClipboardList className="w-4 h-4" />
             </div>
           </div>
-          <div className="flex items-center gap-1 mt-4 text-[10px] font-bold text-emerald-600">
-            <ArrowUpRight className="w-3.5 h-3.5" />
-            <span>+8.2% so với tuần trước</span>
+          <div className={`flex items-center gap-1 mt-4 text-[10px] font-bold ${stats?.orderGrowth >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+            {stats?.orderGrowth >= 0 ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
+            <span>{stats?.orderGrowth >= 0 ? "+" : ""}{stats?.orderGrowth?.toFixed(1)}% so với tháng trước</span>
           </div>
         </div>
 
@@ -206,9 +209,8 @@ export function Dashboard() {
               <ShoppingBag className="w-4 h-4" />
             </div>
           </div>
-          <div className="flex items-center gap-1 mt-4 text-[10px] font-bold text-emerald-600">
-            <ArrowUpRight className="w-3.5 h-3.5" />
-            <span>+5.1% sản phẩm mới</span>
+          <div className="flex items-center gap-1 mt-4 text-[10px] font-bold text-stone-500">
+            <span>Quản lý sản phẩm toàn sàn</span>
           </div>
         </div>
 
@@ -218,16 +220,15 @@ export function Dashboard() {
             <div>
               <span className="text-[10px] font-bold text-stone-400 tracking-wider uppercase">CỬA HÀNG</span>
               <h2 className="text-xl font-black text-amber-900 mt-1 m-0">
-                {stats?.totalSellers || 0}
+                {stats?.totalShops || stats?.totalSellers || 0}
               </h2>
             </div>
             <div className="w-9 h-9 rounded-xl grid place-items-center bg-amber-500 text-white shadow-md shadow-amber-500/10">
               <Store className="w-4 h-4" />
             </div>
           </div>
-          <div className="flex items-center gap-1 mt-4 text-[10px] font-bold text-rose-600">
-            <ArrowDownRight className="w-3.5 h-3.5" />
-            <span>-1.2% ngưng hoạt động</span>
+          <div className="flex items-center gap-1 mt-4 text-[10px] font-bold text-amber-700">
+            <span>{stats?.activeShops || 0} hoạt động / {stats?.verifiedShops || 0} xác thực</span>
           </div>
         </div>
 
@@ -236,7 +237,7 @@ export function Dashboard() {
           <div className="flex justify-between items-start">
             <div>
               <span className="text-[10px] font-bold text-stone-400 tracking-wider uppercase">NGƯỜI DÙNG</span>
-              <h2 className="text-xl font-black text-emerald-950 mt-1 m-0">
+              <h2 className="text-xl font-black text-emerald-955 mt-1 m-0">
                 {stats?.totalUsers || 0}
               </h2>
             </div>
@@ -244,9 +245,105 @@ export function Dashboard() {
               <Users className="w-4 h-4" />
             </div>
           </div>
-          <div className="flex items-center gap-1 mt-4 text-[10px] font-bold text-emerald-600">
-            <ArrowUpRight className="w-3.5 h-3.5" />
-            <span>+14.3% tài khoản mới</span>
+          <div className={`flex items-center gap-1 mt-4 text-[10px] font-bold ${stats?.userGrowth >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+            {stats?.userGrowth >= 0 ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
+            <span>{stats?.userGrowth >= 0 ? "+" : ""}{stats?.userGrowth?.toFixed(1)}% so với tháng trước</span>
+          </div>
+        </div>
+
+      </div>
+
+      {/* Operational & Growth Stats Row 2 */}
+      <h3 className="text-xs font-black text-stone-400 tracking-widest uppercase mb-3 mt-2">Chỉ số vận hành & tăng trưởng</h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 mb-8">
+        
+        {/* Card 6: Tỷ lệ hủy đơn */}
+        <div className="bg-gradient-to-br from-[#fff5f5] to-[#ffe3e3] border border-[#ffd0d0] rounded-2xl p-4 flex flex-col justify-between shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300 relative overflow-hidden group">
+          <div className="flex justify-between items-start">
+            <div>
+              <span className="text-[10px] font-bold text-stone-450 tracking-wider uppercase">TỶ LỆ HỦY ĐƠN</span>
+              <h2 className="text-xl font-black text-rose-600 mt-1 m-0">
+                {stats?.cancellationRate?.toFixed(1)}%
+              </h2>
+            </div>
+            <div className="w-9 h-9 rounded-xl grid place-items-center bg-rose-600 text-white shadow-md shadow-rose-500/10">
+              <AlertCircle className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="flex items-center gap-1 mt-4 text-[10px] font-bold text-rose-600">
+            <span>{stats?.cancelledOrders || 0} đơn hàng bị hủy</span>
+          </div>
+        </div>
+
+        {/* Card 7: Khiếu nại & Hoàn trả */}
+        <div className="bg-gradient-to-br from-[#fffbeb] to-[#fef3c7] border border-[#fde68a] rounded-2xl p-4 flex flex-col justify-between shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300 relative overflow-hidden group">
+          <div className="flex justify-between items-start">
+            <div>
+              <span className="text-[10px] font-bold text-stone-450 tracking-wider uppercase">KHIẾU NẠI & HOÀN TRẢ</span>
+              <h2 className="text-xl font-black text-amber-900 mt-1 m-0">
+                {stats?.pendingComplaints || 0} chờ xử lý
+              </h2>
+            </div>
+            <div className="w-9 h-9 grid place-items-center bg-amber-500 text-white rounded-xl shadow-md shadow-amber-500/10">
+              <RefreshCw className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="flex items-center gap-1 mt-4 text-[10px] font-bold text-amber-700">
+            <span>Tỷ lệ hoàn: {stats?.returnRate?.toFixed(1)}% ({stats?.returnedOrders || 0} đơn)</span>
+          </div>
+        </div>
+
+        {/* Card 8: Tăng trưởng doanh thu */}
+        <div className="bg-gradient-to-br from-[#ecfdf5] to-[#d1fae5] border border-[#a7f3d0] rounded-2xl p-4 flex flex-col justify-between shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300 relative overflow-hidden group">
+          <div className="flex justify-between items-start">
+            <div>
+              <span className="text-[10px] font-bold text-stone-450 tracking-wider uppercase">TĂNG TRƯỞNG DOANH THU</span>
+              <h2 className={`text-xl font-black mt-1 m-0 ${stats?.revenueGrowth >= 0 ? "text-emerald-700" : "text-rose-650"}`}>
+                {stats?.revenueGrowth >= 0 ? "+" : ""}{stats?.revenueGrowth?.toFixed(1)}%
+              </h2>
+            </div>
+            <div className={`w-9 h-9 rounded-xl grid place-items-center text-white shadow-md ${stats?.revenueGrowth >= 0 ? "bg-emerald-600 shadow-emerald-500/10" : "bg-rose-600 shadow-rose-500/10"}`}>
+              <TrendingUp className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="flex items-center gap-1 mt-4 text-[10px] font-semibold text-stone-500">
+            <span>Doanh số 30 ngày qua</span>
+          </div>
+        </div>
+
+        {/* Card 9: Tăng trưởng đơn hàng */}
+        <div className="bg-gradient-to-br from-[#f5f3ff] to-[#eddfff] border border-[#d8c5ff] rounded-2xl p-4 flex flex-col justify-between shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300 relative overflow-hidden group">
+          <div className="flex justify-between items-start">
+            <div>
+              <span className="text-[10px] font-bold text-stone-450 tracking-wider uppercase">TĂNG TRƯỞNG ĐƠN HÀNG</span>
+              <h2 className={`text-xl font-black mt-1 m-0 ${stats?.orderGrowth >= 0 ? "text-purple-700" : "text-rose-650"}`}>
+                {stats?.orderGrowth >= 0 ? "+" : ""}{stats?.orderGrowth?.toFixed(1)}%
+              </h2>
+            </div>
+            <div className={`w-9 h-9 rounded-xl grid place-items-center text-white shadow-md ${stats?.orderGrowth >= 0 ? "bg-purple-650 shadow-purple-500/10" : "bg-rose-600 shadow-rose-500/10"}`}>
+              <ClipboardList className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="flex items-center gap-1 mt-4 text-[10px] font-semibold text-stone-500">
+            <span>Giao dịch 30 ngày qua</span>
+          </div>
+        </div>
+
+        {/* Card 10: Tăng trưởng người dùng */}
+        <div className="bg-gradient-to-br from-[#eff6ff] to-[#dbeafe] border border-[#bfdbfe] rounded-2xl p-4 flex flex-col justify-between shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300 relative overflow-hidden group">
+          <div className="flex justify-between items-start">
+            <div>
+              <span className="text-[10px] font-bold text-stone-450 tracking-wider uppercase">TĂNG TRƯỞNG USER</span>
+              <h2 className={`text-xl font-black mt-1 m-0 ${stats?.userGrowth >= 0 ? "text-blue-700" : "text-rose-650"}`}>
+                {stats?.userGrowth >= 0 ? "+" : ""}{stats?.userGrowth?.toFixed(1)}%
+              </h2>
+            </div>
+            <div className={`w-9 h-9 rounded-xl grid place-items-center text-white shadow-md ${stats?.userGrowth >= 0 ? "bg-blue-600 shadow-blue-500/10" : "bg-rose-600 shadow-rose-500/10"}`}>
+              <Users className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="flex items-center gap-1 mt-4 text-[10px] font-semibold text-stone-500">
+            <span>Đăng ký 30 ngày qua</span>
           </div>
         </div>
 
