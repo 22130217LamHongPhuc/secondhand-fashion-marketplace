@@ -1,4 +1,4 @@
-import { Star } from "lucide-react";
+import { Star, BadgeCheck } from "lucide-react";
 import { featuredShops as fallbackFeaturedShops } from "../data";
 import { useNavigate } from "react-router-dom";
 
@@ -77,8 +77,11 @@ export default function FeaturedShopSection({ shops, loading }) {
             <div className="p-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h3 className="text-lg font-black text-[#3f392f]">
+                  <h3 className="text-lg font-black text-[#3f392f] flex items-center gap-1">
                     {shop.name}
+                    {shop.isVerified && (
+                      <BadgeCheck className="w-4 h-4 text-blue-500 fill-blue-500/10 shrink-0" />
+                    )}
                   </h3>
 
                   <p className="mt-2 text-sm leading-6 text-[#8a7f6c]">

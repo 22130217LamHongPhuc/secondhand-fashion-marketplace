@@ -86,13 +86,14 @@ export function Dashboard() {
   }
 
   // Calculate percentages for Donut chart
-  const totalForDonut = Math.max(stats?.totalOrders || 1, 1);
+  const totalForDonut = Math.max(stats?.totalOrders || 0, 1);
   const orderStatuses = [
-    { label: "Hoàn thành", count: stats?.completedOrders || 0, color: "#10b981", percent: Math.round(((stats?.completedOrders || 0) / totalForDonut) * 100) },
-    { label: "Đang giao", count: stats?.shippingOrders || 0, color: "#6366f1", percent: Math.round(((stats?.shippingOrders || 0) / totalForDonut) * 100) },
-    { label: "Chờ xử lý", count: stats?.pendingOrders || 0, color: "#f59e0b", percent: Math.round(((stats?.pendingOrders || 0) / totalForDonut) * 100) },
-    { label: "Đã hủy", count: stats?.cancelledOrders || 0, color: "#ef4444", percent: Math.round(((stats?.cancelledOrders || 0) / totalForDonut) * 100) },
-    { label: "Đơn hoàn trả", count: stats?.returnedOrders || 0, color: "#f43f5e", percent: Math.round(((stats?.returnedOrders || 0) / totalForDonut) * 100) },
+    { label: "Hoàn thành", count: stats?.completedOrders || 0, color: "#10b981", percent: ((stats?.completedOrders || 0) / totalForDonut) * 100 },
+    { label: "Đang giao", count: stats?.shippingOrders || 0, color: "#6366f1", percent: ((stats?.shippingOrders || 0) / totalForDonut) * 100 },
+    { label: "Đã xác nhận", count: stats?.confirmedOrders || 0, color: "#3b82f6", percent: ((stats?.confirmedOrders || 0) / totalForDonut) * 100 },
+    { label: "Chờ xử lý", count: stats?.pendingOrders || 0, color: "#f59e0b", percent: ((stats?.pendingOrders || 0) / totalForDonut) * 100 },
+    { label: "Đã hủy", count: stats?.cancelledOrders || 0, color: "#ef4444", percent: ((stats?.cancelledOrders || 0) / totalForDonut) * 100 },
+    { label: "Đơn hoàn trả", count: stats?.returnedOrders || 0, color: "#f43f5e", percent: ((stats?.returnedOrders || 0) / totalForDonut) * 100 },
   ];
 
   // SVG Line Chart computations
@@ -156,7 +157,7 @@ export function Dashboard() {
 
       {/* Main Stats Cards Row 1 */}
       <h3 className="text-xs font-black text-stone-400 tracking-widest uppercase mb-3">Chỉ số hệ thống</h3>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-5 mb-6">
         
         {/* Card 1: Doanh thu */}
         <div className="bg-gradient-to-br from-[#fff7f2] to-[#fff1e6] border border-[#fbd6bc] rounded-2xl p-4 flex flex-col justify-between shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300 relative overflow-hidden group">
@@ -214,13 +215,13 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* Card 4: Cửa hàng */}
+        {/* Card 4: Người bán */}
         <div className="bg-gradient-to-br from-[#fffbeb] to-[#fef3c7] border border-[#fde68a] rounded-2xl p-4 flex flex-col justify-between shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300 relative overflow-hidden group">
           <div className="flex justify-between items-start">
             <div>
-              <span className="text-[10px] font-bold text-stone-400 tracking-wider uppercase">CỬA HÀNG</span>
+              <span className="text-[10px] font-bold text-stone-400 tracking-wider uppercase">NGƯỜI BÁN</span>
               <h2 className="text-xl font-black text-amber-900 mt-1 m-0">
-                {stats?.totalShops || stats?.totalSellers || 0}
+                {stats?.totalSellers || 0}
               </h2>
             </div>
             <div className="w-9 h-9 rounded-xl grid place-items-center bg-amber-500 text-white shadow-md shadow-amber-500/10">
@@ -232,13 +233,13 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* Card 5: Thành viên */}
+        {/* Card 5: Người mua */}
         <div className="bg-gradient-to-br from-[#ecfdf5] to-[#d1fae5] border border-[#a7f3d0] rounded-2xl p-4 flex flex-col justify-between shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300 relative overflow-hidden group">
           <div className="flex justify-between items-start">
             <div>
-              <span className="text-[10px] font-bold text-stone-400 tracking-wider uppercase">NGƯỜI DÙNG</span>
-              <h2 className="text-xl font-black text-emerald-955 mt-1 m-0">
-                {stats?.totalUsers || 0}
+              <span className="text-[10px] font-bold text-stone-400 tracking-wider uppercase">NGƯỜI MUA</span>
+              <h2 className="text-xl font-black text-emerald-900 mt-1 m-0">
+                {stats?.totalCustomers || 0}
               </h2>
             </div>
             <div className="w-9 h-9 rounded-xl grid place-items-center bg-emerald-600 text-white shadow-md shadow-emerald-500/10">
@@ -251,11 +252,29 @@ export function Dashboard() {
           </div>
         </div>
 
+        {/* Card 6: Quản trị viên */}
+        <div className="bg-gradient-to-br from-[#f8fafc] to-[#f1f5f9] border border-[#cbd5e1] rounded-2xl p-4 flex flex-col justify-between shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300 relative overflow-hidden group">
+          <div className="flex justify-between items-start">
+            <div>
+              <span className="text-[10px] font-bold text-slate-400 tracking-wider uppercase">ADMIN</span>
+              <h2 className="text-xl font-black text-slate-800 mt-1 m-0">
+                {stats?.totalAdmins || 0}
+              </h2>
+            </div>
+            <div className="w-9 h-9 rounded-xl grid place-items-center bg-slate-600 text-white shadow-md shadow-slate-500/10">
+              <UserCheck className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="flex items-center gap-1 mt-4 text-[10px] font-bold text-slate-600">
+            <span>Quản trị hệ thống</span>
+          </div>
+        </div>
+
       </div>
 
       {/* Operational & Growth Stats Row 2 */}
       <h3 className="text-xs font-black text-stone-400 tracking-widest uppercase mb-3 mt-2">Chỉ số vận hành & tăng trưởng</h3>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-5 mb-8">
         
         {/* Card 6: Tỷ lệ hủy đơn */}
         <div className="bg-gradient-to-br from-[#fff5f5] to-[#ffe3e3] border border-[#ffd0d0] rounded-2xl p-4 flex flex-col justify-between shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300 relative overflow-hidden group">
@@ -333,7 +352,7 @@ export function Dashboard() {
         <div className="bg-gradient-to-br from-[#eff6ff] to-[#dbeafe] border border-[#bfdbfe] rounded-2xl p-4 flex flex-col justify-between shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300 relative overflow-hidden group">
           <div className="flex justify-between items-start">
             <div>
-              <span className="text-[10px] font-bold text-stone-450 tracking-wider uppercase">TĂNG TRƯỞNG USER</span>
+              <span className="text-[10px] font-bold text-stone-450 tracking-wider uppercase">TĂNG TRƯỞNG NGƯỜI DÙNG</span>
               <h2 className={`text-xl font-black mt-1 m-0 ${stats?.userGrowth >= 0 ? "text-blue-700" : "text-rose-650"}`}>
                 {stats?.userGrowth >= 0 ? "+" : ""}{stats?.userGrowth?.toFixed(1)}%
               </h2>
@@ -344,6 +363,24 @@ export function Dashboard() {
           </div>
           <div className="flex items-center gap-1 mt-4 text-[10px] font-semibold text-stone-500">
             <span>Đăng ký 30 ngày qua</span>
+          </div>
+        </div>
+
+        {/* Card 11: Tăng trưởng cửa hàng */}
+        <div className="bg-gradient-to-br from-[#fffbeb] to-[#fef3c7] border border-[#fde68a] rounded-2xl p-4 flex flex-col justify-between shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300 relative overflow-hidden group">
+          <div className="flex justify-between items-start">
+            <div>
+              <span className="text-[10px] font-bold text-stone-450 tracking-wider uppercase">TĂNG TRƯỞNG CỬA HÀNG</span>
+              <h2 className={`text-xl font-black mt-1 m-0 ${stats?.shopGrowth >= 0 ? "text-amber-700" : "text-rose-650"}`}>
+                {stats?.shopGrowth >= 0 ? "+" : ""}{stats?.shopGrowth?.toFixed(1)}%
+              </h2>
+            </div>
+            <div className={`w-9 h-9 rounded-xl grid place-items-center text-white shadow-md ${stats?.shopGrowth >= 0 ? "bg-amber-500 shadow-amber-500/10" : "bg-rose-600 shadow-rose-500/10"}`}>
+              <Store className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="flex items-center gap-1 mt-4 text-[10px] font-semibold text-stone-500">
+            <span>Đăng ký mới 30 ngày qua</span>
           </div>
         </div>
 
@@ -567,7 +604,7 @@ export function Dashboard() {
                 <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: status.color }} />
                 <div className="flex flex-col min-w-0">
                   <span className="font-semibold text-stone-500 text-[10px] truncate leading-none">{status.label}</span>
-                  <span className="font-extrabold text-stone-800 text-xs mt-1">{status.count} ({status.percent}%)</span>
+                  <span className="font-extrabold text-stone-800 text-xs mt-1">{status.count} ({Math.round(status.percent)}%)</span>
                 </div>
               </div>
             ))}

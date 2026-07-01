@@ -1,4 +1,4 @@
-import { CalendarDays, MapPin, MessageSquare, Star } from "lucide-react";
+import { CalendarDays, MapPin, MessageSquare, Star, BadgeCheck } from "lucide-react";
 
 function initials(name) {
   if (!name) return "";
@@ -68,8 +68,11 @@ export default function ShopHero({ shop }) {
           </div>
 
           <div>
-            <h2 className="text-4xl font-black tracking-tight text-[#a84720]">
+            <h2 className="text-4xl font-black tracking-tight text-[#a84720] flex items-center gap-2">
               {resolvedShop.name}
+              {resolvedShop.isVerified && (
+                <BadgeCheck className="w-8 h-8 text-blue-500 fill-blue-500/10 shrink-0" />
+              )}
             </h2>
 
             <p className="mt-2 max-w-xl text-sm leading-6 text-[#7a6b58]">
